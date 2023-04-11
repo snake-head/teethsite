@@ -1,8 +1,8 @@
 # teethsite_vue3
-test
+
 ## Project setup
 ```
-yarn install
+yarn install test
 ```
 
 ### Compiles and hot-reloads for development

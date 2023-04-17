@@ -603,7 +603,6 @@ watch(dentalArchAdjustType, () => {
  */
 function adjustDentalArchWidgetInScene(mode) {
 	let selectedTeethType = dentalArchAdjustType.value;
-	console.log(dentalArchWidgets)
 	switch (mode) {
 		case "enter": {
 			dentalArchWidgets[selectedTeethType].forEach(({ sphereLinkWidget }) => {

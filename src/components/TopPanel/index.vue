@@ -88,8 +88,8 @@ import DeltalArchAdjust from "./DeltalArchAdjust.vue";
 
 const store = useStore();
 const isManager = computed(() => 
-	// store.state.userHandleState.userType === "MANAGER"
-	true
+	store.state.userHandleState.userType === "MANAGER"
+	// true
 );// 是否允许该用户撤回方案(只有管理员能够撤回),测试时设为true
 const uploadType = computed(() => store.getters["userHandleState/uploadType"]);
 const dataState = computed(() => store.getters["userHandleState/dataStateText"]);

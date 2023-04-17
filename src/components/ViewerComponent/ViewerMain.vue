@@ -90,7 +90,13 @@ const props = defineProps({
 		type: Object,
 		default: () => ({
 			upper: false, // 全上颌牙显示/隐藏
+			upperOrigin: false, // 上颌牙原始牙列显示/隐藏
+			upperOriginBracket: false, // 上颌牙原始托槽显示/隐藏
+			upperOriginGingiva: false,
 			lower: false, // 全下颌牙显示/隐藏
+			lowerOrigin: false, // 下颌牙原始牙列显示/隐藏
+			lowerOriginBracket: false, // 下颌牙原始托槽显示/隐藏
+			lowerOriginGingiva: false,
 			teethWithGingiva: 2, // 牙齿+牙龈0/牙齿1/牙龈2
 			axis: false, // 坐标轴显示/隐藏
 			arch: 2, // 牙弓线显示01/隐藏23, 托槽显示02/隐藏13
@@ -105,6 +111,7 @@ const uploadType = computed(() => store.getters["userHandleState/uploadType"]);
 const simMode = computed(() => store.state.actorHandleState.simMode);
 const isInFineTuneMode = computed(() => store.state.actorHandleState.currentMode.fineTune);
 const currentMode = computed(() => store.state.actorHandleState.currentMode);
+const userType = computed(() => store.state.userHandleState.userType);
 watch(arrangeTeethType, (newVal)=>{
 	// 如果只有单颌数据被成功加载, 那么后续调整牙弓线的选择最多也就一项
 	if (newVal.length === 1) {
@@ -169,10 +176,10 @@ watch(currentShowPanel, (newVal, oldVal) => {
 	if (oldVal === 1 && newVal === -1) {
 		adjustDentalArchWidgetInScene("exit");
 		// 删除actor, 重置牙弓线
-		store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
-			upper: { reset: true },
-			lower: { reset: true },
-		});
+		// store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
+		// 	upper: { reset: true },
+		// 	lower: { reset: true },
+		// });
 		// 开启微调托槽
 		store.dispatch("actorHandleState/updateCurrentMode", {
 			fineTune: true,
@@ -2477,12 +2484,13 @@ function updateMat4(teethType) {
 let enterAtInitTime = computed(() => store.state.actorHandleState.teethArrange.enterAtInitTime);
 let isArrangeDataComplete = computed(() => store.getters["actorHandleState/isArrangeDataComplete"]);
 // 进入模拟排牙
+let clickEnter = false;
 function openSimulationMode() {
 	if (arrangeTeethType.value.length === 0 || (isArrangeDataComplete.value && !enterAtInitTime.value)) {
 		// 不作任何排牙进入排牙模式, 条件:
 		// 1、双颌数据均不满足排牙要求
 		// 2、已经进行过排牙 + 不是首次进入
-		adjustActorWhenSwitchSimMode("enter");
+		adjustActorWhenSwitchSimMode("enter", true);
 		applyUserMatrixWhenSwitchMode("normal", simMode.value, true);
 	} else {
 		// 开始排牙, 条件:
@@ -2490,6 +2498,7 @@ function openSimulationMode() {
 		// 2、从零开始排牙 / 虽然已经有排牙数据但是本次为首次进入排牙模式
 		// * 从零 -> 完整排牙
 		// * 已有数据 -> 第一次还有牙弓线需要制造 -> 忽略步骤排牙
+		clickEnter = true;
 		forceUpdateArrange();
 	}
 }
@@ -2538,7 +2547,8 @@ watch(currentArrangeStep, (newVal) => {
 			},
 		});
 		// actor加入屏幕
-		adjustActorWhenSwitchSimMode("enter");
+		adjustActorWhenSwitchSimMode("enter", clickEnter);
+		clickEnter=false;
 		// 当前模式不是normal则在更新矩阵前先把所有数据转到normal(主要针对依赖点集,转换需要依赖旧矩阵)
 		if (forceUpdateAtMode !== "normal") {
 			applyUserMatrixWhenSwitchMode(forceUpdateAtMode, "normal", true);
@@ -2577,12 +2587,12 @@ watch(currentArrangeStep, (newVal) => {
 });
 // 退出模拟排牙
 function exitSimulationMode() {
-	adjustActorWhenSwitchSimMode("exit");
+	adjustActorWhenSwitchSimMode("exit",1);
 	// 退出一定是退到normal的
 	applyUserMatrixWhenSwitchMode(simMode.value, "normal", true);
 }
-function adjustActorWhenSwitchSimMode(switchType) {
-	const { addActorsList, delActorsList } = adjustActorWhenSwitchSimulationMode(switchType, props.actorInScene);
+function adjustActorWhenSwitchSimMode(switchType, clickEnter=false) {
+	const { addActorsList, delActorsList } = adjustActorWhenSwitchSimulationMode(switchType, props.actorInScene, userType.value, clickEnter);
 	actorInSceneAdjust(addActorsList, delActorsList);
 }
 // 强制更新模拟排牙

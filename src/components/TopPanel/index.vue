@@ -79,7 +79,7 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, watch } from "vue";
 import { useStore } from "vuex";
 import ElDualProgress from "../progress";
 import TeethPosAdjust from "./TeethPosAdjust.vue";
@@ -97,6 +97,7 @@ const patientName = computed(() => store.state.userHandleState.patientName);
 const arrangeShowState = computed(() => store.getters["userHandleState/arrangeShowState"]);
 const isInSimMode = computed(() => store.state.actorHandleState.currentMode.straightenSimulation);
 const arrangeTeethType = computed(() => store.getters["userHandleState/arrangeTeethType"]);
+const userType = computed(() => store.state.userHandleState.userType);
 const toolMenuList = computed(() => {
 	const tools = [
 		{
@@ -113,6 +114,7 @@ const toolMenuList = computed(() => {
 					isFit: isInSimMode.value,
 				},
 			],
+			allLimitsFit: false,
 		},
 		{
 			toolName: "牙弓线调整",
@@ -128,6 +130,7 @@ const toolMenuList = computed(() => {
 					isFit: arrangeTeethType.value.length > 0,
 				},
 			],
+			allLimitsFit: false,
 		},
 		{
 			toolName: "开发中",
@@ -141,7 +144,12 @@ const toolMenuList = computed(() => {
 	}
 	return tools;
 });
-
+//2023.4.12更新，管理员用户进入排牙后，直接进入牙弓线调整页面
+watch(toolMenuList, (newVal, oldVal)=>{
+	if (newVal[1].allLimitsFit && !oldVal[1].allLimitsFit && userType.value=='MANAGER'){
+		store.dispatch("actorHandleState/updateCurrentShowPanel", 1);
+	}
+})
 const currentShowPanel = computed(() => store.state.actorHandleState.currentShowPanel);
 function enterToolPanel(index) {
 	if (toolMenuList.value[index].allLimitsFit) {

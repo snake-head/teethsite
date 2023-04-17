@@ -48,9 +48,12 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
     let allActorList = {
         upper: {
             // 上颌牙
-            teethWithGingiva: {}, // 牙齿+牙龈的全模型(如果显示牙龈则选择此actor)
+            teethWithGingiva: {}, // 牙龈
+            originGingiva: {},
             tooth: [], // 每颗分割牙齿的name, actor, mapper(如果隐藏牙龈则选择此actor)
+            originTooth: [], //2023.4.11更新，需要能够同时显示排牙前后的牙齿，用于保存原始牙列
             bracket: [], // 每个托槽的name, actor, mapper
+            originBracket: [],
             toothAxis: [], // 每颗分割牙齿的name, 坐标轴actors列表
             distanceLine: [], // 距离计算线(改变选择托槽时进行调整)
             arch: {}, // 牙弓线(每次重新排牙都会更新)
@@ -59,9 +62,12 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
         },
         lower: {
             // 下颌牙
-            teethWithGingiva: {}, // 牙齿+牙龈的全模型(如果显示牙龈则选择此actor)
+            teethWithGingiva: {}, // 牙龈
+            originGingiva: {},
             tooth: [], // 每颗分割牙齿的name, actor, mapper(如果隐藏牙龈则选择此actor)
+            originTooth: [], //2023.4.11更新，需要能够同时显示排牙前后的牙齿，用于保存原始牙列
             bracket: [], // 每个托槽的name, actor, mapper
+            originBracket: [],
             toothAxis: [], // 每颗分割牙齿的name, 坐标轴actors列表
             distanceLine: [], // 距离计算线
             arch: {}, // 牙弓线(每次重新排牙都会更新)
@@ -979,9 +985,16 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
     function handleTeethActorDatas(teethType, actorDatas) {
         const { teethWithGingiva, tooth, bracket } = actorDatas;
         // gingiva
-        const { actor, mapper } = generateActorByData(teethWithGingiva);
+        var { actor, mapper } = generateActorByData(teethWithGingiva);
         actor.getProperty().setColor(actorColorConfig.teeth);
         allActorList[teethType].teethWithGingiva = {
+            actor,
+            mapper,
+        };
+        // originGingiva
+        var { actor, mapper } = generateActorByData(teethWithGingiva);
+        actor.getProperty().setColor(actorColorConfig.teeth);
+        allActorList[teethType].originGingiva = {
             actor,
             mapper,
         };
@@ -993,6 +1006,14 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
             toothPolyDatas[name] = polyData;
             actor.getProperty().setColor(actorColorConfig.teeth);
             allActorList[teethType].tooth.push({ name, actor, mapper });
+        });
+        // originTooth
+        Object.keys(tooth).forEach((name) => {
+            const { actor, mapper, polyData } = generateActorByData(
+                tooth[name]
+            );
+            actor.getProperty().setColor(actorColorConfig.teeth);
+            allActorList[teethType].originTooth.push({ name, actor, mapper });
         });
         // bracket
         Object.keys(bracket).forEach((name) => {
@@ -1011,9 +1032,20 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                 center[i] = (bounds[2 * i + 1] + bounds[2 * i]) / 2.0;
             }
             postCenter[name] = center;
-            // console.log(center)
             allActorList[teethType].bracket.push({ name, actor, mapper });
         });
+        // originBracket
+        Object.keys(bracket).forEach((name) => {
+            const { actor, mapper, polyData } = generateActorByData(
+                bracket[name]
+            );
+
+            actor.getProperty().setColor(actorColorConfig.bracket.default);
+            // 初始为normal模式,设置为[mat1,mat3], mat3是单位矩阵, 因此就是mat1
+            actor.setUserMatrix(userMatrixList.mat1[name]);
+            allActorList[teethType].originBracket.push({ name, actor, mapper });
+        });
+        
     }
     function generateActorByData({ pointValues, cellValues }) {
         const polyData = vtkPolyData.newInstance();

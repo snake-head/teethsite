@@ -329,6 +329,20 @@
 										]"
 									/>
 								</el-button>
+								<!-- 2023.4.12更新：用于隐藏/显示原始牙列 -->
+								<el-button
+									size="small"
+									@click="changeOriginToothShowState()"
+									:disabled="!isActorLoadedFinish.upper && !isActorLoadedFinish.lower"
+								>
+									<div
+										class="bg"
+										:class="[
+											actorInScene.axis ? 'show-axis-icon' : 'hide-axis-icon',
+											{ disabled: !isActorLoadedFinish.upper && !isActorLoadedFinish.lower },
+										]"
+									/>
+								</el-button>
 							</el-button-group>
 							<ViewerMain
 								ref="viewerMain"
@@ -344,7 +358,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, computed, getCurrentInstance, onMounted, toRaw } from "vue";
+import { ref, reactive, watch, computed, getCurrentInstance, onMounted, toRaw, provide } from "vue";
 import { useStore } from "vuex";
 import TopPanel from "../components/TopPanel";
 import ViewerMain from "../components/ViewerComponent/ViewerMain";
@@ -469,7 +483,13 @@ const arrangeShowState = computed(() => store.getters["userHandleState/arrangeSh
 
 let actorInScene = reactive({
 	upper: false, // 全上颌牙显示/隐藏
+	upperOrigin: false, // 上颌牙原始牙列显示/隐藏
+	upperOriginBracket: false, // 上颌牙原始托槽显示/隐藏
+	upperOriginGingiva: false,
 	lower: false, // 全下颌牙显示/隐藏
+	lowerOrigin: false, // 下颌牙原始牙列显示/隐藏
+	lowerOriginBracket: false, // 下颌牙原始托槽显示/隐藏
+	lowerOriginGingiva: false,
 	teethWithGingiva: 1, // 牙齿+牙龈0/牙齿1
 	axis: false, // 坐标轴显示/隐藏
 	arch: 2, // 牙弓线显示01/隐藏23, 托槽显示02/隐藏13
@@ -496,14 +516,12 @@ let isActorLoadedFinish = store.state.userHandleState.loadedTeethType;
 watch(isActorLoadedFinish, () => {
 	// Actor初次加载成功后直接渲染
 	if (isActorLoadedFinish.upper) {
-		// console.log("发现上颌牙Actor加载成功");
 		actorInScene.upper = true;
 		actorInScene.teethWithGingiva = 0;
 		actorInScene.axis = true;
 		actorInScene.arch = 0;
 	}
 	if (isActorLoadedFinish.lower) {
-		// console.log("发现下颌牙Actor加载成功");
 		actorInScene.lower = true;
 		actorInScene.teethWithGingiva = 0;
 		actorInScene.axis = true;
@@ -730,6 +748,15 @@ function changeBracketArchShowState() {
 	actorInScene.arch = nextState;
 }
 
+function changeOriginToothShowState(){
+	actorInScene.upperOrigin = !actorInScene.upperOrigin
+	actorInScene.lowerOrigin = !actorInScene.lowerOrigin
+	actorInScene.upperOriginBracket = !actorInScene.upperOriginBracket
+	actorInScene.lowerOriginBracket = !actorInScene.lowerOriginBracket
+	actorInScene.upperOriginGingiva = !actorInScene.upperOriginGingiva
+	actorInScene.lowerOriginGingiva = !actorInScene.lowerOriginGingiva
+}
+
 function rollbackCheckedData() {
 	if (!hasAnyDataSubmit.value) {
 		proxy.$message({
@@ -740,6 +767,23 @@ function rollbackCheckedData() {
 	}
 	viewerMain.value.rollbackCheckedData();
 }
+
+const showAndHide = ()=>{
+	actorInScene.upperOrigin = false
+	actorInScene.lowerOrigin = false
+	actorInScene.upperOriginBracket = false
+	actorInScene.lowerOriginBracket = false
+	actorInScene.upperOriginGingiva = false
+	actorInScene.lowerOriginGingiva = false
+	actorInScene.upper = false
+	actorInScene.lower = false
+	setTimeout(() => {
+		actorInScene.upper = true
+		actorInScene.lower = true
+	}, 0);
+}
+provide('showAndHide', showAndHide)
+
 </script>
 
 <style lang="scss" scoped>

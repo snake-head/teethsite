@@ -198,7 +198,6 @@ export default {
                     }
                 }
             }
-
             //2023.1.5更新：将保存键与更新键合并，去掉保存键和重置键
             // if(value.clickFlag){
             //     // coEfficients覆盖出去
@@ -407,6 +406,7 @@ export default {
         teethActors: {
             standardAxisActor: { actor: null, mapper: null }, // 根据标准坐标系计算, 仅需计算一次
         },
+        clickEnter: false,
     },
     getters: {
         fineTuneMode(state) {

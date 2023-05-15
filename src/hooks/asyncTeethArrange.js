@@ -458,7 +458,6 @@ export default function(allActorList) {
 						break;
 					case 2:
 						// 保存牙弓线参数
-						console.log(2)
 						store.dispatch("actorHandleState/updateDentalArchSettings", {
 							[teethType]: data.dentalArchSettings,
 						});
@@ -585,7 +584,6 @@ export default function(allActorList) {
 				currentArrangeStep[teethType] = 6;
 			}
 		}
-
 		// ------------------------------------------------------------------------
 		// 把数据分成上颌牙和下颌牙两部分
 		// ------------------------------------------------------------------------
@@ -693,7 +691,6 @@ export default function(allActorList) {
 			return;
 		}
 		// 给子线程传输数据, 开始排牙
-		console.log('rec')
 		worker[teethType].postMessage({
 			step: "recalculateDentalArch",
 			data: fineTunedBracketCenters,

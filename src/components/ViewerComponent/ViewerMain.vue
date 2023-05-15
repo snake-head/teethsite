@@ -1,22 +1,52 @@
 <template>
 	<div class="right-side-menu" :class="showRightSidemenu ? 'show' : 'hide'">
-		<div class="distance-table">
-			<div class="dt-col" v-for="(itemList, index) in distanceMessageList" :key="index">
-				<div
-					class="dt-row"
-					:class="{ selected: currentSelectBracket.name === item.name }"
-					v-for="item in itemList"
-					:key="item.rowId + '-' + item.colId"
-				>
-					<div class="dt-name-box" @click="updateSelectedBracketActorByListClick(item.name)">
-						<span>{{ item.name }}</span>
-					</div>
-					<div class="dt-dist-box">
-						<span>{{ item.distance ? item.distance.toFixed(2) : "-" }}</span>
+		<el-tabs class="demo-tabs" v-model="activeTable" type="card">
+			<el-tab-pane class="demo-tab-pane" label="距离" name="distance">
+				<div class="distance-table">
+					<div class="dt-col" v-for="(itemList, index) in distanceMessageList" :key="index">
+						<div
+							class="dt-row"
+							:class="{ selected: currentSelectBracket.name === item.name }"
+							v-for="item in itemList"
+							:key="item.rowId + '-' + item.colId"
+						>
+							<div class="dt-name-box" @click="updateSelectedBracketActorByListClick(item.name)">
+								<span>{{ item.name }}</span>
+							</div>
+							<div class="dt-dist-box">
+								<span>{{ item.distance ? item.distance.toFixed(2) : "-" }}</span>
+							</div>
+						</div>
 					</div>
 				</div>
-			</div>
-		</div>
+			</el-tab-pane>
+			<el-tab-pane class="demo-tab-pane" label="转矩" name="rotate" v-if="hasRotateInfo">
+				<div class="distance-table">
+					<div class="dt-col" v-for="(itemList, index) in rotateMessageList" :key="index">
+						<div
+							class="dt-row"
+							:class="{ selected: currentSelectBracket.name === item.name }"
+							v-for="item in itemList"
+							:key="item.rowId + '-' + item.colId"
+						>
+							<div class="dt-name-box" @click="updateSelectedBracketActorByListClick(item.name)">
+								<span>{{ item.name }}</span>
+							</div>
+							<div class="dt-dist-box">
+								<span>{{ item.rotate ? item.rotate+item.plus : "-" }}</span>
+								<div class="dt-msg-box">
+									<span>{{ item.rotate ? 
+									item.rotate.toString()+(item.plus>=0?'+':'')+item.plus.toString()
+									: "-" }}</span>
+								</div>
+							</div>
+							
+						</div>
+					</div>
+				</div>
+			</el-tab-pane>
+		</el-tabs>
+		
 		<div class="tooth-drag-window">
 			<div ref="vtkSegToothContainer" class="tooth-container" />
 		</div>
@@ -43,6 +73,7 @@ import {
 	getCurrentInstance,
 	toRaw,
 	defineProps,
+	inject
 } from "vue";
 import { useStore } from "vuex";
 import vtkGenericRenderWindow from "@kitware/vtk.js/Rendering/Misc/GenericRenderWindow";
@@ -112,6 +143,7 @@ const simMode = computed(() => store.state.actorHandleState.simMode);
 const isInFineTuneMode = computed(() => store.state.actorHandleState.currentMode.fineTune);
 const currentMode = computed(() => store.state.actorHandleState.currentMode);
 const userType = computed(() => store.state.userHandleState.userType);
+const activeTable = ref('distance')
 watch(arrangeTeethType, (newVal)=>{
 	// 如果只有单颌数据被成功加载, 那么后续调整牙弓线的选择最多也就一项
 	if (newVal.length === 1) {
@@ -844,6 +876,7 @@ const {
 	bracketData,
 	updateDistanceLineActor,
 	distanceMessageList,
+	rotateMessageList,
 	longAxisData,
 } = asyncDataLoadAndParse(vtkTextContainer, userMatrixList, applyCalMatrix);
 // applyCalMatrix用于对更新长轴点时生成的新坐标轴设置userMatrix
@@ -1673,16 +1706,31 @@ function focusOnSelectedBracket() {
 }
 
 /**
- * @description 牙齿贴合式托槽微调
- */
+* @description: 牙齿贴合式托槽微调。
+fineTuneRecordRotate保存着转矩操作引起的变换
+fineTuneRecord保存着除转矩操作外（平移和z轴旋转）操作引起的变换
+排牙时使用fineTuneRecord即可
+* @param {*} moveOption
+* @return {*}
+* @author: ZhuYichen
+*/
 function fineTuneBracket(moveOption) {
 	let { moveStep, moveType } = moveOption;
 	let { renderer, renderWindow } = vtkContext;
+	const isRotate = moveType=='XALONG'||moveType=='XANTI';
 
 	const matchData = findSelectedBracketData();
 	const { name } = currentSelectBracket;
+	if(isRotate){
+		rotateMessageList[name[2]-1].forEach((targetTooth)=>{
+			if(name==targetTooth.name){
+				// 牙尖外凸为正
+				let plus = moveType=='XALONG'? -moveStep:moveStep;
+				targetTooth.plus = targetTooth.plus+plus;
+			}
+		})
+	}
 	const {
-		fineTuneRecord: { actorMatrix },
 		bottomFaceIndexList,
 		bracketBottomPointValues,
 	} = matchData;
@@ -1696,7 +1744,7 @@ function fineTuneBracket(moveOption) {
 		toothPolyDatas[name].getPoints().getData(),
 		bracketPolyDatas[name].getPoints().getData(),
 		bracketPolyDatas[name].getPolys().getData(),
-		actorMatrix,
+		isRotate?matchData.fineTuneRecordRotate.actorMatrix:matchData.fineTuneRecord.actorMatrix, 
 		moveType,
 		moveStep
 	);
@@ -1707,19 +1755,34 @@ function fineTuneBracket(moveOption) {
 			center: true,
 		});
 	}
-
-	matchData.fineTuneRecord = {
-		actorMatrix: {
-			// 决定托槽本身角度的法向量方向(角度定位轴)
-			center: [...transCenter],
-			xNormal: [...transXNormal],
-			yNormal: [...transYNormal],
-			zNormal: [...transZNormal],
-		},
-	};
-
+	if(isRotate){
+		matchData.fineTuneRecordRotate = {
+			actorMatrix: {
+				// 决定托槽本身角度的法向量方向(角度定位轴)
+				center: [...transCenter],
+				xNormal: [...transXNormal],
+				yNormal: [...transYNormal],
+				zNormal: [...transZNormal],
+			},
+		};
+	}else{
+		matchData.fineTuneRecord = {
+			actorMatrix: {
+				// 决定托槽本身角度的法向量方向(角度定位轴)
+				center: [...transCenter],
+				xNormal: [...transXNormal],
+				yNormal: [...transYNormal],
+				zNormal: [...transZNormal],
+			},
+		};
+	}
 	// 托槽变换
-	updateAndApplySingleBracketUserMatrix(name, matchData.fineTuneRecord.actorMatrix, fineTuneMode.value);
+	updateAndApplySingleBracketUserMatrix(
+		name, 
+		isRotate?matchData.fineTuneRecordRotate.actorMatrix:matchData.fineTuneRecord.actorMatrix, 
+		fineTuneMode.value, 
+		isRotate
+	);
 
 	renderWindow.render();
 	// 子窗口跟着变
@@ -1777,10 +1840,25 @@ function uploadDataOnline(uploadStateMessage, submit = false) {
 		let { arrangeMatrix, dentalArchSettings, teethStandardAxis, dentalArchAdjustRecord } = teethArrangeData;
 		// let filterWord = teethType === "upper" ? "U" : "L";
 		let dataToMount = {
+			rotatePlusData: rotateMessageList,
 			bracketData: bracketData[teethType].map((item) => {
 				const {
 					name,
 					fineTuneRecord: {
+						actorMatrix: { center, yNormal, zNormal },
+					},
+				} = item;
+				return {
+					name,
+					center,
+					yNormal,
+					zNormal,
+				};
+			}),
+			bracketDataRotate: bracketData[teethType].map((item) => {
+				const {
+					name,
+					fineTuneRecordRotate: {
 						actorMatrix: { center, yNormal, zNormal },
 					},
 				} = item;
@@ -1860,6 +1938,21 @@ function uploadDataOnline(uploadStateMessage, submit = false) {
 		);
 	});
 }
+
+let hasRotateInfo = ref(false);
+const showRotateButton = inject('showRotateButton')
+/**
+ * @description: 监视转矩列表是否变化，如果转矩列表中写入了rotate数据，说明当前托槽带有转矩信息
+ * @return {*}
+ * @author: ZhuYichen
+ */
+watch(rotateMessageList,(newVal)=>{
+	if(newVal[0][0].rotate){
+		hasRotateInfo.value=true;
+		showRotateButton();
+	}
+})
+
 function checkDataOnline() {
 	const modelType = {
 		upper: "UpperConfig",
@@ -2094,7 +2187,7 @@ function applyUserMatrixWhenSwitchMode(fromMode, toMode, render = false) {
  * @param newFineTuneRecord 新的微调位置
  * @param currMode 当前模式
  */
-function updateAndApplySingleBracketUserMatrix(bracketName, newFineTuneRecord, currMode) {
+function updateAndApplySingleBracketUserMatrix(bracketName, newFineTuneRecord, currMode, isRotate=false) {
 	// ---寻找这颗牙齿相关的所有actor(根据表格, 托槽微调不可能影响牙弓线, 不予考虑)---
 	const matchItem = {
 		teethType: "upper",
@@ -2122,7 +2215,8 @@ function updateAndApplySingleBracketUserMatrix(bracketName, newFineTuneRecord, c
 		}
 	}
 	// 如果没有pre记录, 即未进入过模拟排牙, 则将pre位置设置为托槽position(托槽加载进去的初始位置)
-	if (!preBracketPosition) {
+	// 如果是转矩操作，那么操作参考的初始位置永远都是一开始托槽的初始位置，与所有的平移和排牙无关
+	if (!preBracketPosition||isRotate) {
 		for (let teethType of ["upper", "lower"]) {
 			bracketData[teethType].forEach((item) => {
 				const { name, position } = item;
@@ -2138,7 +2232,8 @@ function updateAndApplySingleBracketUserMatrix(bracketName, newFineTuneRecord, c
 		matchItem.teethType,
 		preBracketPosition,
 		newFineTuneRecord,
-		currMode
+		currMode,
+		isRotate,
 	);
 	// 转换数据
 	// -设置
@@ -2628,6 +2723,7 @@ defineExpose({
 
 <style scoped lang="scss">
 $right-panel-width-normal: 250px;
+$table-height: 300px;
 .container {
 	transition: 0.1s;
 	width: calc(100% - $right-panel-width-normal);
@@ -2646,7 +2742,19 @@ $right-panel-width-normal: 250px;
 		height: 100%;
 	}
 }
-
+.demo-tabs {
+  :deep {
+    .el-tabs__header {
+    	margin-bottom: 0;
+		.el-tabs__item.is-top.is-active {
+		border-bottom: 1px solid rgba(192, 25, 25, 0.7);
+	}
+    }
+	.el-tabs__content {
+		height: calc(100% - 41px);
+	}
+  }
+}
 .right-side-menu {
 	transition: 0.1s;
 	opacity: 1;
@@ -2660,60 +2768,97 @@ $right-panel-width-normal: 250px;
 	flex-direction: column;
 	z-index: 99;
 	overflow: hidden;
-	.distance-table {
-		display: flex;
-		width: calc(100% - 2px);
+	.demo-tabs{
+		display: block;
+		width: 100%;
 		height: 33%;
-		background-color: aquamarine;
-		overflow-y: hidden;
-		border: 1px solid rgba(147, 112, 219, 0.7);
-		.dt-col {
-			max-width: calc(100% / 7);
-			flex: 0 0 calc(100% / 7);
-			float: left;
-			box-sizing: border-box;
-			.dt-row {
-				width: 100%;
-				height: 25%;
-				display: flex;
-				flex-wrap: wrap;
+		.demo-tab-pane {
+			height: 100%;
+		}
+		.distance-table {
+			display: block;
+			width: calc(100% - 2px);
+			height: 100%;
+			background-color: aquamarine;
+			overflow-y: hidden;
+			z-index: 99;
+			border: 1px solid rgba(147, 112, 219, 0.7);
+			.dt-col {
+				max-width: calc(100% / 7);
+				height: 100%;
+				flex: 0 0 calc(100% / 7);
+				float: left;
 				box-sizing: border-box;
-				position: relative;
-				.dt-name-box {
-					width: calc(100% - 2px);
-					height: calc(50% - 2px);
+				.dt-row {
+					width: 100%;
+					height: 25%;
 					display: flex;
-					justify-content: center;
-					align-items: center;
-					border: 1px solid rgba(158, 158, 198, 0.5);
-					background-color: #eaeaea;
-					user-select: none;
-					&:hover {
-						margin-top: -1px;
-						margin-left: -1px;
-						margin-bottom: -1px;
-						border: 2px solid rgb(158, 158, 198);
-						background-color: #d2ead2;
+					flex-wrap: wrap;
+					box-sizing: border-box;
+					position: relative;
+					.dt-name-box {
+						width: calc(100% - 2px);
+						height: calc(50% - 2px);
+						display: flex;
+						justify-content: center;
+						align-items: center;
+						border: 1px solid rgba(158, 158, 198, 0.5);
+						background-color: #eaeaea;
+						user-select: none;
+						&:hover {
+							margin-top: -1px;
+							margin-left: -1px;
+							margin-bottom: -1px;
+							border: 2px solid rgb(158, 158, 198);
+							background-color: #d2ead2;
+						}
 					}
-				}
-				.dt-dist-box {
-					width: calc(100% - 2px);
-					height: calc(50% - 2px);
-					display: flex;
-					justify-content: center;
-					align-items: center;
-					border: 1px solid rgba(158, 158, 158, 0.5);
-					background-color: #cccccc;
-				}
-				.dt-name-box span,
-				.dt-dist-box span {
-					transition: 0.1s;
-					font-size: 14px;
-				}
-				&.selected {
-					font-weight: 600;
 					.dt-dist-box {
-						background-color: #ffff69;
+						width: calc(100% - 2px);
+						height: calc(50% - 2px);
+						display: flex;
+						justify-content: center;
+						align-items: center;
+						border: 1px solid rgba(158, 158, 158, 0.5);
+						background-color: #cccccc;
+						position: relative;
+						.dt-msg-box {
+							position: absolute;
+							bottom: 20px;
+							right: 0;
+							display: none;
+							font-size: x-small;
+							overflow: visible;
+							background-color: #fff;
+							border: 1px solid rgba(0, 0, 0, 0.8);
+							width: auto;
+							padding: 4px;
+							box-sizing: border-box;
+							z-index: 1;
+							span {
+								font-size: inherit;
+							}
+						}
+						&:hover {
+							.dt-msg-box {
+								display: block;
+							}
+						}
+					}
+
+					.dt-dist-box:hover .dt-msg-box {
+						display: block;
+					}
+					.dt-name-box span,
+					.dt-dist-box span {
+						transition: 0.1s;
+						font-size: 14px;
+					}
+					&.selected {
+						font-weight: 600;
+						.dt-dist-box {
+							background-color: #ffff69;
+						}
 					}
 				}
 			}
@@ -2781,4 +2926,11 @@ $right-panel-width-normal: 250px;
 		}
 	}
 }
+
+.demo-tabs > .el-tabs__content {
+    padding: 32px;
+    color: #6b778c;
+    font-size: 32px;
+    font-weight: 600;
+  }
 </style>

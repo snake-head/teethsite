@@ -132,7 +132,7 @@ import { useStore } from "vuex";
 import { reactive, ref, toRaw, computed, watch, onMounted, defineProps, inject } from "vue";
 import ViewerMain from "../ViewerComponent/ViewerMain.vue";
 import Viewer from "../../pages/Viewer.vue"
-defineProps({
+const props = defineProps({
 	isShow: {
 		type: Boolean,
 		default: false,
@@ -141,6 +141,10 @@ defineProps({
 		type: Function,
 		default: () => {},
 	},
+	checkArchUpdated: {
+		type: Function,
+		default: ()=> {},
+	}
 });
 
 const store = useStore();
@@ -198,6 +202,7 @@ function updateTeethArrange() {
 			clickFlag: true,
 		});
 	}
+	props.checkArchUpdated();
 	showAndHide();
 }
 

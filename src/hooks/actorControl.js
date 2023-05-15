@@ -1,4 +1,5 @@
-import { reactive } from "vue";
+import { reactive, computed } from "vue";
+import { useStore } from "vuex";
 
 const colorConfig = {
     teeth: [1.0, 1.0, 1.0],
@@ -13,6 +14,8 @@ const colorConfig = {
 export { colorConfig };
 
 export default function(allActorList) {
+    const store = useStore();
+    const isArchUpdated = computed(() => store.state.actorHandleState.isArchUpdated);
     let currentSelectBracket = reactive({
         actor: null, // 当前操作托槽actor
         name: "", // 当前操作托槽名
@@ -322,7 +325,7 @@ export default function(allActorList) {
                 arch: upper && arch <= 1, // 牙弓线
                 originTooth: upper && upperOrigin, //原始牙列
                 originBracket: upper && upperOriginBracket,
-                originGingiva: upper && upperOriginGingiva,
+                originGingiva: upper && upperOriginGingiva && upperOrigin,
             },
             lower: {
                 // 下颌牙
@@ -333,7 +336,7 @@ export default function(allActorList) {
                 arch: lower && arch <= 1, // 牙弓线
                 originTooth: lower && lowerOrigin, //原始牙列
                 originBracket: lower && lowerOriginBracket,
-                originGingiva: lower && lowerOriginGingiva,
+                originGingiva: lower && lowerOriginGingiva && lowerOrigin,
             },
         };
         const addActorsList = []; // 根据状态对比(false->true),生成应该加入屏幕的actor列表
@@ -479,8 +482,10 @@ export default function(allActorList) {
                     curActorInScene[teethType].originGingiva &&
                     !preActorInScene[teethType].originGingiva
                 ) {
-                    allActorList[teethType].originGingiva.actor.getProperty().setColor(isClickEnter?colorConfig.teeth:colorConfig.originTeeth)
-                    allActorList[teethType].originGingiva.actor.getProperty().setOpacity(isClickEnter?1:0.8)
+                    if(allActorList[teethType].originGingiva.actor){
+                        allActorList[teethType].originGingiva.actor.getProperty().setColor(isClickEnter?colorConfig.teeth:colorConfig.originTeeth)
+                        allActorList[teethType].originGingiva.actor.getProperty().setOpacity(isClickEnter?1:0.8)    
+                    }
                     addActorsList.push(
                         allActorList[teethType].originGingiva.actor
                     );
@@ -503,12 +508,12 @@ export default function(allActorList) {
     }
 
     let isClickEnter=false;
+    let firstEnter=true; // 要求只有第一次进入时显示原始牙列
     /**
      * @description 进入(退出)细调模式时调用, 根据当前state决定牙弓线是否要加入(移除), 牙龈是否移除(加入)
      */
-    function adjustActorWhenSwitchSimulationMode(switchType = "enter", state, userType='NORMAL', clickEnter) {
-        isClickEnter=clickEnter;
-        console.log(isClickEnter)
+    function adjustActorWhenSwitchSimulationMode(switchType = "enter", state, userType='NORMAL', clickEnter=false) {
+        isClickEnter=clickEnter&&!isArchUpdated.value;
         const addActorsList = [];
         const delActorsList = [];
         // 读取当前state牙龈、牙弓线状态
@@ -550,7 +555,7 @@ export default function(allActorList) {
                     );
                 }
             }
-            if(userType=='MANAGER'&&clickEnter){
+            if(userType=='MANAGER'&&clickEnter&&!isArchUpdated.value){
                 state.upperOrigin = switchType === "enter" ? true : false
                 state.lowerOrigin = switchType === "enter" ? true : false
                 // state.upperOriginBracket = switchType === "enter" ? true : false

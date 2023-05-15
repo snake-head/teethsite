@@ -108,6 +108,31 @@
 									</div>
 								</div>
 							</div>
+							<div class="item-title" v-if="hasRotateInfo&&currentMode.straightenSimulation">转矩</div>
+							<div class="item-line"  v-if="hasRotateInfo&&currentMode.straightenSimulation">
+								<div class="col-3" />
+								<div class="col-8">
+									<div class="adjust-button" @click="adjustButtonClick('XANTI')">
+										<div class="orient-text">
+											<div class="anti-text" />
+											<div class="keybind-text" :class="{ show: isKeyBoardEventSelected }">
+												z
+											</div>
+										</div>
+									</div>
+								</div>
+								<div class="col-3" />
+								<div class="col-8">
+									<div class="adjust-button" @click="adjustButtonClick('XALONG')">
+										<div class="orient-text">
+											<div class="along-text" />
+											<div class="keybind-text" :class="{ show: isKeyBoardEventSelected }">
+												c
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
 							<div class="title">
 								<div class="bg model-finetune-icon asidemenu-icon" />
 								<span>模拟矫正</span>
@@ -333,14 +358,19 @@
 								<el-button
 									size="small"
 									@click="changeOriginToothShowState()"
-									:disabled="!isActorLoadedFinish.upper && !isActorLoadedFinish.lower"
+									:disabled="
+										(!isActorLoadedFinish.upper && !isActorLoadedFinish.lower) ||
+											!currentMode.straightenSimulation
+									"
 								>
 									<div
 										class="bg"
-										:class="[
-											actorInScene.axis ? 'show-axis-icon' : 'hide-axis-icon',
-											{ disabled: !isActorLoadedFinish.upper && !isActorLoadedFinish.lower },
-										]"
+										:class="{
+											'hide-origin-icon': originShowStateFlag === 0,
+											'show-origin-icon': originShowStateFlag === 1,
+											'hide-originGingiva-icon': originShowStateFlag === 2,
+											'disabled': !isActorLoadedFinish.upper && !isActorLoadedFinish.lower,
+										}"
 									/>
 								</el-button>
 							</el-button-group>
@@ -400,7 +430,7 @@ const store = useStore();
 const loadedBracketNameList = store.state.userHandleState.bracketNameList;
 const uploadType = computed(() => store.getters["userHandleState/uploadType"]);
 const isUploading = computed(() => store.getters["userHandleState/isUploading"]);
-const hasAnyDataSubmit = computed(() => store.getters["userHandleState/hasAnyDataSubmit"]);
+const hasAnyDataSubmit = computed(() => store.getters["userHandleState/hasAnyDataSubmit"]); 
 
 const userInfo = computed(() => {
 	return {
@@ -431,8 +461,8 @@ watch(fineTuneMode, (newVal, oldVal) => {
 		viewerMain.value.applyUserMatrixWhenSwitchMode(oldVal, newVal, true);
 	}
 });
-let adjustStep = ref(0.2);
-let adjustAngle = ref(3.0);
+let adjustStep = ref(0.1);
+let adjustAngle = ref(1.0);
 
 let uploadStateMessage = {
 	upper: {
@@ -696,7 +726,7 @@ function adjustButtonClick(moveType) {
 		moveStep: 0,
 		moveType,
 	};
-	if (moveType === "ANTI" || moveType === "ALONG") {
+	if (moveType.includes("ALONG") || moveType.includes("ANTI")) {
 		// 旋转
 		option.moveStep = adjustAngle.value;
 	} else {
@@ -748,13 +778,44 @@ function changeBracketArchShowState() {
 	actorInScene.arch = nextState;
 }
 
+let originShowStateFlag = ref(0);
+/**
+ * @description: 使用originShowStateFlag来控制原始牙列的显示状态：
+ * 0：调整为全部显示
+ * 1：不显示牙龈
+ * 2：全部不显示
+ * @return {*}
+ * @author: ZhuYichen
+ */
 function changeOriginToothShowState(){
-	actorInScene.upperOrigin = !actorInScene.upperOrigin
-	actorInScene.lowerOrigin = !actorInScene.lowerOrigin
-	actorInScene.upperOriginBracket = !actorInScene.upperOriginBracket
-	actorInScene.lowerOriginBracket = !actorInScene.lowerOriginBracket
-	actorInScene.upperOriginGingiva = !actorInScene.upperOriginGingiva
-	actorInScene.lowerOriginGingiva = !actorInScene.lowerOriginGingiva
+	switch(originShowStateFlag.value) {
+		case 0: 
+			actorInScene.upperOrigin=true;
+			actorInScene.lowerOrigin=true;
+			actorInScene.upperOriginBracket = true;
+			actorInScene.lowerOriginBracket = true;
+			actorInScene.upperOriginGingiva = true;
+			actorInScene.lowerOriginGingiva = true;
+			break;
+		case 1:
+			actorInScene.upperOrigin=true;
+			actorInScene.lowerOrigin=true;
+			actorInScene.upperOriginBracket = true;
+			actorInScene.lowerOriginBracket = true;
+			actorInScene.upperOriginGingiva = false;
+			actorInScene.lowerOriginGingiva = false;
+			break;
+		case 2:
+			actorInScene.upperOrigin=false;
+			actorInScene.lowerOrigin=false;
+			actorInScene.upperOriginBracket = false;
+			actorInScene.lowerOriginBracket = false;
+			actorInScene.upperOriginGingiva = false;
+			actorInScene.lowerOriginGingiva = false;
+			break;
+	}
+	originShowStateFlag.value += 1;
+	originShowStateFlag.value %= 3;
 }
 
 function rollbackCheckedData() {
@@ -783,6 +844,17 @@ const showAndHide = ()=>{
 	}, 0);
 }
 provide('showAndHide', showAndHide)
+
+const hasRotateInfo = ref(false);
+/**
+ * @description: 在ViewerMain中监视到有转矩信息后，将转矩按钮改为可见
+ * @return {*}
+ * @author: ZhuYichen
+ */
+const showRotateButton = ()=>{
+	hasRotateInfo.value=true;
+}
+provide('showRotateButton', showRotateButton)
 
 </script>
 
@@ -1461,6 +1533,15 @@ $btn-height: 30px;
 }
 .hide-axis-icon {
 	background-image: url("../assets/Icon_axis_hide.jpg");
+}
+.show-origin-icon {
+	background-image: url("../assets/Icon_origin_show.png");
+}
+.hide-originGingiva-icon {
+	background-image: url("../assets/Icon_originGingiva_hide.png");
+}
+.hide-origin-icon {
+	background-image: url("../assets/Icon_origin_hide.png");
 }
 .model-finetune-icon {
 	background-image: url("../assets/Icon_bracket_finetune.png");

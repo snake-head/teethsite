@@ -7,7 +7,7 @@ import { toRaw } from "vue";
 export default {
     namespaced: true,
     actions: {
-        // 有异步操作咋action中进行
+        // 有异步操作在action中进行
         updateSimMode(context, value) {
             context.commit("UpdateSimMode", value);
         },
@@ -65,6 +65,9 @@ export default {
         updateDentalArchLockState(context, value) {
             context.commit("UpdateDentalArchLockState", value);
         },
+        updateIsArchUpdated(context, value){
+            context.commit("UpdateIsArchUpdated", value);
+        }
     },
     mutations: {
         UpdateSimMode(state, value) {
@@ -299,6 +302,9 @@ export default {
         UpdateDentalArchLockState(state, value) {
             state.teethArrange.lockDentalArch = value;
         },
+        UpdateIsArchUpdated(state, value){
+            state.isArchUpdated = value;
+        }
     },
     state: {
         simMode: "simBracketFix", //"simToothFix",
@@ -312,8 +318,8 @@ export default {
         currentShowPanel: -1, // 当前显示菜单, -1为工具菜单
         teethPositionAdjust: {
             teethType: "upper",
-            step: 0.2,
-            angle: 3.0,
+            step: 0.1,
+            angle: 1.0,
         },
         // 外部监听,调用对应事件， 牙齿位置更新, 更新完毕重置为""
         // 如果不为""则不更新为其它值
@@ -373,6 +379,7 @@ export default {
                 reCalculateArch: false,
                 overwriteByDentalArchAdjustRecord: false,
                 regenerate: false,
+                clickFlag: false,
                 upper: {
                     reArrangeToInitState: false, // 点击[初始化]后设置为true, 用于触发viewerMain中的更新
                     isReinitActivate: false, // 是否能[初始化], 只有点了一次[保存]覆盖外部牙弓线以后才会设置为true
@@ -407,6 +414,7 @@ export default {
             standardAxisActor: { actor: null, mapper: null }, // 根据标准坐标系计算, 仅需计算一次
         },
         clickEnter: false,
+        isArchUpdated: false,
     },
     getters: {
         fineTuneMode(state) {

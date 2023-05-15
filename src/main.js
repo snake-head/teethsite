@@ -34,6 +34,8 @@ import {
     ElStep,
     ElSteps,
     ElSubmenu,
+    ElTabs,
+    ElTabPane
 } from "element-plus";
 import "element-plus/lib/theme-chalk/index.css";
 
@@ -73,6 +75,8 @@ const components = [
     ElStep,
     ElSteps,
     ElSubmenu,
+    ElTabs,
+    ElTabPane
 ];
 components.forEach((component) => {
     app.component(component.name, component);

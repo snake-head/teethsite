@@ -1,5 +1,5 @@
 import { onMounted, reactive, ref, watch } from "vue";
-import { DEFAULT_PATIENTUID } from "../static_config";
+import { DEFAULT_PATIENTUID, bracketNameList, rotateConfigList } from "../static_config";
 import { useRoute } from "vue-router";
 import { useStore } from "vuex";
 import { projectToAxis } from "../utils/bracketFineTuneByTypedArray";
@@ -19,7 +19,9 @@ import vtkHandleWidget from "../reDesignVtk/reDesignHandleWidget";
 import vtkSphereHandleRepresentation from "../reDesignVtk/reDesignSphereHandleRepresentation";
 import Constants from "@kitware/vtk.js/Rendering/Core/ImageMapper/Constants";
 import distanceLineControl from "./distanceLineControl";
-
+import {
+    invertMatrix4x4,
+} from "./userMatrixControl";
 import { browserType } from "../utils/browserTypeDetection";
 
 const { SlicingMode } = Constants;
@@ -352,8 +354,33 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
         resize(); // 初始化画布大小
         window.addEventListener("resize", resize); // 添加窗口大小调整时自动调整画布大小
         initDistanceMessageList();
+        initRotateMessageList();
         startProgress();
     });
+
+    let rotateMessageList = reactive([]);
+    /**
+     * @description: 初始化转矩表格，用于在右侧转矩tab页上进行显示
+     * @return {*}
+     * @author: ZhuYichen
+     */
+    function initRotateMessageList(){
+        for (let i = 0; i < 7; i++) {
+            rotateMessageList.push([]); // 共7列数据
+        }
+        bracketNameList.forEach((name, index) => {
+            const rowId = index % 4; // 第几行 0123
+            const colId = Math.floor(index / 4); // 第几列 01234567
+            rotateMessageList[colId].push({
+                name,
+                key: index,
+                rowId,
+                colId,
+                rotate: undefined, //从配置文件中读取到的初始转矩
+                plus: 0, //转矩增减量
+            });
+        });
+    }
 
     // textCanvas默认大小300*150, 需要手动修改
     function resize() {
@@ -1293,7 +1320,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                             progressConfig[teethType]["5"].state[stateKey] =
                                 event.data[stateKey];
                         }
-                        const { toNext } = event.data;
+                        const { toNext, targetBracketUID } = event.data;
                         if (toNext) {
                             stlObj.teeth[teethType] = event.data.stlObj;
                             xmlObj[teethType] = event.data.xmlObj;
@@ -1354,6 +1381,31 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                                 step: 6,
                                 browser: browserType(),
                             });
+                        }
+                        // 从static_config.js中读取转矩配置信息
+                        rotateConfigList.forEach((configList)=>{
+                            if(configList.bracketType==targetBracketUID){
+                                configList[teethType].forEach((tooth)=>{
+                                    rotateMessageList[tooth.name[2]-1].forEach((targetTooth)=>{
+                                        if(tooth.name==targetTooth.name){
+                                            targetTooth.rotate = tooth.rotate
+                                        }
+                                    })
+                                })
+                            }
+                        })
+                        // 从xml中读取转矩调整信息
+                        if(xmlObj[teethType]){
+                            const positionInfo = xmlObj[teethType].PositionResult[0].Position
+                            positionInfo.forEach((posInfo)=>{
+                                rotateMessageList[posInfo.$.name[2]-1].forEach((targetTooth)=>{
+                                    if(posInfo.$.name==targetTooth.name){
+                                        if(posInfo.RotatePlus){
+                                            targetTooth.plus = Number(posInfo.RotatePlus);
+                                        }
+                                    }
+                                })
+                            })
                         }
                         break;
                     }
@@ -1420,16 +1472,21 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                                     direction,
                                     position,
                                     fineTuneRecord,
+                                    fineTuneRecordRotate,
                                     initTransMatrix,
+                                    initTransMatrixRotate,
                                     bottomFaceIndexList,
                                     bracketBottomPointValues,
                                 } = event.data.bracketData[name];
                                 userMatrixList.mat1[name] = initTransMatrix; // 托槽初始变换矩阵即为mat1, 保存
+                                userMatrixList.mat6[name] = initTransMatrixRotate; // 托槽初始变换矩阵即为mat1, 保存
+                                userMatrixList.invMat6[name] = invertMatrix4x4(initTransMatrixRotate); // 托槽初始变换矩阵即为mat1, 保存
                                 bracketData[teethType].push({
                                     name,
                                     direction,
                                     position,
                                     fineTuneRecord,
+                                    fineTuneRecordRotate,
                                     bottomFaceIndexList,
                                     bracketBottomPointValues,
                                 });
@@ -1471,7 +1528,6 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                             //     }
                             // }
                             // //------------------------------------------------
-
                             handleAxisActorDatas(
                                 teethType,
                                 event.data.allActorList
@@ -1511,6 +1567,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
         bracketData,
         updateDistanceLineActor,
         distanceMessageList,
+        rotateMessageList,
         longAxisData,
     };
 }

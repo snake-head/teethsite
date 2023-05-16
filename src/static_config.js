@@ -109,3 +109,43 @@ export const typedBracketNameList = {
         "LR7",
     ],
 };
+// 转矩文件
+export const rotateConfigList = [
+    {
+        "bracketName": "日盛标准系列自锁-标准转矩",
+        "bracketType": "8d5c61c950ba484d9331c3a4c517af84",
+        // "bracketType": "8d04e6f479e9464298f1751ff7aea09e", //用古邵今的托槽做测试
+        "upper": [
+            {"name": "UL1", "rotate": 17},
+            {"name": "UR1", "rotate": 17},
+            {"name": "UL2", "rotate": 6},
+            {"name": "UR2", "rotate": 6},
+            {"name": "UL3", "rotate": 6},
+            {"name": "UR3", "rotate": 6},
+            {"name": "UL4", "rotate": -11},
+            {"name": "UR4", "rotate": -11},
+            {"name": "UL5", "rotate": -11},
+            {"name": "UR5", "rotate": -11},
+            {"name": "UL6", "rotate": -14},
+            {"name": "UR6", "rotate": -14},
+            {"name": "UL7", "rotate": -14},
+            {"name": "UR7", "rotate": -14}
+        ],
+        "lower": [
+            {"name": "LL1", "rotate": -3},
+            {"name": "LR1", "rotate": -3},
+            {"name": "LL2", "rotate": -3},
+            {"name": "LR2", "rotate": -3},
+            {"name": "LL3", "rotate": 7},
+            {"name": "LR3", "rotate": 7},
+            {"name": "LL4", "rotate": -12},
+            {"name": "LR4", "rotate": -12},
+            {"name":"LL5","rotate": -17},
+            {"name":"LR5","rotate": -17},
+            {"name":"LL6","rotate": -20},
+            {"name":"LR6","rotate": -20},
+            {"name":"LL7","rotate": -15},
+            {"name":"LR7","rotate": -15}
+        ]
+    }
+]

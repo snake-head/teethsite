@@ -424,6 +424,7 @@ export default function(allActorList) {
 				const { data } = event;
 				switch (data.step) {
 					case "Init":
+						console.log(-1)
 						// 接收到初始数据, 做一定计算后返回结果, 包括牙齿标准坐标系和牙弓线设置
 						// 如果初始数据有保存到服务器上, 子线程不会发这种东西
 						if (data.teethAxis) {
@@ -583,7 +584,6 @@ export default function(allActorList) {
 				currentArrangeStep[teethType] = 6;
 			}
 		}
-
 		// ------------------------------------------------------------------------
 		// 把数据分成上颌牙和下颌牙两部分
 		// ------------------------------------------------------------------------
@@ -709,6 +709,7 @@ export default function(allActorList) {
 		// 锁定牙弓线排牙, 走特殊流程, 但此时和正常流程一样, 会更新托槽微调记录
 		// 但多传参数isDentalArchLocked, coefficients, 具体可以看worker.js里怎么处理
 		// onmessage中最后一步不返回牙弓线, 只返回排牙矩阵, 并且不覆盖原来的数据
+		console.log(0)
 		worker[teethType].postMessage({
 			step: 0,
 			isDentalArchLocked: true, // 正常排牙不传参则默认设置为false

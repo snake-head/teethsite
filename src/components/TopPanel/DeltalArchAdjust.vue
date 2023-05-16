@@ -42,9 +42,13 @@
 			<div class="handle-title">排牙</div>
 			<div class="handle-body">
 				<div class="half clear-fix">
-					<button
+					<!-- <button
 						class="handle-btn teeth-type-button"
 						:class="{ disabled: isArrangedOnLatestAdjustDentalArch }"
+						@click="updateTeethArrange()"
+					> -->
+					<button
+						class="handle-btn teeth-type-button"
 						@click="updateTeethArrange()"
 					>
 						更新
@@ -125,8 +129,10 @@
 
 <script setup>
 import { useStore } from "vuex";
-import { reactive, ref, toRaw, computed, watch, onMounted, defineProps } from "vue";
-defineProps({
+import { reactive, ref, toRaw, computed, watch, onMounted, defineProps, inject } from "vue";
+import ViewerMain from "../ViewerComponent/ViewerMain.vue";
+import Viewer from "../../pages/Viewer.vue"
+const props = defineProps({
 	isShow: {
 		type: Boolean,
 		default: false,
@@ -135,6 +141,10 @@ defineProps({
 		type: Function,
 		default: () => {},
 	},
+	checkArchUpdated: {
+		type: Function,
+		default: ()=> {},
+	}
 });
 
 const store = useStore();
@@ -182,6 +192,8 @@ function resetDentalArch() {
 const isArrangedOnLatestAdjustDentalArch = computed(
 	() => store.getters["actorHandleState/isArrangedOnLatestAdjustDentalArch"]
 );
+
+const showAndHide = inject('showAndHide')
 function updateTeethArrange() {
 	if (!isArrangedOnLatestAdjustDentalArch.value) {
 		store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
@@ -189,8 +201,9 @@ function updateTeethArrange() {
 			//2023.1.5更新：添加一个clickFlag，用来表明是点击“更新”键
 			clickFlag: true,
 		});
-		
 	}
+	props.checkArchUpdated();
+	showAndHide();
 }
 
 const canUserSaveAdjustRecord = computed(() => store.getters["actorHandleState/canUserSaveAdjustRecord"]);

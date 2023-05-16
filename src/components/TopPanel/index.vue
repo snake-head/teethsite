@@ -28,6 +28,7 @@
 				<DeltalArchAdjust v-if="isManager"
 					:isShow="!arrangeShowState.isShow && currentShowPanel === 1"
 					:exitToolPanel="exitToolPanel"
+					:checkArchUpdated="checkArchUpdated"
 				/>
 				<div class="main-block progress" :class="{ show: arrangeShowState.isShow }">
 					<div class="arrange-progress-bar">
@@ -79,7 +80,7 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, watch, ref } from "vue";
 import { useStore } from "vuex";
 import ElDualProgress from "../progress";
 import TeethPosAdjust from "./TeethPosAdjust.vue";
@@ -88,8 +89,8 @@ import DeltalArchAdjust from "./DeltalArchAdjust.vue";
 
 const store = useStore();
 const isManager = computed(() => 
-	// store.state.userHandleState.userType === "MANAGER"
-	true
+	store.state.userHandleState.userType === "MANAGER"
+	// true
 );// 是否允许该用户撤回方案(只有管理员能够撤回),测试时设为true
 const uploadType = computed(() => store.getters["userHandleState/uploadType"]);
 const dataState = computed(() => store.getters["userHandleState/dataStateText"]);
@@ -97,6 +98,8 @@ const patientName = computed(() => store.state.userHandleState.patientName);
 const arrangeShowState = computed(() => store.getters["userHandleState/arrangeShowState"]);
 const isInSimMode = computed(() => store.state.actorHandleState.currentMode.straightenSimulation);
 const arrangeTeethType = computed(() => store.getters["userHandleState/arrangeTeethType"]);
+const userType = computed(() => store.state.userHandleState.userType);
+const isArchUpdated = computed(() => store.state.actorHandleState.isArchUpdated);
 const toolMenuList = computed(() => {
 	const tools = [
 		{
@@ -112,7 +115,12 @@ const toolMenuList = computed(() => {
 					intro: "需要在[模拟矫正]模式下使用",
 					isFit: isInSimMode.value,
 				},
+				{
+					intro: "牙弓线调整已更新牙弓线",
+					isFit: isArchUpdated.value,
+				},
 			],
+			allLimitsFit: false,
 		},
 		{
 			toolName: "牙弓线调整",
@@ -128,6 +136,7 @@ const toolMenuList = computed(() => {
 					isFit: arrangeTeethType.value.length > 0,
 				},
 			],
+			allLimitsFit: false,
 		},
 		{
 			toolName: "开发中",
@@ -141,7 +150,15 @@ const toolMenuList = computed(() => {
 	}
 	return tools;
 });
-
+//2023.4.12更新：管理员用户进入排牙后，直接进入牙弓线调整页面
+//2023.4.24更新：等待1s后再进入，否则牙弓线小球位置还没有就绪
+watch(toolMenuList, (newVal, oldVal)=>{
+	if (newVal[1].allLimitsFit && !oldVal[1].allLimitsFit && userType.value=='MANAGER'){
+		setTimeout(() => {
+			store.dispatch("actorHandleState/updateCurrentShowPanel", 1);
+		}, 200);
+	}
+})
 const currentShowPanel = computed(() => store.state.actorHandleState.currentShowPanel);
 function enterToolPanel(index) {
 	if (toolMenuList.value[index].allLimitsFit) {
@@ -150,6 +167,14 @@ function enterToolPanel(index) {
 }
 function exitToolPanel() {
 	store.dispatch("actorHandleState/updateCurrentShowPanel", -1);
+}
+/**
+ * @description: 校验是否已经更新了牙弓线，更新后才能进入咬合调整界面
+ * @return {*}
+ * @author: ZhuYichen
+ */
+function checkArchUpdated(){
+	store.dispatch("actorHandleState/updateIsArchUpdated", true);
 }
 </script>
 

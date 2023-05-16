@@ -1,3 +1,11 @@
+/*
+ * @Description: 
+ * @Version: 1.0
+ * @Autor: ZhuYichen
+ * @Date: 2022-09-27 11:03:07
+ * @LastEditors: ZhuYichen
+ * @LastEditTime: 2023-05-15 09:14:00
+ */
 module.exports = {
     lintOnSave: false, // 关闭语法检查
     productionSourceMap: false, // 打包关闭源映射

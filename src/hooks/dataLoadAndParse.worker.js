@@ -8,6 +8,9 @@ import {
     projectToAxis,
     estimateBracketBottomSlope,
 } from "../utils/bracketFineTuneByTypedArray";
+import {
+    calculateTransMatrix,
+} from "./userMatrixControl";
 import { calculateLineActorPointsAndDistance } from "./distanceLineControl";
 import vtkMath, {
     add,
@@ -605,6 +608,36 @@ function generateBracketObjFromStl(stlData, xmlData) {
     // 托槽[左右]法向量
     let xNormal = calculateN(yNormal, zNormal);
 
+    let centerRotate = center;
+    let yNormalRotate = yNormal;
+    let zNormalRotate = zNormal;
+    let xNormalRotate = xNormal;
+    if(xmlData.TcPosition[0].TcCenterCoorRotate){
+        // 托槽位置中心点
+        let centerPointRotate = xmlData.TcPosition[0].TcCenterCoorRotate[0];
+        centerRotate = [
+            parseFloat(centerPointRotate.Coor0),
+            parseFloat(centerPointRotate.Coor1),
+            parseFloat(centerPointRotate.Coor2),
+        ];
+        // 托槽[上下]法向量1
+        let tcCenterRotate = xmlData.TcPosition[0].TcCenterAxisRotate[0];
+        yNormalRotate = [
+            parseFloat(tcCenterRotate.Coor0),
+            parseFloat(tcCenterRotate.Coor1),
+            parseFloat(tcCenterRotate.Coor2),
+        ];
+        // 托槽[前后]法向量(屏幕深度方向)
+        let tcNormalRotate = xmlData.TcPosition[0].TcNormalRotate[0];
+        zNormalRotate = [
+            parseFloat(tcNormalRotate.Coor0),
+            parseFloat(tcNormalRotate.Coor1),
+            parseFloat(tcNormalRotate.Coor2),
+        ];
+        // 托槽[左右]法向量
+        xNormalRotate = calculateN(yNormalRotate, zNormalRotate);
+    }
+    
     // 保存托槽位置和3轴法向量
     return {
         pointValues,
@@ -613,6 +646,10 @@ function generateBracketObjFromStl(stlData, xmlData) {
         xNormal,
         yNormal,
         zNormal,
+        centerRotate,
+        xNormalRotate,
+        yNormalRotate,
+        zNormalRotate,
     };
 }
 
@@ -677,58 +714,23 @@ function generateBracketData(bracketStlData, needBracketNameList) {
             xNormal,
             yNormal,
             zNormal,
+            centerRotate,
+            xNormalRotate,
+            yNormalRotate,
+            zNormalRotate,
         } = generateBracketObjFromStl(stlData, posData);
-
-        //2022.12.26更新：由于要把初始center从(0,0,0)改成bbox的center，
-        //可以看做先将托槽从bbox center移到(0,0,0)，再从(0,0,0)移到其他位置
-        //这样只需要在这里移动一次托槽，后续就不需要改动
-        //计算初始center（bounding-box的中心）
-        // let xmax=-10000,ymax=-10000,zmax=-10000;
-        // let xmin=10000,ymin=10000,zmin=10000;
-        // pointValues.forEach((value,index)=>{
-        //     if (index%3==0){
-        //         if(value>xmax){
-        //             xmax = value
-        //         }
-        //         if(value<xmin){
-        //             xmin = value
-        //         }
-        //     }
-        //     else if(index%3==1){
-        //         if(value>ymax){
-        //             ymax = value
-        //         }
-        //         if(value<ymin){
-        //             ymin = value
-        //         }
-        //     }
-        //     else{
-        //         if(value>zmax){
-        //             zmax = value
-        //         }
-        //         if(value<zmin){
-        //             zmin = value
-        //         }
-        //     }
-        // })
-        // const originCenter = [(xmax+xmin)/2, (ymax+ymin)/2, (zmax+zmin)/2]
-        // const initTransMatrix = calculateRigidBodyTransMatrix(
-        //     [0,0,0],
-        //     [0,0,1],
-        //     [1,0,0],
-        //     [0,1,0],
-        //     originCenter
-        // );
-        // vtkMatrixBuilder
-		// 	.buildFromDegree()
-		// 	.setMatrix(initTransMatrix)
-		// 	.apply(pointValues);
 
         let position = {
             center, // 托槽中心位置
             xNormal, // 左右法向量
             yNormal, // 上下法向量
             zNormal, // 前后法向量(屏幕深度方向)
+        };
+        let positionRotate = {
+            centerRotate,
+            xNormalRotate,
+            yNormalRotate,
+            zNormalRotate,
         };
         // 保存当前模型的向上方向
         if (bracketName === cameraBaseBracket) {
@@ -764,6 +766,7 @@ function generateBracketData(bracketStlData, needBracketNameList) {
             name: bracketName,
             direction,
             position,
+            positionRotate,
             pointValues,
             cellValues,
         });
@@ -1112,6 +1115,7 @@ function parseCADO() {
         stlObj: null, // 这一步需要返回stlObj.teeth[teethType]
         xmlObj: null, // 这一步需要返回xmlObj[teethType]
         rotateSetting: { rotCenter: [0, 0, 0], rotAxis: [0, 0, 0] },
+        targetBracketUID: '',
     };
     // 解析文件, 生成对应的stl与xml信息,存入stlObj与xmlObj, 用于后续解析成polyData并渲染在页面中
     // 其中的stl文件包含牙齿数据, xml文件包括牙齿托槽的各项信息
@@ -1133,6 +1137,7 @@ function parseCADO() {
             // 从xml中的positionResult中找到托槽名字
             let targetBracketUID =
                 stepConfig.xmlObj.PositionResult[0].$.BracketType;
+            retData.targetBracketUID = targetBracketUID;
             // console.log(windowLinkConfigClone.bracketTypeInfoQueryApi)
             sendRequestWithToken({
                 method: "GET",
@@ -1493,6 +1498,7 @@ function generateTeethActor() {
             name,
             direction,
             position: { center, xNormal, yNormal, zNormal },
+            positionRotate: { centerRotate, xNormalRotate, yNormalRotate, zNormalRotate },
             pointValues,
             cellValues,
         } = item;
@@ -1510,8 +1516,11 @@ function generateTeethActor() {
         // 检测完成后的中心+3法向量作为真正的初始position
         // 构造新的position和fineTuneRecord
         let position = {}
+        let positionRotate = {}
         let fineTuneRecord = {}
+        let fineTuneRecordRotate = {}
         let initTransMatrix = []
+        let initTransMatrixRotate = []
         const teethType = progressConfig["5"].xmlObj.OriginalModel[0].$.jaw;
         if (firstReadFlag[teethType]){
             position = {
@@ -1521,6 +1530,12 @@ function generateTeethActor() {
                 yNormal,
                 zNormal,
             };
+            positionRotate = {
+                center:centerRotate,
+                xNormal:xNormalRotate,
+                yNormal:yNormalRotate,
+                zNormal:zNormalRotate,
+            }
             fineTuneRecord = {
                 actorMatrix: {
                     // 决定托槽本身角度的法向量方向(定位中心+角度轴), 同时作为托槽进行平移、旋转时所依赖的法向量方向(移动轴)
@@ -1528,6 +1543,15 @@ function generateTeethActor() {
                     xNormal,
                     yNormal,
                     zNormal,
+                },
+            };
+            fineTuneRecordRotate = {
+                actorMatrix: {
+                    // 决定托槽本身角度的法向量方向(定位中心+角度轴), 同时作为托槽进行平移、旋转时所依赖的法向量方向(移动轴)
+                    center:centerRotate,
+                    xNormal:xNormalRotate,
+                    yNormal:yNormalRotate,
+                    zNormal:zNormalRotate,
                 },
             };
             // 此时item受到改变, 但直接的fineTuneRecord和position并未改变
@@ -1538,6 +1562,10 @@ function generateTeethActor() {
                 yNormal,
                 zNormal,
             );
+            initTransMatrixRotate = calculateTransMatrix(
+                position,
+                positionRotate
+            )
         }else{
             // 初始位置或有托槽内陷, 进行初始碰撞检测
             const {
@@ -1574,6 +1602,15 @@ function generateTeethActor() {
                     zNormal: [...transZNormal],
                 },
             };
+            fineTuneRecordRotate = {
+                actorMatrix: {
+                    // 决定托槽本身角度的法向量方向(定位中心+角度轴), 同时作为托槽进行平移、旋转时所依赖的法向量方向(移动轴)
+                    center: [...transCenter],
+                    xNormal: [...transXNormal],
+                    yNormal: [...transYNormal],
+                    zNormal: [...transZNormal],
+                },
+            };
             // 此时item受到改变, 但直接的fineTuneRecord和position并未改变
             // 计算初始刚体变换矩阵并存入
 
@@ -1583,12 +1620,21 @@ function generateTeethActor() {
                 transYNormal,
                 transZNormal,
             );
+            // 如果是首次读入，那就不会有转矩信息
+            initTransMatrixRotate = [
+                1,0,0,0,
+                0,1,0,0,
+                0,0,1,0,
+                0,0,0,1,
+            ]
         }
         bracketData[name] = {
             direction,
             position,
             fineTuneRecord,
+            fineTuneRecordRotate,
             initTransMatrix,
+            initTransMatrixRotate,
             bracketBottomPointValues,
             bottomFaceIndexList,
         };

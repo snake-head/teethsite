@@ -17,7 +17,9 @@ import { sendRequestWithToken } from "./tokenRequest";
 function parseAndMountToData(xmlData, dataToMount) {
 	const {
 		bracketData,
+		bracketDataRotate,		
 		longAxisData,
+		rotatePlusData,
 		teethArrangeData,
 		teethAxisFinetuneRecord,
 		dentalArchAdjustRecord,
@@ -26,6 +28,7 @@ function parseAndMountToData(xmlData, dataToMount) {
 	xmlData.ProcessState[0].$.collisionState = 1 //只要上传就已经是经过碰撞检测，collisionState置1
 	xmlData.PositionResult[0].Position.forEach((item) => {
 		const filteredData = bracketData.filter((val) => val.name === item.$.name);
+		const filteredDataRotate = bracketDataRotate.filter((val) => val.name === item.$.name);
 		const filterLongAxisData = longAxisData.filter((val) => val.name === item.$.name);
 		if (filteredData.length > 0) {
 			const { center, yNormal, zNormal } = filteredData[0];
@@ -45,6 +48,24 @@ function parseAndMountToData(xmlData, dataToMount) {
 				Coor2: zNormal[2].toString(),
 			};
 		}
+		if (filteredDataRotate.length > 0) {
+			const { center, yNormal, zNormal } = filteredDataRotate[0];
+			item.TcPosition[0].TcCenterCoorRotate = {
+				Coor0: center[0].toString(),
+				Coor1: center[1].toString(),
+				Coor2: center[2].toString(),
+			};
+			item.TcPosition[0].TcCenterAxisRotate = {
+				Coor0: yNormal[0].toString(),
+				Coor1: yNormal[1].toString(),
+				Coor2: yNormal[2].toString(),
+			};
+			item.TcPosition[0].TcNormalRotate = {
+				Coor0: zNormal[0].toString(),
+				Coor1: zNormal[1].toString(),
+				Coor2: zNormal[2].toString(),
+			};
+		}
 		if (filterLongAxisData.length > 0) {
 			const { startCoor, endCoor } = filterLongAxisData[0];
 			item.LongAxis[0].StartCoor[0].$ = {
@@ -59,6 +80,14 @@ function parseAndMountToData(xmlData, dataToMount) {
 			};
 		}
 	});
+	// 根据新转矩信息更新xml数据
+	xmlData.PositionResult[0].Position.forEach((posInfo)=>{
+		rotatePlusData[posInfo.$.name[2]-1].forEach((targetTooth)=>{
+			if(posInfo.$.name==targetTooth.name){
+				posInfo.RotatePlus=targetTooth.plus
+			}
+		})
+	})
 	// 根据排牙信息更新xml数据
 	Reflect.deleteProperty(xmlData, "dentalArch");
 	xmlData.dentalArch = [{ $: { dentalarchtype: "1" } }];

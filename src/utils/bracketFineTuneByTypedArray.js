@@ -2006,15 +2006,12 @@ function calculateBracketMoveDist(moveType, step, xNormal, yNormal) {
 /**
  * @description 托槽 顺时针逆时针转轴计算
  * @param moveType 逆时针|顺时针
- * @param zNormal 托槽前后法向量
+ * @param normal 托槽法向量
  */
-function getBracketRotateAxis(moveType, zNormal) {
-    switch (moveType) {
-        case "ALONG": // 顺时针
-            return [-zNormal[0], -zNormal[1], -zNormal[2]];
-        case "ANTI": // 逆时针
-            return [zNormal[0], zNormal[1], zNormal[2]];
-    }
+function getBracketRotateAxis(moveType, normal) {
+    return moveType.includes('ALONG')? 
+    [-normal[0], -normal[1], -normal[2]]:
+    [normal[0], normal[1], normal[2]]
 }
 
 /**
@@ -2204,19 +2201,42 @@ function updateBracketDataByLandMark(
         // 对点集应用平移
         pointsTranslateTransform(transBracketPointValues, translate);
     } else {
-        // 根据zNormal计算旋转轴(zNormal或-zNormal)
-        let rotAxis = getBracketRotateAxis(moveType, transZNormal);
-        // 对点集应用旋转
-        pointsRotTransform(
-            transBracketPointValues,
-            transCenter,
-            rotAxis,
-            moveStep
-        );
-
-        // actorMatrix的角度将随之发生变化(zNormal不变)
-        transXNormal = getRotateNormal(transXNormal, rotAxis, moveStep);
-        transYNormal = getRotateNormal(transYNormal, rotAxis, moveStep);
+        let rotAxis;
+        if(moveType=='ALONG'||moveType=='ANTI'){
+            // 根据zNormal计算旋转轴(zNormal或-zNormal)
+            rotAxis = getBracketRotateAxis(moveType, transZNormal);
+            // 对点集应用旋转
+            pointsRotTransform(
+                transBracketPointValues,
+                transCenter,
+                rotAxis,
+                moveStep
+            );
+            // actorMatrix的角度将随之发生变化(zNormal不变)
+            transXNormal = getRotateNormal(transXNormal, rotAxis, moveStep);
+            transYNormal = getRotateNormal(transYNormal, rotAxis, moveStep);
+        }else if(moveType=='XALONG'||moveType=='XANTI'){
+            rotAxis = getBracketRotateAxis(moveType, transXNormal);
+            // 对点集应用旋转
+            pointsRotTransform(
+                transBracketPointValues,
+                transCenter,
+                rotAxis,
+                moveStep
+            );
+            // actorMatrix的角度将随之发生变化(xNormal不变)
+            transZNormal = getRotateNormal(transZNormal, rotAxis, moveStep);
+            transYNormal = getRotateNormal(transYNormal, rotAxis, moveStep);
+            return {
+                isCrossTheBorder: false,
+                transActorMatrix: {
+                    transCenter, // center不变
+                    transXNormal,
+                    transYNormal,
+                    transZNormal,
+                },
+            };
+        }
     }
     // console.log('平移/旋转后', transCenter,transXNormal,transYNormal,transZNormal)
     // console.log('>>初始点集变换 + 平移/旋转后：', Date.now()-t)

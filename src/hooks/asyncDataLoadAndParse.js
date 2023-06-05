@@ -10,7 +10,7 @@ import vtkPlane from "@kitware/vtk.js/Common/DataModel/Plane";
 import vtkActor from "@kitware/vtk.js/Rendering/Core/Actor";
 import vtkMapper from "@kitware/vtk.js/Rendering/Core/Mapper";
 import vtkProperty from "@kitware/vtk.js/Rendering/Core/Property";
-import { normalize, cross } from "@kitware/vtk.js/Common/Core/Math";
+import { normalize, cross, subtract, multiplyScalar, add } from "@kitware/vtk.js/Common/Core/Math";
 
 import vtkImageMapper from "@kitware/vtk.js/Rendering/Core/ImageMapper";
 import vtkImageSlice from "@kitware/vtk.js/Rendering/Core/ImageSlice";
@@ -61,6 +61,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
             arch: {}, // 牙弓线(每次重新排牙都会更新)
             teethAxisSphere: {}, // 牙齿标准坐标系(首次排牙完成后创建, 在调整上颌位置时显示)
             OBB: {},
+            root: [], // 牙根
         },
         lower: {
             // 下颌牙
@@ -75,6 +76,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
             arch: {}, // 牙弓线(每次重新排牙都会更新)
             teethAxisSphere: {}, // 牙齿标准坐标系(首次排牙完成后创建, 在调整下颌位置时显示)
             OBB: {},
+            root: [], // 牙根
         },
         picture: null,
         intersection: null
@@ -1254,6 +1256,36 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
     }
 
     /**
+     * @description 根据给出数据构造坐标轴和距离线
+     * @param teethType upper | lower
+     * @param toothPolyDatas 牙齿数据，需要牙齿的中心点
+     * @param longAxisData 牙齿长轴数据
+     */
+    function handleRootActorDatas(teethType) {
+        bracketData[teethType].forEach((bracket)=>{
+            const bounds = toothPolyDatas[bracket.name].getBounds()
+            const rootBottomPoint = [
+                (bounds[0]+bounds[1])/2,
+                (bounds[2]+bounds[3])/2,
+                (bounds[4]+bounds[5])/2,
+            ] //牙根底部点坐标
+            const upNormal = []
+            subtract(longAxisData[bracket.name].endPoint,longAxisData[bracket.name].startPoint,upNormal)
+            normalize(upNormal)
+            const rootTopPoint = [] //牙根顶部点坐标
+            add(rootBottomPoint, multiplyScalar(upNormal, 7), rootTopPoint)
+            const rootRadius = Math.min(bounds[1]-bounds[0],bounds[3]-bounds[2])/2
+            const radiusNormal = [] //半径方向
+            cross(upNormal, [0,1,0], radiusNormal)
+            normalize(radiusNormal)
+            const rootRadiusNormal = [] //牙根半径点坐标
+            add(rootTopPoint, multiplyScalar(radiusNormal, rootRadius), rootRadiusNormal)
+
+            //制造牙根底部、牙根顶部、牙根半径三个小球
+            
+        })
+    }
+    /**
      * @description 创建2个worker子线程并开始进行数据下载和解析
      */
     function startWorker(handleTeethType) {
@@ -1532,6 +1564,9 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                                 teethType,
                                 event.data.allActorList
                             );
+                            handleRootActorDatas(
+                                teethType,
+                            )
                             worker.terminate();
                             currentStep[teethType]++;
                         }

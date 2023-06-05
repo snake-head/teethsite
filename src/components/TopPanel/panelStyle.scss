@@ -52,6 +52,10 @@ $view-head-height: 66px;
     background-image: url("../../assets/Icon_rotate_counter_clockwise.png");
 }
 
+.icon-switch {
+    background-image: url("../../assets/Icon_switch_mode.png");
+}
+
 .icon-keyboard {
     background-image: url("../../assets/Icon_keyboard.png");
 }
@@ -75,7 +79,7 @@ $view-head-height: 66px;
         }
 
         .title-box {
-            width: 100px;
+            width: 120px;
             // margin-right: 2px;
             border: 1px solid rgb(236, 168, 25);
             height: $view-head-height - 6px;
@@ -106,6 +110,20 @@ $view-head-height: 66px;
                 width: 24px;
                 height: 24px;
                 display: inline-block;
+                border: transparent 1px solid;
+
+                &:hover {
+                    cursor: pointer;
+                    border: rgb(236, 168, 25) 1px solid;
+                    border-radius: 5px;
+                }
+            }
+
+            .icon-switch {
+                width: 24px;
+                height: 24px;
+                display: inline-block;
+                margin-left: 10px;
                 border: transparent 1px solid;
 
                 &:hover {

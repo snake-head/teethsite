@@ -1,3 +1,11 @@
+/*
+ * @Description: 
+ * @Version: 1.0
+ * @Autor: ZhuYichen
+ * @Date: 2023-05-16 15:29:52
+ * @LastEditors: ZhuYichen
+ * @LastEditTime: 2023-05-31 15:44:46
+ */
 import { createApp } from "vue";
 import App from "./App.vue";
 //引入路由器
@@ -35,7 +43,7 @@ import {
     ElSteps,
     ElSubmenu,
     ElTabs,
-    ElTabPane
+    ElTabPane,
 } from "element-plus";
 import "element-plus/lib/theme-chalk/index.css";
 
@@ -76,7 +84,7 @@ const components = [
     ElSteps,
     ElSubmenu,
     ElTabs,
-    ElTabPane
+    ElTabPane,
 ];
 components.forEach((component) => {
     app.component(component.name, component);

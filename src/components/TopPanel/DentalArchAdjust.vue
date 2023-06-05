@@ -7,6 +7,7 @@
 			</div>
 			<div class="exit">
 				<div class="icon-exit bg" @click="exitToolPanel()" />
+				<div class="icon-switch bg" @click="switchToolPanel()" />
 			</div>
 		</div>
 		<div class="handle-box">
@@ -141,6 +142,10 @@ const props = defineProps({
 		type: Function,
 		default: () => {},
 	},
+	switchToolPanel: {
+		type: Function,
+		default: () => {},
+	},
 	checkArchUpdated: {
 		type: Function,
 		default: ()=> {},
@@ -194,6 +199,7 @@ const isArrangedOnLatestAdjustDentalArch = computed(
 );
 
 const showAndHide = inject('showAndHide')
+let firstUpdateFlag = true;
 function updateTeethArrange() {
 	if (!isArrangedOnLatestAdjustDentalArch.value) {
 		store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
@@ -203,7 +209,10 @@ function updateTeethArrange() {
 		});
 	}
 	props.checkArchUpdated();
-	showAndHide();
+	if(firstUpdateFlag){
+		showAndHide();
+		firstUpdateFlag=false;
+	}
 }
 
 const canUserSaveAdjustRecord = computed(() => store.getters["actorHandleState/canUserSaveAdjustRecord"]);

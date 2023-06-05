@@ -374,6 +374,9 @@
 									/>
 								</el-button>
 							</el-button-group>
+							<div class="slider-block" v-if="originShowStateFlag!=0">
+								<el-slider v-model="toothOpacity" />
+							</div>
 							<ViewerMain
 								ref="viewerMain"
 								:actorInScene="actorInScene"
@@ -440,6 +443,10 @@ const userInfo = computed(() => {
 const currentMode = computed(() => store.state.actorHandleState.currentMode);
 const fineTuneMode = computed(() => store.getters["actorHandleState/fineTuneMode"]);
 const simMode = computed(() => store.state.actorHandleState.simMode);
+const toothOpacity = computed({
+      get: () => store.state.actorHandleState.toothOpacity,
+      set: (value) => store.dispatch("actorHandleState/setToothOpacity", value),
+    })
 function updateSimMode(value) {
 	store.dispatch("actorHandleState/updateSimMode", value);
 }
@@ -817,6 +824,17 @@ function changeOriginToothShowState(){
 	originShowStateFlag.value += 1;
 	originShowStateFlag.value %= 3;
 }
+
+/**
+ * @description: 用于在退出排牙时，将状态重置
+ * @return {*}
+ * @author: ZhuYichen
+ */
+function resetOriginShowStateFlag(){
+	originShowStateFlag.value = 0;
+}
+
+provide('resetOriginShowStateFlag', resetOriginShowStateFlag)
 
 function rollbackCheckedData() {
 	if (!hasAnyDataSubmit.value) {
@@ -1463,7 +1481,22 @@ $btn-height: 30px;
 		margin: 2px;
 	}
 }
-
+.slider-block {
+	position: absolute;
+	z-index: 100;
+	margin-left: 400px;
+	margin-top: 7px;
+	width: 60px;
+	align-items: center;
+	:deep {
+		.el-slider__bar {
+			background-color: #f79f89 !important;
+		}
+		.el-slider__button {
+			border-color: #f79f89;
+		}
+	}
+}
 .disabled {
 	opacity: 0.2;
 	pointer-events: none;

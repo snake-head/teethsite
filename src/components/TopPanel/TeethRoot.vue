@@ -4,7 +4,7 @@
  * @Autor: ZhuYichen
  * @Date: 2023-05-16 15:39:32
  * @LastEditors: ZhuYichen
- * @LastEditTime: 2023-05-31 16:57:27
+ * @LastEditTime: 2023-06-05 16:39:32
 -->
 <template>
 	<div class="main-block panel" :class="{ show: isShow }">
@@ -15,6 +15,35 @@
 			</div>
 			<div class="exit">
 				<div class="icon-exit bg" @click="exitToolPanel()" />
+			</div>
+		</div>
+		<div class="handle-box">
+			<div class="handle-title">选择</div>
+			<div class="handle-body">
+				<div class="half clear-fix">
+					<div
+						class="teeth-type-button"
+						:class="{
+							activate: dentalArchAdjustType === 'upper',
+							disabled: !arrangeTeethType.includes('upper'),
+						}"
+						@click="updateDentalArchAdjustType('upper')"
+					>
+						上颌
+					</div>
+				</div>
+				<div class="half">
+					<div
+						class="teeth-type-button"
+						:class="{
+							activate: dentalArchAdjustType === 'lower',
+							disabled: !arrangeTeethType.includes('lower'),
+						}"
+						@click="updateDentalArchAdjustType('lower')"
+					>
+						下颌
+					</div>
+				</div>
 			</div>
 		</div>
 		<div class="handle-box">
@@ -69,7 +98,21 @@ const props = defineProps({
 });
 
 const store = useStore();
+const arrangeTeethType = computed(() => store.getters["userHandleState/arrangeTeethType"]);
 const dentalArchAdjustType = computed(() => store.state.actorHandleState.teethArrange.dentalArchAdjustRecord.teethType);
+
+/**
+ * @description: 这里直接复用了牙弓线调整面板中的选择模块
+ * @param {*} value 上/下颌
+ * @return {*}
+ * @author: ZhuYichen
+ */
+function updateDentalArchAdjustType(value) {
+	// dentalArchAdjustType.value = value;
+	store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
+		teethType: value,
+	});
+}
 
 function resetTeethRoot() {
 	store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {

@@ -311,11 +311,8 @@ function vtkRootSource(publicAPI, model) {
 // ----------------------------------------------------------------------------
 
 const DEFAULT_VALUES = {
-    bottomSphereCenter: [0, 0, 0],
-    topSphereCenter: [0, 100, 0],
-    radiusSphereCenter: [50, 0, 0],
-    sphereRadius: 2,
-    linkRadius: 0.25,
+    sphereRadius: 0.2,
+    linkRadius: 0.025,
     phiResolution: 8,
     thetaResolution: 12,
     linkResolution: 8,

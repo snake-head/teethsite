@@ -91,6 +91,7 @@ import vtkSphereLinkHandleRepresentation from "../../reDesignVtk/dentalArchHandl
 import dentalArchHandleWidget from "../../reDesignVtk/dentalArchHandleWidget";
 
 import actorControl from "../../hooks/actorControl";
+import rootFunc from "../../hooks/rootFunc";
 import asyncDataLoadAndParse from "../../hooks/asyncDataLoadAndParse";
 import { uploadCurrentData } from "../../utils/saveNewData";
 import asyncTeethArrange from "../../hooks/asyncTeethArrange";
@@ -230,6 +231,17 @@ watch(currentShowPanel, (newVal, oldVal) => {
 		store.dispatch("actorHandleState/updateCurrentMode", {
 			fineTune: true,
 		});
+	}
+	// 从[工具菜单]进入[虚拟牙根]
+	if (oldVal === -1 && newVal === 2) {
+		generateRootDirection();
+		adjustRootWidgetInScene("enter",vtkContext);
+		setTeethOpacity(0.5);
+	}
+	// 从[虚拟牙根]退出到[工具菜单]
+	if (oldVal === 2 && newVal === -1) {
+		adjustRootWidgetInScene("exit",vtkContext);
+		setTeethOpacity(1);
 	}
 });
 let dentalArchWidgets = {}; // 每次调整后再排牙后需要重新设置
@@ -673,7 +685,11 @@ const dentalArchAdjustType = computed(() => store.state.actorHandleState.teethAr
 watch(dentalArchAdjustType, () => {
 	// 如果当前在牙弓线面板下, 则进行switch操作, 否则这次更改可能是在加载完成时搞的
 	// 但看操作, 实质上不会报错, 所以不限制也行
-	adjustDentalArchWidgetInScene("switch");
+	if(currentShowPanel.value==1){
+		adjustDentalArchWidgetInScene("switch");
+	}else if(currentShowPanel.value==2){
+		adjustRootWidgetInScene("switch",vtkContext);
+	}
 });
 /**
  * @description 切换至牙弓线调整面板, 牙弓线调整面板中切换上下颌时调用
@@ -928,6 +944,11 @@ const {
 	axisActorShowStateUpdate,
 	adjustActorWhenSwitchSimulationMode,
 } = actorControl(allActorList);
+const {
+	generateRootDirection,
+    adjustRootWidgetInScene,
+	setTeethOpacity,
+} = rootFunc(allActorList,toothPolyDatas,longAxisData);
 const {
 	preFineTuneRecord, // 记录上次[模拟排牙]时托槽的微调位置, 用于[模拟排牙]模式的微调中
 	currentArrangeStep,

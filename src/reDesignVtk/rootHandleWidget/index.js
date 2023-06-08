@@ -89,10 +89,10 @@ function vtkHandleWidget(publicAPI, model) {
         } else if (model.widgetState === WidgetState.ACTIVE && publicAPI.isDragable()) {
             // 如果当前状态为ACTIVE, 则鼠标移动可以开始交互, 此时不更新representation状态
             // 万一鼠标移到representation外依旧继续进入此处
-            if(!activeFlag){
-                currentInteractionState=model.widgetRep.computeInteractionState(position);
-                activeFlag=true;
-            }
+            // if(!activeFlag){
+            //     currentInteractionState=model.widgetRep.computeInteractionState(position);
+            //     activeFlag=true;
+            // }
             switch(currentInteractionState){
                 case InteractionState.SELECTING_ACTOR_RADIUS:
                     model.widgetRep.dragLengthInteraction(position);
@@ -132,7 +132,8 @@ function vtkHandleWidget(publicAPI, model) {
         model.widgetState = WidgetState.ACTIVE;
         // model.widgetRep.setInteractionState(InteractionState.SELECTING);
         // 开启高亮效果
-        model.widgetRep.highlight(1);
+        currentInteractionState=model.widgetRep.getInteractionState();
+        // model.widgetRep.highlight(1);
         publicAPI.invokeStartInteractionEvent();
         // 渲染窗口
         publicAPI.render();
@@ -146,8 +147,9 @@ function vtkHandleWidget(publicAPI, model) {
         }
         // 鼠标左键释放, 如果model.widgetState为ACTIVE, 则重置为[START]
         model.widgetState = WidgetState.START;
+        currentInteractionState=model.widgetRep.getInteractionState();
         // 取消高亮效果
-        model.widgetRep.highlight(0);
+        // model.widgetRep.highlight(0);
         publicAPI.invokeEndInteractionEvent();
         // 渲染窗口
         publicAPI.render();

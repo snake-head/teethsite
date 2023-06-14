@@ -247,6 +247,45 @@ $view-head-height: 66px;
                     }
                 }
 
+                .adjust-scale {
+                    text-align: start;
+                    height: ($view-head-height - 6px) / 2;
+                    line-height: ($view-head-height - 6px) / 2;
+
+                    input {
+                        width: 40px;
+                        vertical-align: text-bottom;
+
+                        &.long {
+                            width: 200px;
+                        }
+                    }
+
+                    &.narrow {
+                        height: ($view-head-height - 6px) / 3;
+                        line-height: ($view-head-height - 6px) / 3;
+                    }
+                }
+
+                .slider-block {
+                    width: 75px;
+                    height : 30px;
+                    margin-left: 5px;
+                    margin-bottom: 5px;
+                    :deep {
+                        .el-slider__runway {
+                            margin-top: 11px;
+                            width: 90%;
+                        }
+                        .el-slider__bar {
+                            background-color: #f3c443;
+                        }
+                        .el-slider__button {
+                            border-color: #f3c443;
+                        }
+                    }
+                }
+
                 .adjust-button {
                     $btn-width: 40px;
                     $btn-height: 20px;

@@ -188,8 +188,17 @@ function exitToolPanel() {
 	store.dispatch("actorHandleState/updateCurrentShowPanel", -1);
 }
 
+/**
+ * @description: 在牙弓先调整与咬合界面间快速切换。逻辑上先退出到微调界面，在进入另一个界面。
+ * @return {*}
+ * @author: ZhuYichen
+ */
 function switchToolPanel() {
-	store.dispatch("actorHandleState/updateCurrentShowPanel", currentShowPanel.value==0?1:0);
+	const cur = currentShowPanel.value;
+	store.dispatch("actorHandleState/updateCurrentShowPanel", -1);
+	setTimeout(()=>{
+		store.dispatch("actorHandleState/updateCurrentShowPanel", cur==0?1:0);
+	},0)
 }
 /**
  * @description: 校验是否已经更新了牙弓线，更新后才能进入咬合调整界面

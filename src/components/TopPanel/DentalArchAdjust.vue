@@ -40,6 +40,26 @@
 			</div>
 		</div>
 		<div class="handle-box">
+			<div class="handle-title">缩放</div>
+			<div class="handle-body">
+				<div class="half clear-fix">
+					<div class="adjust-scale">
+						倍数 <input
+							id="pan-scale-arch"
+							type="number"
+							step="0.01"
+							v-model.number="archScale"
+						/>
+					</div>				
+				</div>
+				<div class="half">
+					<div class="slider-block">
+						<el-slider v-model.number="archScale" :min="0.8" :max="1.2" :step="0.01" />
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="handle-box">
 			<div class="handle-title">排牙</div>
 			<div class="handle-body">
 				<div class="half clear-fix">
@@ -157,6 +177,10 @@ const dentalArchParams = computed(() => ({
 	upper: store.state.actorHandleState.teethArrange.dentalArchSettings.upper.coEfficients,
 	lower: store.state.actorHandleState.teethArrange.dentalArchSettings.lower.coEfficients,
 }));
+const archScale = computed({
+      get: () => store.state.actorHandleState.archScale,
+      set: (value) => store.dispatch("actorHandleState/setArchScale", value),
+    })
 watch(dentalArchParams, () => {
 	let text = {};
 	for (let teethType of ["upper", "lower"]) {

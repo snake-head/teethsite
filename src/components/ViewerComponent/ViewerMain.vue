@@ -148,6 +148,14 @@ const userType = computed(() => store.state.userHandleState.userType);
 const activeTable = ref('distance')
 
 const toothOpacity = computed(() => store.state.actorHandleState.toothOpacity);
+const archScale = computed(() => store.state.actorHandleState.archScale);
+
+watch(archScale, ()=>{
+	reScaleDentalArchCoefficients(archScale.value);
+	setTimeout(()=>{
+		vtkContext.renderWindow.render()
+	},10)
+})
 watch(toothOpacity,(newValue)=>{
 	for(let teethType of ['upper','lower']){
 		allActorList[teethType].originTooth.forEach((item) => {
@@ -957,6 +965,7 @@ const {
 	startTeethArrange,
 	startTeethArrangeByAdjustedDentalArch,
 	reCalculateDentalArchCoefficients,
+	reScaleDentalArchCoefficients,
 } = asyncTeethArrange(allActorList);
 const teethStandardAxis = store.state.actorHandleState.teethArrange.teethStandardAxis;
 const resetTeethAxisFinetuneRecord = store.state.actorHandleState.teethArrange.teethAxisFinetuneRecord;

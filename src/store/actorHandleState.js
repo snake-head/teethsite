@@ -70,7 +70,10 @@ export default {
         },
         setToothOpacity(context, value){
             context.commit("SetToothOpacity", value);
-        }
+        },
+        setArchScale(context, value){
+            context.commit("SetArchScale", value);
+        },
     },
     mutations: {
         UpdateSimMode(state, value) {
@@ -308,12 +311,13 @@ export default {
         UpdateIsArchUpdated(state, value){
             state.isArchUpdated = value;
         },
-        SetToothOpacity(state, value){
-            state.toothOpacity = value;
+        SetArchScale(state, value){
+            state.archScale = value;
         }
     },
     state: {
         toothOpacity: 50,
+        archScale: 1,
         simMode: "simBracketFix", //"simToothFix",
         currentSelectBracketName: "",
 

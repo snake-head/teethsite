@@ -1437,6 +1437,40 @@ function recalculateDentalArch(event) {
     };
 }
 
+function reScaleDentalArch(event) {
+    // 托槽中心转换
+    let teethAxis = arrangeState["2"].teethAxis;
+    
+    const coEfficients = event.data; // [a0, a1, a2, a3, a4]
+    // 生成牙弓线数据
+    let { W, axisCoord, zLevelOfArch } = arrangeState["2"].dentalArchSettings;
+
+    // ------------------------------------------------------------------------
+    // 计算牙弓线的polyData(弯曲的立方体)(输出点集和面片结构)供后续显示用
+    // ------------------------------------------------------------------------
+    const { archPointsData, archCellsData } = generateArchSpline(
+        coEfficients,
+        W,
+        axisCoord,
+        zLevelOfArch
+    );
+    const reverseTeethAxisTransformMat = calculateRigidBodyTransMatrix(
+        [1, 0, 0, 0, 1, 0, 0, 0, targetTeethType === "upper" ? -1 : 1, 0, 0, 0],
+        teethAxis
+    );
+    const matTransformer = vtkMatrixBuilder
+        .buildFromDegree()
+        .setMatrix(reverseTeethAxisTransformMat);
+    // 应用于牙弓线点集
+    matTransformer.apply(archPointsData);
+
+    return {
+        step: "reCalculateDentalArch",
+        coEfficients,
+        arch: { archPointsData, archCellsData },
+    };
+}
+
 // /**
 //  * @description [step0-特殊]: 锁定牙弓线排牙, 在主线程中, 用户调整牙弓线后, 针对当前调整完毕的牙弓线进行排牙, 则此时进行的操作,
 //  * 包括step1的【转换数据】、step2【 对所有点集和特定坐标和对应bracketMatrix转换到标准坐标系】  然后跳到step3直接开始排牙
@@ -1745,6 +1779,9 @@ self.onmessage = function(e) {
             break;
         case "recalculateDentalArch":
             self.postMessage(recalculateDentalArch(e.data));
+            break;
+        case "reScaleDentalArch":
+            self.postMessage(reScaleDentalArch(e.data));
             break;
         case 100:
             subArrangeWorkerL.terminate();

@@ -424,7 +424,6 @@ export default function(allActorList) {
 				const { data } = event;
 				switch (data.step) {
 					case "Init":
-						console.log(-1)
 						// 接收到初始数据, 做一定计算后返回结果, 包括牙齿标准坐标系和牙弓线设置
 						// 如果初始数据有保存到服务器上, 子线程不会发这种东西
 						if (data.teethAxis) {
@@ -461,6 +460,14 @@ export default function(allActorList) {
 						store.dispatch("actorHandleState/updateDentalArchSettings", {
 							[teethType]: data.dentalArchSettings,
 						});
+						// 部分情况下(可能是重置或初始化时，记不清了)需要使用DentalArchSettings覆盖DentalArchAdjustRecord
+						if(data.dentalArchSettings.coEfficients){
+							store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
+								[teethType]: {
+									coEfficients: data.dentalArchSettings.coEfficients,
+								},
+							});
+						}
 						currentArrangeStep[teethType] = 3;
 						worker[teethType].postMessage({
 							step: 3,
@@ -708,15 +715,24 @@ export default function(allActorList) {
 		for(let teethType of ['upper','lower']){
 			const coEfficients = toRaw(dentalArchSettings[teethType].coEfficients)
 			const scaledCoEfficients =[
-				[coEfficients[0][0]*Math.pow(archScale,1/3)],
+				[coEfficients[0][0]*archScale],
 				[0],
-				[coEfficients[2][0]/Math.pow(archScale,5)],
+				[coEfficients[2][0]/Math.pow(archScale,2)*archScale],
 				[0],
-				[coEfficients[4][0]],
+				[coEfficients[4][0]/Math.pow(archScale,4)*archScale],
 			]
 			worker[teethType].postMessage({
 				step: "reScaleDentalArch",
 				data: scaledCoEfficients,
+			});
+		}
+	}
+
+	function usePresetDentalArchCoefficients(selectedPreset){
+		for(let teethType of ['upper','lower']){
+			worker[teethType].postMessage({
+				step: "usePresetDentalArch",
+				data: selectedPreset,
 			});
 		}
 	}
@@ -757,5 +773,6 @@ export default function(allActorList) {
 		preFineTuneRecord,
 		reCalculateDentalArchCoefficients,
 		reScaleDentalArchCoefficients,
+		usePresetDentalArchCoefficients,
 	};
 }

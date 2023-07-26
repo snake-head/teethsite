@@ -113,7 +113,7 @@ export const typedBracketNameList = {
 export const rotateConfigList = [
     {
         "bracketName": "日盛标准系列自锁-标准转矩",
-        "bracketType": "8d5c61c950ba484d9331c3a4c517af84",
+        "bracketType": "f0ef5407e52b4fdd85c093a8d237ff32",
         // "bracketType": "8d04e6f479e9464298f1751ff7aea09e", //用古邵今的托槽做测试
         "upper": [
             {"name": "UL1", "rotate": 17},
@@ -148,4 +148,166 @@ export const rotateConfigList = [
             {"name":"LR7","rotate": -15}
         ]
     }
+]
+export const presetArrangeDataList = [
+    {
+        presetName: '弓形-尖I型',
+        number: 0,
+        upper: {
+            dentalArchSettings: {
+                W: 67.13397979736328,
+                zLevelOfArch: -0.12285935688013527,
+                axisCoord: 0,
+                coEfficients: [
+                    [50.966327183591275],
+                    [0],
+                    [-0.023582632583738494],
+                    [0],
+                    [-0.00002503109902617074]
+                ]
+            },
+        },
+        lower: {
+            dentalArchSettings: {
+                W: 65.30104446411133,
+                zLevelOfArch: -0.12586569165108075,
+                axisCoord: 0,
+                coEfficients: [
+                  [47.934799639252816],
+                  [0],
+                  [-0.03727883569606916],
+                  [0],
+                  [-0.000016704483441518135]
+                ]
+              },
+        }
+    },
+    {
+        presetName: '弓形-方0型',
+        number: 1,
+        upper: {
+            dentalArchSettings: {
+                W: 67.13397979736328,
+                zLevelOfArch: -0.12285935688013527,
+                axisCoord: 0,
+                coEfficients: [
+                  [44.225942671045104],
+                  [0],
+                  [-0.008568346363560742],
+                  [0],
+                  [-0.000026086433026133973]
+                ]
+            },
+        },
+        lower: {
+            dentalArchSettings: {
+                W: 65.30104446411133,
+                zLevelOfArch: -0.12586569165108075,
+                axisCoord: 0,
+                coEfficients: [
+                  [40.695425220763504],
+                  [0],
+                  [-0.007550063785935923],
+                  [0],
+                  [-0.00004488123873411915]
+                ]
+              },
+        }
+    },
+    {
+        presetName: '弓形-方I型',
+        number: 2,
+        upper: {
+            dentalArchSettings: {
+                W: 67.13397979736328,
+                zLevelOfArch: -0.12285935688013527,
+                axisCoord: 0,
+                coEfficients: [
+                  [48.91381672567031],
+                  [0],
+                  [-0.010313676396664029],
+                  [0],
+                  [-0.000026494910333856427]
+                ]
+              },
+        },
+        lower: {
+            dentalArchSettings: {
+                W: 65.30104446411133,
+                zLevelOfArch: -0.12586569165108075,
+                axisCoord: 0,
+                coEfficients: [
+                  [40.27422221852687],
+                  [0],
+                  [-0.005982394644394762],
+                  [0],
+                  [-0.00004255276948848992]
+                ]
+              },
+        }
+    },
+    {
+        presetName: '弓形-卵0型',
+        number: 3,
+        upper: {
+            dentalArchSettings: {
+                W: 67.13397979736328,
+                zLevelOfArch: -0.12285935688013527,
+                axisCoord: 0,
+                coEfficients: [
+                  [44.567684544873316],
+                  [0],
+                  [-0.015549079148918343],
+                  [0],
+                  [-0.000022940611096055046]
+                ]
+              },
+        },
+        lower: {
+            dentalArchSettings: {
+                W: 65.30104446411133,
+                zLevelOfArch: -0.12586569165108075,
+                axisCoord: 0,
+                coEfficients: [
+                  [39.48132335667847],
+                  [0],
+                  [-0.018982809146098734],
+                  [0],
+                  [-0.00002315148745058468]
+                ]
+              } ,
+        }
+    },
+    {
+        presetName: '弓形-卵I型',
+        number: 4,
+        upper: {
+            dentalArchSettings: {
+                W: 67.13397979736328,
+                zLevelOfArch: -0.12285935688013527,
+                axisCoord: 0,
+                coEfficients: [
+                  [51.6735731073273],
+                  [0],
+                  [-0.01778468077345252],
+                  [0],
+                  [-0.0000311593818099979]
+                ]
+              },
+        },
+        lower: {
+            dentalArchSettings: {
+                W: 65.30104446411133,
+                zLevelOfArch: -0.12586569165108075,
+                axisCoord: 0,
+                coEfficients: [
+                  [45.209127477165346],
+                  [0],
+                  [-0.01705421658131423],
+                  [0],
+                  [-0.0000453495271163693]
+                ]
+              },
+        }
+    },
 ]

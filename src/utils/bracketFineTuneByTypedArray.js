@@ -2083,7 +2083,6 @@ function calculateRigidBodyTransMatrix(center, xNormal, yNormal, zNormal,originC
         originCenter[2]+1, // 左右-xNormal
         
     ]);
-
     let targetPoints = vtkPoints.newInstance(); // 目标点集
 
     targetPoints.setData([

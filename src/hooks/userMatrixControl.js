@@ -533,6 +533,8 @@ export default function() {
         isRotate=false,
     ) {
         // 旧位置(上次排牙前一刻位置/数据读入位置)->新位置
+        console.log(JSON.stringify(preBracketPosition))
+        console.log(JSON.stringify(newFineTuneRecord))
         const mat = calculateTransMatrix(
             preBracketPosition,
             newFineTuneRecord

@@ -61,7 +61,8 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
             arch: {}, // 牙弓线(每次重新排牙都会更新)
             teethAxisSphere: {}, // 牙齿标准坐标系(首次排牙完成后创建, 在调整上颌位置时显示)
             OBB: {},
-            root: [], // 牙根
+            root: [], // 牙根圆锥
+            rootGenerate: [], //生成的牙根
         },
         lower: {
             // 下颌牙
@@ -76,7 +77,8 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
             arch: {}, // 牙弓线(每次重新排牙都会更新)
             teethAxisSphere: {}, // 牙齿标准坐标系(首次排牙完成后创建, 在调整下颌位置时显示)
             OBB: {},
-            root: [], // 牙根
+            root: [], // 牙根圆锥
+            rootGenerate: [], //生成的牙根
         },
         picture: null,
         intersection: null
@@ -1254,6 +1256,8 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
             });
         }
     }
+
+    let hasRotateFlag = false; //用来表明有无转矩信息，只有特定托槽有转矩信息
     /**
      * @description 创建2个worker子线程并开始进行数据下载和解析
      */
@@ -1384,8 +1388,9 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                             });
                         }
                         // 从static_config.js中读取转矩配置信息
+                        hasRotateFlag = rotateConfigList[0].bracketType==targetBracketUID;
                         rotateConfigList.forEach((configList)=>{
-                            if(configList.bracketType==targetBracketUID){
+                            if(hasRotateFlag){
                                 configList[teethType].forEach((tooth)=>{
                                     rotateMessageList[tooth.name[2]-1].forEach((targetTooth)=>{
                                         if(tooth.name==targetTooth.name){
@@ -1480,14 +1485,17 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                                     bracketBottomPointValues,
                                 } = event.data.bracketData[name];
                                 userMatrixList.mat1[name] = initTransMatrix; // 托槽初始变换矩阵即为mat1, 保存
-                                userMatrixList.mat6[name] = initTransMatrixRotate; // 托槽初始变换矩阵即为mat1, 保存
-                                userMatrixList.invMat6[name] = invertMatrix4x4(initTransMatrixRotate); // 托槽初始变换矩阵即为mat1, 保存
+                                // 只有带有转矩信息才需要传入mat6
+                                if(hasRotateFlag){
+                                    userMatrixList.mat6[name] = initTransMatrixRotate; // 托槽初始变换矩阵即为mat1, 保存
+                                    userMatrixList.invMat6[name] = invertMatrix4x4(initTransMatrixRotate); // 托槽初始变换矩阵即为mat1, 保存    
+                                }
                                 bracketData[teethType].push({
                                     name,
                                     direction,
                                     position,
                                     fineTuneRecord,
-                                    fineTuneRecordRotate,
+                                    fineTuneRecordRotate:fineTuneRecord,
                                     bottomFaceIndexList,
                                     bracketBottomPointValues,
                                 });

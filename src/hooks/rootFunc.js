@@ -9,8 +9,17 @@ import vtkRootHandleRepresentation from "../reDesignVtk/rootHandleWidget/RootHan
 import rootHandleWidget from "../reDesignVtk/rootHandleWidget";
 import { reactive, computed, watch, inject } from "vue";
 import { useStore } from "vuex";
+import {
+    setTokenHeader,
+    setUserIdHeader,
+    sendRequestWithToken,
+} from "../utils/tokenRequest";
+import XML from '@kitware/vtk.js/IO/XML';
+import vtkActor from "@kitware/vtk.js/Rendering/Core/Actor";
+import vtkMapper from "@kitware/vtk.js/Rendering/Core/Mapper";
 
-export default function(allActorList,toothPolyDatas,longAxisData) {
+
+export default function(allActorList,toothPolyDatas,bracketData) {
     const store = useStore();
     /**
      * @description: 生成牙根方向actor
@@ -32,15 +41,22 @@ export default function(allActorList,toothPolyDatas,longAxisData) {
     function handleRootActorDatas(teethType) {
         for(let toothName in toothPolyDatas){
             if(toothName[0].toLowerCase()==teethType[0]){
+                var upNormal = [];
+                // 使用托槽z轴方向作为牙根方向
+                bracketData[teethType].forEach((bracket)=>{
+                    if(bracket.name==toothName){
+                        upNormal = [...bracket.direction.left]
+                    }
+                })
                 const bounds = toothPolyDatas[toothName].getBounds()
                 const rootTopPoint = [
                     (bounds[0]+bounds[1])/2,
                     (bounds[2]+bounds[3])/2,
                     (bounds[4]+bounds[5])/2,
                 ] //牙根底部点坐标
-                const upNormal = []
-                subtract(longAxisData[toothName].endPoint,longAxisData[toothName].startPoint,upNormal)
-                normalize(upNormal)
+                // const upNormal = []
+                // subtract(longAxisData[toothName].endPoint,longAxisData[toothName].startPoint,upNormal)
+                // normalize(upNormal)
                 const rootBottomPoint = [] //牙根顶部点坐标
                 add(rootTopPoint, multiplyScalar(upNormal, 7), rootBottomPoint)
                 const rootRadius = Math.min(bounds[1]-bounds[0],bounds[3]-bounds[2])/4
@@ -116,18 +132,96 @@ export default function(allActorList,toothPolyDatas,longAxisData) {
         vtkContext.renderWindow.render();
     }
 
-    function setTeethOpacity(opacity){
-        for(let teethType of ["upper", "lower"]){
+    function setGingivaOpacity(opacity, typeList=["upper", "lower"]){
+        for(let teethType of typeList){
             allActorList[teethType].teethWithGingiva.actor.getProperty().setOpacity(opacity)
-            allActorList[teethType].tooth.forEach(({actor})=>{
-                actor.getProperty().setOpacity(opacity)
-            })
         }
+    }
+
+    async function generateRoot(teethType) {
+        let rootList = [];
+        const promises = []; // 存储每个请求的 Promise 对象
+      
+        Object.entries(toothPolyDatas).forEach(([toothName, toothPolyData]) => {
+          if (toothName[0].toLowerCase() === teethType[0]) {
+            let writer = XML.vtkXMLPolyDataWriter.newInstance();
+            let polyDataAsString = writer.write(toothPolyData);
+            const { rootRep } = allActorList[teethType].root.filter(
+              (obj) => obj.toothName == toothName
+            )[0];
+            const rootInfo = {
+              toothName,
+              bottomSphereCenter: rootRep.getCenters()[0],
+              topSphereCenter: rootRep.getCenters()[1],
+              radiusSphereCenter: rootRep.getCenters()[2],
+            };
+            const jsonPart = JSON.stringify(rootInfo);
+      
+            let formData = new FormData();
+            formData.append("polyData", new Blob([polyDataAsString], { type: "text/xml" }));
+            formData.append("jsonPart", new Blob([jsonPart], { type: "application/json" }));
+      
+            const generateRootPath = "/backend/generate_root/";
+      
+            // 将请求包装成 Promise 对象
+            const promise = new Promise((resolve, reject) => {
+              sendRequestWithToken({
+                method: "POST",
+                url: encodeURI(generateRootPath),
+                data: formData,
+                responseType: "json",
+                headers: {
+                  "Cache-Control": "no-cache",
+                },
+              })
+                .then((resp) => {
+                  const arrayBuffer = base64ToArrayBuffer(resp.data.polydata);
+                  // Use vtkXMLPolyDataReader to convert the ArrayBuffer to vtk polydata
+                  const reader = XML.vtkXMLPolyDataReader.newInstance();
+                  reader.parseAsArrayBuffer(arrayBuffer);
+                  const polyData = reader.getOutputData(0);
+                  const mapper = vtkMapper.newInstance();
+                  mapper.setInputData(polyData);
+                  const actor = vtkActor.newInstance();
+                  actor.setMapper(mapper);
+                  rootList.push({ name: toothName, actor, mapper });
+                  resolve(); // 请求成功，resolve
+                })
+                .catch((error) => {
+                  console.log("error");
+                  reject(error); // 请求失败，reject
+                });
+            });
+      
+            promises.push(promise); // 将每个请求的 Promise 对象添加到数组中
+          }
+        });
+      
+        await Promise.all(promises); // 等待所有请求完成
+        return rootList;
+      }
+
+    function base64ToArrayBuffer(base64) {
+        const binaryString = window.atob(base64);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes.buffer;
+    }
+
+    function clearRoot(rootList){
+        rootList.forEach(({actor})=>{
+            renderer.removeActor(actor)
+        })
     }
 
     return {
         generateRootDirection,
         adjustRootWidgetInScene,
-        setTeethOpacity,
+        setGingivaOpacity,
+        generateRoot,
+        clearRoot,
     }
 }

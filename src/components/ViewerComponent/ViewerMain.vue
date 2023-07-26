@@ -73,9 +73,11 @@ import {
 	getCurrentInstance,
 	toRaw,
 	defineProps,
-	inject
+	inject,
+	provide
 } from "vue";
 import { useStore } from "vuex";
+import { cloneDeep } from 'lodash'
 import vtkGenericRenderWindow from "@kitware/vtk.js/Rendering/Misc/GenericRenderWindow";
 
 // hardware selector test
@@ -112,6 +114,7 @@ import { add, multiplyScalar, subtract, dot } from "@kitware/vtk.js/Common/Core/
 import { sendRequestWithToken } from "../../utils/tokenRequest";
 import TeethBiteWorker from "../../hooks/teethBite.worker";
 import { norm } from "../../reDesignVtk/Math";
+import { presetArrangeDataList } from "../../static_config";
 
 const props = defineProps({
 	changeLoadingMessage: {
@@ -149,7 +152,36 @@ const activeTable = ref('distance')
 
 const toothOpacity = computed(() => store.state.actorHandleState.toothOpacity);
 const archScale = computed(() => store.state.actorHandleState.archScale);
-
+const selectedPreset = computed(() => store.state.actorHandleState.selectedPreset);
+watch(selectedPreset, ()=>{
+	usePresetDentalArchCoefficients(selectedPreset.value);
+	setTimeout(()=>{
+		vtkContext.renderWindow.render()
+	},10)
+})
+const clickUsePreset = computed(() => store.state.actorHandleState.clickUsePreset);
+watch(clickUsePreset, ()=>{
+	if(clickUsePreset.value){
+		moveLinkToPreset()
+		store.dispatch("actorHandleState/setClickUsePreset", false)
+	}
+})
+function moveLinkToPreset(){
+	const curPreset = presetArrangeDataList.filter((item)=>{
+		return item.number == selectedPreset.value
+	})[0]
+	
+	for (let teethType of ['upper', 'lower']){
+		// 从配置文件中读取预设的牙弓线
+		const {coEfficients} = curPreset[teethType].dentalArchSettings
+		// 覆盖DentalArchAdjustRecord中的牙弓线系数，在重新生成调整小球时使用新的系数来生成
+		store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
+			[teethType]: {
+				coEfficients,
+			},
+		});
+	}
+}
 watch(archScale, ()=>{
 	reScaleDentalArchCoefficients(archScale.value);
 	setTimeout(()=>{
@@ -220,7 +252,8 @@ watch(currentShowPanel, (newVal, oldVal) => {
 	}
 	// 从[工具菜单]进入[牙弓线调整]
 	if (oldVal === -1 && newVal === 1) {
-		regenerateDentalArchWidget();
+		// 切换面板时，应该从dentalArchSettings中读取系数
+		regenerateDentalArchWidget([], true);
 		adjustDentalArchWidgetInScene("enter");
 		// 关闭托槽微调
 		store.dispatch("actorHandleState/updateCurrentMode", {
@@ -244,12 +277,12 @@ watch(currentShowPanel, (newVal, oldVal) => {
 	if (oldVal === -1 && newVal === 2) {
 		generateRootDirection();
 		adjustRootWidgetInScene("enter",vtkContext);
-		setTeethOpacity(0.5);
+		setGingivaOpacity(0.5);
 	}
 	// 从[虚拟牙根]退出到[工具菜单]
 	if (oldVal === 2 && newVal === -1) {
 		adjustRootWidgetInScene("exit",vtkContext);
-		setTeethOpacity(1);
+		setGingivaOpacity(1);
 	}
 });
 let dentalArchWidgets = {}; // 每次调整后再排牙后需要重新设置
@@ -262,10 +295,12 @@ let initFittingCenters = {};
  * 这个函数有两个调用时机: 一是进入面板时, 二是保存时, 保存时会重新生成小球
  * 但保存时存入的resetCenters其实还没有存入, 或者说读不到, 所以此时就临时用centers参数传入函数里
  * resetCenters有参数就用参数, 参数未定义就去store里取
+ * 2023.7.26更新：不再使用记录的小球位置，每次都重新计算小球位置，使其位于牙弓线上。
+ * 				因此，排牙时的拟合点必须为上次排牙的结果，也就是作用mat2后的位置
  */
-function regenerateDentalArchWidget(specTeethType = []) {
-	dentalArchWidgets = {};
-	initFittingCenters = {};
+function regenerateDentalArchWidget(specTeethType = [], firstGenerate = false) {
+	// dentalArchWidgets = {};
+	// initFittingCenters = {};
 	let reGenerateTeethType = specTeethType.length > 0 ? specTeethType : arrangeTeethType.value;
 	for (let teethType of reGenerateTeethType) {
 		dentalArchWidgets[teethType] = [];
@@ -279,52 +314,45 @@ function regenerateDentalArchWidget(specTeethType = []) {
 		let lessBracketSide = lrBracketNames.left.length < lrBracketNames.right.length ? "left" : "right";
 		let resetCenters = toRaw(dentalArchAdjustRecord[teethType].resetCenters),
 			resetCentersNamesList = Object.keys(resetCenters);
-
 		// 新增一个控制深度的widget
 		// 初始化点 在标准牙齿坐标系下, 是牙弓线与y轴的交点, 即函数的常数项
 		// 它需要由标准牙齿坐标系转换到normal坐标系 再加上 mat4转换(咬合)
 		let aheadCenterCoordsOfStandardTeethAxis, behindCenterCoordsOfStandardTeethAxis, invMatrix;
 
-		if (!resetCentersNamesList.includes("D0") && resetCentersNamesList.includes("D1")) {
-			// 如果有记录(当前小球显示中心 + 逆变换矩阵)则直接读取
-			aheadCenterCoordsOfStandardTeethAxis = [...resetCenters.D0.center];
-			behindCenterCoordsOfStandardTeethAxis = [...resetCenters.D1.center];
-			invMatrix = resetCenters.D0.invMatrix;
-			initFittingCenters[teethType].centers["D0"] = [...aheadCenterCoordsOfStandardTeethAxis];
-			initFittingCenters[teethType].centers["D1"] = [...behindCenterCoordsOfStandardTeethAxis];
-			// 当前小球显示中心 -> 逆变换 = 用与牙弓线计算的拟合点
-			vtkMatrixBuilder
-				.buildFromDegree()
-				.setMatrix(invMatrix)
-				.apply(initFittingCenters[teethType].centers["D0"])
-				.apply(initFittingCenters[teethType].centers["D1"]);
-		} else {
-			let { coEfficients, zLevelOfArch, W } = toRaw(dentalArchSettings[teethType]);
-			// 前面的小球
-			aheadCenterCoordsOfStandardTeethAxis = [0, coEfficients[0][0], zLevelOfArch];
-			// 后面的小球(x和z相同, y取不同)
-			behindCenterCoordsOfStandardTeethAxis = [0, calculateArchY(W / 2, coEfficients), zLevelOfArch];
-			const { center, xNormal, yNormal, zNormal } = toRaw(teethStandardAxis)[teethType];
-			let transMatrix = calculateRigidBodyTransMatrixSpec(
-				[1, 0, 0, 0, 1, 0, 0, 0, teethType === "upper" ? -1 : 1, 0, 0, 0],
-				generateTeethAxisByNormal(center, xNormal, yNormal, zNormal)
-			);
-
-			// 转换
-			vtkMatrixBuilder
-				.buildFromDegree()
-				.setMatrix(transMatrix)
-				.apply(aheadCenterCoordsOfStandardTeethAxis)
-				.apply(behindCenterCoordsOfStandardTeethAxis);
-			initFittingCenters[teethType].centers["D0"] = [...aheadCenterCoordsOfStandardTeethAxis];
-			initFittingCenters[teethType].centers["D1"] = [...behindCenterCoordsOfStandardTeethAxis];
-			vtkMatrixBuilder
-				.buildFromDegree()
-				.setMatrix(userMatrixList.mat4[teethType])
-				.apply(aheadCenterCoordsOfStandardTeethAxis)
-				.apply(behindCenterCoordsOfStandardTeethAxis);
-			invMatrix = userMatrixList.invMat4[teethType];
+		let { zLevelOfArch, W } = toRaw(dentalArchSettings[teethType]);
+		let coEfficients;
+		// 如果是切换面板/重置，需要从dentalArchSettings中读取系数，相当于保存点
+		if (firstGenerate){
+			coEfficients= toRaw(dentalArchSettings[teethType]).coEfficients;
+		}else{
+			// 其他情况下从dentalArchAdjustRecord中读取系数，也就是只更新不保存
+			coEfficients = toRaw(dentalArchAdjustRecord[teethType].coEfficients)
 		}
+		// 前面的小球
+		aheadCenterCoordsOfStandardTeethAxis = [0, coEfficients[0][0], zLevelOfArch];
+		// 后面的小球(x和z相同, y取不同)
+		behindCenterCoordsOfStandardTeethAxis = [0, calculateArchY(W / 2, coEfficients), zLevelOfArch];
+		const { center, xNormal, yNormal, zNormal } = toRaw(teethStandardAxis)[teethType];
+		let transMatrix = calculateRigidBodyTransMatrixSpec(
+			[1, 0, 0, 0, 1, 0, 0, 0, teethType === "upper" ? -1 : 1, 0, 0, 0],
+			generateTeethAxisByNormal(center, xNormal, yNormal, zNormal)
+		);
+
+		// 转换
+		vtkMatrixBuilder
+			.buildFromDegree()
+			.setMatrix(transMatrix)
+			.apply(aheadCenterCoordsOfStandardTeethAxis)
+			.apply(behindCenterCoordsOfStandardTeethAxis);
+		initFittingCenters[teethType].centers["D0"] = [...aheadCenterCoordsOfStandardTeethAxis];
+		initFittingCenters[teethType].centers["D1"] = [...behindCenterCoordsOfStandardTeethAxis];
+		vtkMatrixBuilder
+			.buildFromDegree()
+			.setMatrix(userMatrixList.mat4[teethType])
+			.apply(aheadCenterCoordsOfStandardTeethAxis)
+			.apply(behindCenterCoordsOfStandardTeethAxis);
+		invMatrix = userMatrixList.invMat4[teethType];
+		
 
 		// 构造widget
 		const sphereLinkRep = vtkSphereLinkHandleRepresentation.newInstance({
@@ -385,62 +413,40 @@ function regenerateDentalArchWidget(specTeethType = []) {
 
 			// 小球会在什么时候变化? 排牙或咬合关系调整时, 需要重新设置小球
 			let leftSphereCenter, rightSphereCenter, invLeftTransMatrix, invRightTransMatrix;
-			if (
-				resetCentersNamesList.includes(lrBracketNames.left[i]) &&
-				resetCentersNamesList.includes(lrBracketNames.right[i])
-			) {
-				// 如果有记录(当前小球显示中心 + 逆变换矩阵)则直接读取
-				leftSphereCenter = [...resetCenters[lrBracketNames.left[i]].center];
-				rightSphereCenter = [...resetCenters[lrBracketNames.right[i]].center];
-				invLeftTransMatrix = resetCenters[lrBracketNames.left[i]].invMatrix;
-				invRightTransMatrix = resetCenters[lrBracketNames.right[i]].invMatrix;
-				initFittingCenters[teethType].centers[lrBracketNames.left[i]] = [...leftSphereCenter];
-				initFittingCenters[teethType].centers[lrBracketNames.right[i]] = [...rightSphereCenter];
-				// 当前小球显示中心 -> 逆变换 = 用于牙弓线计算的拟合点
-				vtkMatrixBuilder
-					.buildFromDegree()
-					.setMatrix(invLeftTransMatrix)
-					.apply(initFittingCenters[teethType].centers[lrBracketNames.left[i]]);
-				vtkMatrixBuilder
-					.buildFromDegree()
-					.setMatrix(invRightTransMatrix)
-					.apply(initFittingCenters[teethType].centers[lrBracketNames.right[i]]);
-			} else {
-				// 托槽当前的中心
-				leftSphereCenter = [
-					...bracketData[teethType].filter(({ name }) => name === lrBracketNames.left[i])[0].fineTuneRecord
-						.actorMatrix.center,
-				];
-				rightSphereCenter = [
-					...bracketData[teethType].filter(({ name }) => name === lrBracketNames.right[i])[0].fineTuneRecord
-						.actorMatrix.center,
-				];
-				// 就是小球调整的中心, 也是最初的拟合点
-				initFittingCenters[teethType].centers[lrBracketNames.left[i]] = [...leftSphereCenter];
-				initFittingCenters[teethType].centers[lrBracketNames.right[i]] = [...rightSphereCenter];
-				// 经过变换(排牙、咬合)显示在当前对应坐标系下供用户调整
-				let leftTransMatrix = multiplyMatrixList4x4(
-						userMatrixList.invMat3[lrBracketNames.left[i]],
-						userMatrixList.mat2[lrBracketNames.left[i]],
-						userMatrixList.mat4[teethType]
-					),
-					rightTransMatrix = multiplyMatrixList4x4(
-						userMatrixList.invMat3[lrBracketNames.right[i]],
-						userMatrixList.mat2[lrBracketNames.right[i]],
-						userMatrixList.mat4[teethType]
-					);
-				// 逆矩阵, 小球显示的中心经过逆矩阵变换回原位, 即实际用于计算牙弓线的拟合点
-				invLeftTransMatrix = invertMatrix4x4(leftTransMatrix);
-				invRightTransMatrix = invertMatrix4x4(rightTransMatrix);
-				vtkMatrixBuilder
-					.buildFromDegree()
-					.setMatrix(leftTransMatrix)
-					.apply(leftSphereCenter);
-				vtkMatrixBuilder
-					.buildFromDegree()
-					.setMatrix(rightTransMatrix)
-					.apply(rightSphereCenter);
-			}
+			// 托槽当前的中心
+			leftSphereCenter = [
+				...bracketData[teethType].filter(({ name }) => name === lrBracketNames.left[i])[0].fineTuneRecord
+					.actorMatrix.center,
+			];
+			rightSphereCenter = [
+				...bracketData[teethType].filter(({ name }) => name === lrBracketNames.right[i])[0].fineTuneRecord
+					.actorMatrix.center,
+			];
+			// 就是小球调整的中心, 也是最初的拟合点
+			initFittingCenters[teethType].centers[lrBracketNames.left[i]] = [...leftSphereCenter];
+			initFittingCenters[teethType].centers[lrBracketNames.right[i]] = [...rightSphereCenter];
+			// 经过变换(排牙、咬合)显示在当前对应坐标系下供用户调整
+			let leftTransMatrix = multiplyMatrixList4x4(
+					userMatrixList.invMat3[lrBracketNames.left[i]],
+					userMatrixList.mat2[lrBracketNames.left[i]],
+					userMatrixList.mat4[teethType]
+				),
+				rightTransMatrix = multiplyMatrixList4x4(
+					userMatrixList.invMat3[lrBracketNames.right[i]],
+					userMatrixList.mat2[lrBracketNames.right[i]],
+					userMatrixList.mat4[teethType]
+				);
+			// 逆矩阵, 小球显示的中心经过逆矩阵变换回原位, 即实际用于计算牙弓线的拟合点
+			invLeftTransMatrix = invertMatrix4x4(leftTransMatrix);
+			invRightTransMatrix = invertMatrix4x4(rightTransMatrix);
+			vtkMatrixBuilder
+				.buildFromDegree()
+				.setMatrix(leftTransMatrix)
+				.apply(leftSphereCenter);
+			vtkMatrixBuilder
+				.buildFromDegree()
+				.setMatrix(rightTransMatrix)
+				.apply(rightSphereCenter);
 
 			// 变换到托槽当前的位置上, 直接setUsermatrix过去
 			// 调整时需要反变换回去
@@ -497,7 +503,7 @@ function regenerateDentalArchWidget(specTeethType = []) {
 				sphereLinkWidget,
 				resetCenter: {
 					left: [...leftSphereCenter],
-					right: [...rightSphereCenter],
+					right: [...symmetricPoint],
 				}, // 初始位置(重置用)
 			});
 		}
@@ -604,6 +610,12 @@ watch(reCalculateArch, (newValue) => {
 					},
 				};
 			}
+			// 2023.7.26更新：原先排牙的初始拟合点全部是在排牙前的托槽点上进行的， 现在改为在排牙后(也就是作用mat2之后)的点上进行
+			let transMatrix = userMatrixList.mat2[name]
+			vtkMatrixBuilder
+					.buildFromDegree()
+					.setMatrix(transMatrix)
+					.apply(bracketCenters[name].bracketMatrix.center);
 		}
 		// 添加深度调整点
 		if (adjustNames.includes("D0")) {
@@ -645,10 +657,14 @@ watch(isResetAdjustDentalArch, (newValue) => {
 		if (newValue[teethType]) {
 			// 根据dentalArchSettings的coEfficients重新生成牙弓线
 			reCalculateDentalArchCoefficients(teethType, null, true);
-			// 重置所有调整小球到原位
-			dentalArchWidgets[teethType].forEach(({ sphereLinkRep, resetCenter }) => {
-				sphereLinkRep.setCenters([...resetCenter.left], [...resetCenter.right]);
-			});
+			// 重置所有调整小球到原位。
+			// 不再采用读取记录点的方式，而是重新计算
+			adjustDentalArchWidgetInScene("exit");
+			regenerateDentalArchWidget([teethType], true)
+			adjustDentalArchWidgetInScene("enter");
+			// dentalArchWidgets[teethType].forEach(({ sphereLinkRep, resetCenter }) => {
+			// 	sphereLinkRep.setCenters([...resetCenter.left], [...resetCenter.right]);
+			// });
 			// 重置centers为init点
 			store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
 				[teethType]: {
@@ -672,6 +688,16 @@ watch(isReArrangeTeethByAdjustedDentalArch, (newValue) => {
 			});
 		}
 	}
+	// 需要等待牙弓线系数重新计算完毕，再重新生成小球
+	setTimeout(()=>{
+		adjustDentalArchWidgetInScene("exit");
+		for (let teethType of ["upper", "lower"]){
+			if (newValue[teethType]) {
+				regenerateDentalArchWidget([teethType])
+			}
+		}
+		adjustDentalArchWidgetInScene("enter");
+	}, 600)
 });
 function reArrangeOneTypeTeethByAdjustedDentalArch(teethType) {
 	if (dentalArchAdjustRecord[teethType].coEfficients !== null) {
@@ -890,6 +916,36 @@ function teethPositionAdjust(moveType) {
 	}
 	fineTuneTeethPosition(option);
 }
+const generateRootRecord = computed(() => cloneDeep(store.state.actorHandleState.generateRootRecord));
+watch(generateRootRecord,(newValue, oldValue) => {
+	for (let teethType of ['upper','lower']){
+		if(newValue[teethType]&&!oldValue[teethType]){
+			generateRoot(teethType)
+			.then((result) => {
+				allActorList[teethType].rootGenerate = result;
+				const { renderWindow, renderer } = vtkContext;
+				allActorList[teethType].rootGenerate.forEach(({actor})=>{
+					renderer.addActor(actor)
+				})
+				renderWindow.render()
+			})
+			.catch((error) => {
+				console.error(error); // 处理错误情况
+			});
+			
+		}
+		if(!newValue[teethType]&&oldValue[teethType]){
+			// 清除牙根
+			const { renderWindow, renderer } = vtkContext;
+			allActorList[teethType].rootGenerate.forEach(({actor})=>{
+				renderer.removeActor(actor)
+			})
+			renderWindow.render()
+		}
+	}
+  },
+  { deep: true }
+);
 
 const { proxy } = getCurrentInstance();
 
@@ -955,8 +1011,10 @@ const {
 const {
 	generateRootDirection,
     adjustRootWidgetInScene,
-	setTeethOpacity,
-} = rootFunc(allActorList,toothPolyDatas,longAxisData);
+	setGingivaOpacity,
+	generateRoot,
+    clearRoot,
+} = rootFunc(allActorList,toothPolyDatas,bracketData);
 const {
 	preFineTuneRecord, // 记录上次[模拟排牙]时托槽的微调位置, 用于[模拟排牙]模式的微调中
 	currentArrangeStep,
@@ -966,6 +1024,7 @@ const {
 	startTeethArrangeByAdjustedDentalArch,
 	reCalculateDentalArchCoefficients,
 	reScaleDentalArchCoefficients,
+	usePresetDentalArchCoefficients,
 } = asyncTeethArrange(allActorList);
 const teethStandardAxis = store.state.actorHandleState.teethArrange.teethStandardAxis;
 const resetTeethAxisFinetuneRecord = store.state.actorHandleState.teethArrange.teethAxisFinetuneRecord;

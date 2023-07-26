@@ -74,6 +74,15 @@ export default {
         setArchScale(context, value){
             context.commit("SetArchScale", value);
         },
+        setSelectedPreset(context, value){
+            context.commit("SetSelectedPreset", value);
+        },
+        setClickUsePreset(context, value){
+            context.commit("SetClickUsePreset", value);
+        },
+        updateGenerateRootRecord(context, value) {
+            context.commit("UpdateGenerateRootRecord", value);
+        }
     },
     mutations: {
         UpdateSimMode(state, value) {
@@ -207,44 +216,6 @@ export default {
                     }
                 }
             }
-            //2023.1.5更新：将保存键与更新键合并，去掉保存键和重置键
-            // if(value.clickFlag){
-            //     // coEfficients覆盖出去
-            //     for (let teethType of ["upper", "lower"]) {
-            //         let {
-            //             coEfficients,
-            //         } = state.teethArrange.dentalArchAdjustRecord[teethType];
-            //         if (coEfficients !== null) {
-            //             state.teethArrange.dentalArchSettings[
-            //                 teethType
-            //             ].coEfficients = coEfficients;
-            //         }
-            //     }
-
-            //     // arrangeMatrix覆盖出去
-            //     Object.assign(state.teethArrange.arrangeMatrix, {
-            //         ...state.teethArrange.dentalArchAdjustRecord.upper
-            //             .arrangeMatrix,
-            //         ...state.teethArrange.dentalArchAdjustRecord.lower
-            //             .arrangeMatrix,
-            //     });
-            //     // 重置其中的参数为null
-            //     for (let teethType of ["upper", "lower"]) {
-            //         Object.assign(
-            //             state.teethArrange.dentalArchAdjustRecord[teethType],
-            //             {
-            //                 isReinitActivate: true, // 此时可以点击[初始化]
-            //                 isArrangeUpdated: true,
-            //                 // coEfficients: null,
-            //                 // centers: {},
-            //                 // arrangeMatrix: {},
-            //             }
-            //         );
-            //     }
-            //     // 然后设置overwriteByDentalArchAdjustRecord为true, 引起外部监听事件
-            //     state.teethArrange.dentalArchAdjustRecord.overwriteByDentalArchAdjustRecord = true;
-            //     // 主要触发userMatrix的变化
-            // }
         },
         SaveDentalArchAdjustRecord(state) {
             // coEfficients覆盖出去
@@ -311,13 +282,27 @@ export default {
         UpdateIsArchUpdated(state, value){
             state.isArchUpdated = value;
         },
+        SetToothOpacity(state, value){
+            state.toothOpacity = value;
+        },
         SetArchScale(state, value){
             state.archScale = value;
+        },
+        SetSelectedPreset(state, value){
+            state.selectedPreset = value;
+        },
+        SetClickUsePreset(state, value){
+            state.clickUsePreset = value;
+        },
+        UpdateGenerateRootRecord(state, value){
+            Object.assign(state.generateRootRecord,value)
         }
     },
     state: {
         toothOpacity: 50,
         archScale: 1,
+        selectedPreset: -1,
+        clickUsePreset: false,
         simMode: "simBracketFix", //"simToothFix",
         currentSelectBracketName: "",
 
@@ -426,6 +411,10 @@ export default {
         },
         clickEnter: false,
         isArchUpdated: false,
+        generateRootRecord: {
+            upper: false,
+            lower: false,
+        },
     },
     getters: {
         fineTuneMode(state) {

@@ -4,7 +4,7 @@
  * @Autor: ZhuYichen
  * @Date: 2023-05-16 15:39:32
  * @LastEditors: ZhuYichen
- * @LastEditTime: 2023-06-05 16:39:32
+ * @LastEditTime: 2023-06-25 17:56:56
 -->
 <template>
 	<div class="main-block panel" :class="{ show: isShow }">
@@ -86,6 +86,11 @@ import { useStore } from "vuex";
 import { reactive, ref, toRaw, computed, watch, onMounted, defineProps, inject } from "vue";
 import ViewerMain from "../ViewerComponent/ViewerMain.vue";
 import Viewer from "../../pages/Viewer.vue"
+import {
+    setTokenHeader,
+    setUserIdHeader,
+    sendRequestWithToken,
+} from "../../utils/tokenRequest";
 const props = defineProps({
 	isShow: {
 		type: Boolean,
@@ -115,13 +120,28 @@ function updateDentalArchAdjustType(value) {
 }
 
 function resetTeethRoot() {
-	store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
-		[dentalArchAdjustType.value]: { reset: true },
-	});
+	if(dentalArchAdjustType.value=='upper'){
+		store.dispatch("actorHandleState/updateGenerateRootRecord", {
+			upper: false,
+		});
+	}else if(dentalArchAdjustType.value=='lower'){
+		store.dispatch("actorHandleState/updateGenerateRootRecord", {
+			lower: false,
+		});
+	}
 }
+const generateRootRecord = computed(() => store.state.actorHandleState.generateRootRecord);
 
 function generateTeethRoot() {
-	console.log('生成牙根')
+	if(dentalArchAdjustType.value=='upper'){
+		store.dispatch("actorHandleState/updateGenerateRootRecord", {
+			upper: true,
+		});
+	}else if(dentalArchAdjustType.value=='lower'){
+		store.dispatch("actorHandleState/updateGenerateRootRecord", {
+			lower: true,
+		});
+	}
 }
 
 const canUserSaveAdjustRecord = computed(() => store.getters["actorHandleState/canUserSaveAdjustRecord"]);

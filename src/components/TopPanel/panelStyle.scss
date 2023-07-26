@@ -227,6 +227,45 @@ $view-head-height: 66px;
                     }
                 }
 
+                .preset-button {
+                    width: 90px;
+                    height: 24px;
+                    line-height: 24px;
+                    margin: (($view-head-height - 6px) / 2 - 28px) / 2 0;
+                    border: #cccccc 2px solid;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    text-align: center;
+                    color: black;
+                    background-color: rgb(230, 230, 230);
+                    cursor: pointer;
+                    transition: $trans-time;
+                    box-sizing: content-box;
+                    &:hover {
+                        background-color: rgb(240, 240, 240);
+                    }
+
+                    &.activate {
+                        background-color: #f4f4f4;
+                        border: rgb(137, 211, 245) 2px solid;
+
+                        &::after {
+                            content: "\2714";
+                            background: rgb(94, 199, 226);
+                            color: white;
+                            display: inline-block;
+                            width: 20px;
+                            height: 20px;
+                            border-radius: 10px;
+                            line-height: 20px;
+                        }
+                    }
+                    &.disabled {
+                        opacity: 0.4;
+                        pointer-events: none;
+                    }
+                }
+
                 .adjust-step {
                     text-align: start;
                     height: ($view-head-height - 6px) / 2;
@@ -253,7 +292,7 @@ $view-head-height: 66px;
                     line-height: ($view-head-height - 6px) / 2;
 
                     input {
-                        width: 40px;
+                        width: 50px;
                         vertical-align: text-bottom;
 
                         &.long {
@@ -469,6 +508,15 @@ $view-head-height: 66px;
                 .handle-btn {
                     width: 75px;
                     height: 24px;
+                    line-height: 24px;
+                    border-width: 2px;
+                    box-sizing: content-box;
+                }
+
+                .handle-select {
+                    width: 90px;
+                    height: 24px;
+                    margin-top: 2px;
                     line-height: 24px;
                     border-width: 2px;
                     box-sizing: content-box;

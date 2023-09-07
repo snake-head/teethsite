@@ -145,18 +145,18 @@ const toolMenuList = computed(() => {
 			],
 			allLimitsFit: false,
 		},
-		{
-			toolName: "生成虚拟牙根",
-			toolIntro: "调整虚拟牙根方向，随后生成虚拟牙根",
-			activate: true,
-			toolLimits: [
-				{
-					intro: "需要在[普通]模式下使用",
-					isFit: !isInSimMode.value,
-				},
-			],
-			allLimitsFit: false,
-		},
+		// {
+		// 	toolName: "生成虚拟牙根",
+		// 	toolIntro: "调整虚拟牙根方向，随后生成虚拟牙根",
+		// 	activate: true,
+		// 	toolLimits: [
+		// 		{
+		// 			intro: "需要在[普通]模式下使用",
+		// 			isFit: !isInSimMode.value,
+		// 		},
+		// 	],
+		// 	allLimitsFit: false,
+		// },
 		{
 			toolName: "开发中",
 			activate: false,

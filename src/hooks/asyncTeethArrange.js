@@ -457,6 +457,7 @@ export default function(allActorList) {
 						break;
 					case 2:
 						// 保存牙弓线参数
+						console.log(teethType, '保存')
 						store.dispatch("actorHandleState/updateDentalArchSettings", {
 							[teethType]: data.dentalArchSettings,
 						});

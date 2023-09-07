@@ -254,11 +254,18 @@ const showAndHide = inject('showAndHide')
 let firstUpdateFlag = true;
 function updateTeethArrange() {
 	if (!isArrangedOnLatestAdjustDentalArch.value) {
-		store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
-			[dentalArchAdjustType.value]: { reArrange: true },
-			//2023.1.5更新：添加一个clickFlag，用来表明是点击“更新”键
-			clickFlag: true,
-		});
+		const updateObj = {}
+		// 如果是首次点击更新，需要把上下颌一起进行一次更新
+		if (firstUpdateFlag){
+			arrangeTeethType.value.forEach((teethType)=>{
+				Object.assign(updateObj, {[teethType]: { reArrange: true }})
+			})
+		}else{
+			Object.assign(updateObj, {[dentalArchAdjustType.value]: { reArrange: true }})
+		}
+		//2023.1.5更新：添加一个clickFlag，用来表明是点击“更新”键
+		Object.assign(updateObj, {clickFlag: true})
+		store.dispatch("actorHandleState/updateDentalArchAdjustRecord", updateObj);
 	}
 	props.checkArchUpdated();
 	if(firstUpdateFlag){

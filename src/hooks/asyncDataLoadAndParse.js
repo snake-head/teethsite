@@ -509,7 +509,6 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                         progressConfig.lower["1"].state.type = "error";
                     } else {
                         matchPatientsInfo = matchPatientsInfo[0];
-
                         store.dispatch(
                             "userHandleState/updatePatientName",
                             matchPatientsInfo.name
@@ -526,6 +525,20 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                             {
                                 teethType: "lower",
                                 value: matchPatientsInfo.LowerUserCheck === 1,
+                            }
+                        );
+                        store.dispatch(
+                            "userHandleState/updateDataCheckableState",
+                            {
+                                teethType: "upper",
+                                value: matchPatientsInfo.UpperUserCheckable === 1,
+                            }
+                        );
+                        store.dispatch(
+                            "userHandleState/updateDataCheckableState",
+                            {
+                                teethType: "lower",
+                                value: matchPatientsInfo.LowerUserCheckable === 1,
                             }
                         );
 

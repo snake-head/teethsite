@@ -8,6 +8,9 @@ export default {
 		updateDataCheckedState(context, value) {
 			context.commit("UpdateDataCheckedState", value);
 		},
+		updateDataCheckableState(context, value) {
+			context.commit("UpdateDataCheckableState", value);
+		},
 		updateUserType(context, value) {
 			context.commit("UpdateUserType", value);
 		},
@@ -39,6 +42,9 @@ export default {
 		},
 		UpdateDataCheckedState(state, value) {
 			state.isDataChecked[value.teethType] = value.value;
+		},
+		UpdateDataCheckableState(state, value) {
+			state.isDataCheckable[value.teethType] = value.value;
 		},
 		UpdateUserType(state, value) {
 			state.userType = value;
@@ -87,6 +93,10 @@ export default {
 			upper: false,
 			lower: false,
 		}, // 数据是否已递交
+		isDataCheckable: {
+			upper: false,
+			lower: false,
+		}, // 方案是否确认
 		loadedTeethType: {
 			upper: false,
 			lower: false,
@@ -162,6 +172,15 @@ export default {
 		hasAnyDataSubmit(state) {
 			for (let teethType of ["upper", "lower"]) {
 				if (state.isDataChecked[teethType] === true) {
+					return true;
+				}
+			}
+			return false;
+		},
+		// 是否有方案已确认
+		isAnyDataCheckable(state) {
+			for (let teethType of ["upper", "lower"]) {
+				if (state.isDataCheckable[teethType] === true) {
 					return true;
 				}
 			}

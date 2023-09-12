@@ -500,17 +500,14 @@ export default {
                 } = state.teethArrange.dentalArchAdjustRecord[teethType];
                 if (coEfficients !== null) {
                     // 任一为true(调整过), 即可保存
-                    console.log(teethType, '已调整')
 
                     isAdjusted = true;
                 }
                 if (!isArrangeUpdated) {
                     // 任一为false, 则不可保存
-                    console.log(teethType, '没更新')
                     return false;
                 }
             }
-            console.log('可更新')
             return isAdjusted;
         },
     },

@@ -221,9 +221,15 @@
 							<div class="item-line" :class="{ hide: !arrangeShowState.isShow }">
 								<div class="col-24">正在排牙中......</div>
 							</div>
-							<div class="title clickable" @click="dialog.changeDialogShowState('dataSave', true)">
-								<div class="bg model-save-online-icon asidemenu-icon" />
-								<span>方案在线保存</span>
+							<div>
+								<div class="check-toggle" @click="toggleDataSaveCheckbox()" v-if="userInfo.isRollBackAuthorized">
+									<input type="checkbox" :checked="isAnyDataCheckable" class="model-save-checkbox"/>
+									<span>方案已确认</span>
+								</div>
+								<div class="title clickable" @click="newDataSaveWithCheckable()">
+									<div class="bg model-save-online-icon asidemenu-icon" />
+									<span>方案在线保存</span>
+								</div>
 							</div>
 							<div class="title clickable" @click="dialog.changeDialogShowState('dataSubmit', true)">
 								<div class="bg model-save-online-icon asidemenu-icon" />
@@ -873,6 +879,33 @@ const showRotateButton = ()=>{
 	hasRotateInfo.value=true;
 }
 provide('showRotateButton', showRotateButton)
+
+const isAnyDataCheckable = computed(() => store.getters["userHandleState/isAnyDataCheckable"]); 
+
+/**
+ * @description: 修改checkable的状态，表明本次保存是否是已确认的
+ * @return {*}
+ * @author: ZhuYichen
+ */
+function toggleDataSaveCheckbox(){
+	const flag = !isAnyDataCheckable.value
+	for(let teethType of ['upper', 'lower']){
+		store.dispatch("userHandleState/updateDataCheckableState", {
+			teethType,
+			value: flag,
+		});
+	}
+}
+
+/**
+ * @description: 2023.9.8更新：点击保存时需要发送两个请求，一个是保存数据，一个是修改是否确认的标志位
+ * @return {*}
+ * @author: ZhuYichen
+ */
+function newDataSaveWithCheckable(){
+	dialog.value.changeDialogShowState('dataSave', true)
+	viewerMain.value.setDataCheckable()
+}
 
 </script>
 
@@ -1584,6 +1617,23 @@ $btn-height: 30px;
 }
 .icon-index-icon {
 	background-image: url("../assets/Icon_adjust_simulate.png");
+}
+.check-toggle {
+	margin-left: 17px;
+	// text-align: center;
+	font-size: 10px;
+	font-weight: lighter;
+	margin-top: 20px;
+	// margin-bottom: -15px;
+	z-index: 10;
+	position: relative;
+}
+.model-save-checkbox {
+	width: 15px;
+	height: 15px;
+	top: 3px;
+	margin-right: 10px;
+	position: relative;
 }
 </style>
 <style>

@@ -2140,6 +2140,39 @@ function checkDataOnline() {
 		);
 	});
 }
+
+const isAnyDataCheckable = computed(() => store.getters["userHandleState/isAnyDataCheckable"]); 
+
+/**
+ * @description: 2023.9.7更新：给管理员用户提供的功能，表明方案是不是已经确认完成。
+ * @return {*}
+ * @author: ZhuYichen
+ */
+function setDataCheckable(){
+	const modelType = {
+		upper: "UpperConfig",
+		lower: "LowerConfig",
+	};
+	const flag = isAnyDataCheckable.value
+	uploadType.value.forEach((teethType) => {
+		sendRequestWithToken({
+			method: "POST",
+			url: window.linkConfig.checkDataApi,
+			data: {
+				patientUid: patientUID.value,
+				modelType: modelType[teethType],
+				isUserCheckable: flag?"1":"0",
+			},
+		}).then(
+			(res) => {
+
+			},
+			() => {
+
+			}
+		);
+	});
+}
 /**
  * @description 在提交数据后, 用当前微调位置覆盖原始微调位置
  */
@@ -2845,6 +2878,7 @@ defineExpose({
 	fineTuneBracket,
 	uploadDataOnline,
 	rollbackCheckedData,
+	setDataCheckable,
 });
 </script>
 

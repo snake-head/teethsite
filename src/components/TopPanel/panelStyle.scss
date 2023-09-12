@@ -52,6 +52,10 @@ $view-head-height: 66px;
     background-image: url("../../assets/Icon_rotate_counter_clockwise.png");
 }
 
+.icon-switch {
+    background-image: url("../../assets/Icon_switch_mode.png");
+}
+
 .icon-keyboard {
     background-image: url("../../assets/Icon_keyboard.png");
 }
@@ -75,7 +79,7 @@ $view-head-height: 66px;
         }
 
         .title-box {
-            width: 100px;
+            width: 120px;
             // margin-right: 2px;
             border: 1px solid rgb(236, 168, 25);
             height: $view-head-height - 6px;
@@ -106,6 +110,20 @@ $view-head-height: 66px;
                 width: 24px;
                 height: 24px;
                 display: inline-block;
+                border: transparent 1px solid;
+
+                &:hover {
+                    cursor: pointer;
+                    border: rgb(236, 168, 25) 1px solid;
+                    border-radius: 5px;
+                }
+            }
+
+            .icon-switch {
+                width: 24px;
+                height: 24px;
+                display: inline-block;
+                margin-left: 10px;
                 border: transparent 1px solid;
 
                 &:hover {
@@ -209,6 +227,45 @@ $view-head-height: 66px;
                     }
                 }
 
+                .preset-button {
+                    width: 90px;
+                    height: 24px;
+                    line-height: 24px;
+                    margin: (($view-head-height - 6px) / 2 - 28px) / 2 0;
+                    border: #cccccc 2px solid;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    text-align: center;
+                    color: black;
+                    background-color: rgb(230, 230, 230);
+                    cursor: pointer;
+                    transition: $trans-time;
+                    box-sizing: content-box;
+                    &:hover {
+                        background-color: rgb(240, 240, 240);
+                    }
+
+                    &.activate {
+                        background-color: #f4f4f4;
+                        border: rgb(137, 211, 245) 2px solid;
+
+                        &::after {
+                            content: "\2714";
+                            background: rgb(94, 199, 226);
+                            color: white;
+                            display: inline-block;
+                            width: 20px;
+                            height: 20px;
+                            border-radius: 10px;
+                            line-height: 20px;
+                        }
+                    }
+                    &.disabled {
+                        opacity: 0.4;
+                        pointer-events: none;
+                    }
+                }
+
                 .adjust-step {
                     text-align: start;
                     height: ($view-head-height - 6px) / 2;
@@ -226,6 +283,45 @@ $view-head-height: 66px;
                     &.narrow {
                         height: ($view-head-height - 6px) / 3;
                         line-height: ($view-head-height - 6px) / 3;
+                    }
+                }
+
+                .adjust-scale {
+                    text-align: start;
+                    height: ($view-head-height - 6px) / 2;
+                    line-height: ($view-head-height - 6px) / 2;
+
+                    input {
+                        width: 50px;
+                        vertical-align: text-bottom;
+
+                        &.long {
+                            width: 200px;
+                        }
+                    }
+
+                    &.narrow {
+                        height: ($view-head-height - 6px) / 3;
+                        line-height: ($view-head-height - 6px) / 3;
+                    }
+                }
+
+                .slider-block {
+                    width: 75px;
+                    height : 30px;
+                    margin-left: 5px;
+                    margin-bottom: 5px;
+                    :deep {
+                        .el-slider__runway {
+                            margin-top: 11px;
+                            width: 90%;
+                        }
+                        .el-slider__bar {
+                            background-color: #f3c443;
+                        }
+                        .el-slider__button {
+                            border-color: #f3c443;
+                        }
                     }
                 }
 
@@ -412,6 +508,15 @@ $view-head-height: 66px;
                 .handle-btn {
                     width: 75px;
                     height: 24px;
+                    line-height: 24px;
+                    border-width: 2px;
+                    box-sizing: content-box;
+                }
+
+                .handle-select {
+                    width: 90px;
+                    height: 24px;
+                    margin-top: 2px;
                     line-height: 24px;
                     border-width: 2px;
                     box-sizing: content-box;

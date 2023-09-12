@@ -24,11 +24,17 @@
 				<TeethPosAdjust v-if="isManager"
 					:isShow="!arrangeShowState.isShow && currentShowPanel === 0"
 					:exitToolPanel="exitToolPanel"
+					:switchToolPanel="switchToolPanel"
 				/>
-				<DeltalArchAdjust v-if="isManager"
+				<DentalArchAdjust v-if="isManager"
 					:isShow="!arrangeShowState.isShow && currentShowPanel === 1"
 					:exitToolPanel="exitToolPanel"
 					:checkArchUpdated="checkArchUpdated"
+					:switchToolPanel="switchToolPanel"
+				/>
+				<TeethRoot v-if="isManager"
+					:isShow="!arrangeShowState.isShow && currentShowPanel === 2"
+					:exitToolPanel="exitToolPanel"
 				/>
 				<div class="main-block progress" :class="{ show: arrangeShowState.isShow }">
 					<div class="arrange-progress-bar">
@@ -85,7 +91,8 @@ import { useStore } from "vuex";
 import ElDualProgress from "../progress";
 import TeethPosAdjust from "./TeethPosAdjust.vue";
 import ToolMenu from "./ToolMenu.vue";
-import DeltalArchAdjust from "./DeltalArchAdjust.vue";
+import DentalArchAdjust from "./DentalArchAdjust.vue";
+import TeethRoot from "./TeethRoot.vue"
 
 const store = useStore();
 const isManager = computed(() => 
@@ -138,6 +145,18 @@ const toolMenuList = computed(() => {
 			],
 			allLimitsFit: false,
 		},
+		// {
+		// 	toolName: "生成虚拟牙根",
+		// 	toolIntro: "调整虚拟牙根方向，随后生成虚拟牙根",
+		// 	activate: true,
+		// 	toolLimits: [
+		// 		{
+		// 			intro: "需要在[普通]模式下使用",
+		// 			isFit: !isInSimMode.value,
+		// 		},
+		// 	],
+		// 	allLimitsFit: false,
+		// },
 		{
 			toolName: "开发中",
 			activate: false,
@@ -167,6 +186,19 @@ function enterToolPanel(index) {
 }
 function exitToolPanel() {
 	store.dispatch("actorHandleState/updateCurrentShowPanel", -1);
+}
+
+/**
+ * @description: 在牙弓先调整与咬合界面间快速切换。逻辑上先退出到微调界面，在进入另一个界面。
+ * @return {*}
+ * @author: ZhuYichen
+ */
+function switchToolPanel() {
+	const cur = currentShowPanel.value;
+	store.dispatch("actorHandleState/updateCurrentShowPanel", -1);
+	setTimeout(()=>{
+		store.dispatch("actorHandleState/updateCurrentShowPanel", cur==0?1:0);
+	},0)
 }
 /**
  * @description: 校验是否已经更新了牙弓线，更新后才能进入咬合调整界面

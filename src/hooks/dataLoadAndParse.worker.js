@@ -607,7 +607,6 @@ function generateBracketObjFromStl(stlData, xmlData) {
     ];
     // 托槽[左右]法向量
     let xNormal = calculateN(yNormal, zNormal);
-
     let centerRotate = center;
     let yNormalRotate = yNormal;
     let zNormalRotate = zNormal;
@@ -1146,6 +1145,8 @@ function parseCADO() {
                     "?ClientType=UserClient",
             }).then(
                 (res) => {
+                    res.data.data.forEach((item)=>{
+                    })
                     let targetBracketData = res.data.data.filter(
                         (item) => item.BracketUID === targetBracketUID
                         // (item) => item.BracketUID === 'd7efced3115b4daba0758b1a7a302cc0'

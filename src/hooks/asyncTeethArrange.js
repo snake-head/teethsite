@@ -424,7 +424,6 @@ export default function(allActorList) {
 				const { data } = event;
 				switch (data.step) {
 					case "Init":
-						console.log(-1)
 						// 接收到初始数据, 做一定计算后返回结果, 包括牙齿标准坐标系和牙弓线设置
 						// 如果初始数据有保存到服务器上, 子线程不会发这种东西
 						if (data.teethAxis) {
@@ -458,9 +457,18 @@ export default function(allActorList) {
 						break;
 					case 2:
 						// 保存牙弓线参数
+						console.log(teethType, '保存')
 						store.dispatch("actorHandleState/updateDentalArchSettings", {
 							[teethType]: data.dentalArchSettings,
 						});
+						// 部分情况下(可能是重置或初始化时，记不清了)需要使用DentalArchSettings覆盖DentalArchAdjustRecord
+						if(data.dentalArchSettings.coEfficients){
+							store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
+								[teethType]: {
+									coEfficients: data.dentalArchSettings.coEfficients,
+								},
+							});
+						}
 						currentArrangeStep[teethType] = 3;
 						worker[teethType].postMessage({
 							step: 3,
@@ -697,6 +705,39 @@ export default function(allActorList) {
 		});
 	}
 
+ /**
+  * @description: 根据缩放系数重新计算牙弓线
+  * @param {*} teethType
+  * @param {*} archScale
+  * @return {*}
+  * @author: ZhuYichen
+  */
+	function reScaleDentalArchCoefficients(archScale){
+		for(let teethType of ['upper','lower']){
+			const coEfficients = toRaw(dentalArchSettings[teethType].coEfficients)
+			const scaledCoEfficients =[
+				[coEfficients[0][0]*archScale],
+				[0],
+				[coEfficients[2][0]/Math.pow(archScale,2)*archScale],
+				[0],
+				[coEfficients[4][0]/Math.pow(archScale,4)*archScale],
+			]
+			worker[teethType].postMessage({
+				step: "reScaleDentalArch",
+				data: scaledCoEfficients,
+			});
+		}
+	}
+
+	function usePresetDentalArchCoefficients(selectedPreset){
+		for(let teethType of ['upper','lower']){
+			worker[teethType].postMessage({
+				step: "usePresetDentalArch",
+				data: selectedPreset,
+			});
+		}
+	}
+
 	/**
 	 * @description 根据调整牙弓线排牙
 	 * 触发: 上面板[牙弓线调整]-[更新]按钮
@@ -709,7 +750,6 @@ export default function(allActorList) {
 		// 锁定牙弓线排牙, 走特殊流程, 但此时和正常流程一样, 会更新托槽微调记录
 		// 但多传参数isDentalArchLocked, coefficients, 具体可以看worker.js里怎么处理
 		// onmessage中最后一步不返回牙弓线, 只返回排牙矩阵, 并且不覆盖原来的数据
-		console.log(0)
 		worker[teethType].postMessage({
 			step: 0,
 			isDentalArchLocked: true, // 正常排牙不传参则默认设置为false
@@ -733,5 +773,7 @@ export default function(allActorList) {
 		startTeethArrangeByAdjustedDentalArch,
 		preFineTuneRecord,
 		reCalculateDentalArchCoefficients,
+		reScaleDentalArchCoefficients,
+		usePresetDentalArchCoefficients,
 	};
 }

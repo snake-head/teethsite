@@ -4,7 +4,7 @@
  * @Autor: ZhuYichen
  * @Date: 2022-09-27 11:03:07
  * @LastEditors: ZhuYichen
- * @LastEditTime: 2023-05-15 09:14:00
+ * @LastEditTime: 2023-09-08 19:52:15
  */
 module.exports = {
     lintOnSave: false, // 关闭语法检查
@@ -74,6 +74,6 @@ module.exports = {
     // 解决打包的时报错: (由于一些原因我的项目最后没有使用 worker, 也就没有研究打包遇到的问题...)
     parallel: false,
 
-    outputDir: "teeth3d",
-    publicPath: "/teeth3d/",
+    outputDir: "teeth3d.dev",
+    publicPath: "/teeth3d.dev/",
 };

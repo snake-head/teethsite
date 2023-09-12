@@ -7,6 +7,7 @@
 			</div>
 			<div class="exit">
 				<div class="icon-exit bg" @click="exitToolPanel()" />
+				<div class="icon-switch bg" @click="switchToolPanel()" />
 			</div>
 		</div>
 		<div class="handle-box">
@@ -34,6 +35,26 @@
 						@click="updateDentalArchAdjustType('lower')"
 					>
 						下颌
+					</div>
+				</div>
+			</div>
+		</div>
+		<div class="handle-box">
+			<div class="handle-title">缩放</div>
+			<div class="handle-body">
+				<div class="half clear-fix">
+					<div class="adjust-scale">
+						<input
+							id="pan-scale-arch"
+							type="number"
+							step="0.001"
+							v-model.number="archScale"
+						/> 倍
+					</div>				
+				</div>
+				<div class="half">
+					<div class="slider-block">
+						<el-slider v-model.number="archScale" :min="0.95" :max="1.05" :step="0.001" />
 					</div>
 				</div>
 			</div>
@@ -89,6 +110,28 @@
 				</div>
 			</div>
 		</div>
+		<div class="handle-box">
+			<div class="handle-title">预设</div>
+			<div class="handle-body">
+				<div class="half clear-fix">
+					<select 
+						class="handle-select"
+						v-model="selectedPreset"
+					>
+						<option v-for="(option, index) in presetArrangeDataList" :key="index" :value="option.number">{{ option.presetName }}</option>
+					</select>
+				</div>
+				<div class="half clear-fix">
+					<button 
+						class="preset-button" 
+						:class="{ disabled: selectedPreset<0 }"
+						@click="usePresetArch()"
+					>
+						使用
+					</button>
+				</div>
+			</div>
+		</div>
 
 		<!-- <div class="handle-box">
 			<div class="handle-title">导出</div>
@@ -132,12 +175,17 @@ import { useStore } from "vuex";
 import { reactive, ref, toRaw, computed, watch, onMounted, defineProps, inject } from "vue";
 import ViewerMain from "../ViewerComponent/ViewerMain.vue";
 import Viewer from "../../pages/Viewer.vue"
+import { presetArrangeDataList } from "../../static_config";
 const props = defineProps({
 	isShow: {
 		type: Boolean,
 		default: false,
 	},
 	exitToolPanel: {
+		type: Function,
+		default: () => {},
+	},
+	switchToolPanel: {
 		type: Function,
 		default: () => {},
 	},
@@ -152,6 +200,15 @@ const dentalArchParams = computed(() => ({
 	upper: store.state.actorHandleState.teethArrange.dentalArchSettings.upper.coEfficients,
 	lower: store.state.actorHandleState.teethArrange.dentalArchSettings.lower.coEfficients,
 }));
+const archScale = computed({
+	get: () => store.state.actorHandleState.archScale,
+	set: (value) => store.dispatch("actorHandleState/setArchScale", value),
+})
+const selectedPreset = computed({
+	get: () => store.state.actorHandleState.selectedPreset,
+	set: (value) => store.dispatch("actorHandleState/setSelectedPreset", value),
+})
+
 watch(dentalArchParams, () => {
 	let text = {};
 	for (let teethType of ["upper", "lower"]) {
@@ -194,16 +251,27 @@ const isArrangedOnLatestAdjustDentalArch = computed(
 );
 
 const showAndHide = inject('showAndHide')
+let firstUpdateFlag = true;
 function updateTeethArrange() {
 	if (!isArrangedOnLatestAdjustDentalArch.value) {
-		store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
-			[dentalArchAdjustType.value]: { reArrange: true },
-			//2023.1.5更新：添加一个clickFlag，用来表明是点击“更新”键
-			clickFlag: true,
-		});
+		const updateObj = {}
+		// 如果是首次点击更新，需要把上下颌一起进行一次更新
+		if (firstUpdateFlag){
+			arrangeTeethType.value.forEach((teethType)=>{
+				Object.assign(updateObj, {[teethType]: { reArrange: true }})
+			})
+		}else{
+			Object.assign(updateObj, {[dentalArchAdjustType.value]: { reArrange: true }})
+		}
+		//2023.1.5更新：添加一个clickFlag，用来表明是点击“更新”键
+		Object.assign(updateObj, {clickFlag: true})
+		store.dispatch("actorHandleState/updateDentalArchAdjustRecord", updateObj);
 	}
 	props.checkArchUpdated();
-	showAndHide();
+	if(firstUpdateFlag){
+		showAndHide();
+		firstUpdateFlag=false;
+	}
 }
 
 const canUserSaveAdjustRecord = computed(() => store.getters["actorHandleState/canUserSaveAdjustRecord"]);
@@ -303,6 +371,19 @@ function resetDentalArchToInitState() {
 			},
 		});
 	}
+}
+function usePresetArch() {
+	// 触发viewermain中的监视
+	store.dispatch("actorHandleState/setClickUsePreset", true)
+	// 触发重新排牙
+	store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
+		upper: { reArrange: true },
+		clickFlag: true,
+	});
+	store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
+		lower: { reArrange: true },
+		clickFlag: true,
+	});
 }
 </script>
 

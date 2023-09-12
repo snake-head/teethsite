@@ -12,6 +12,7 @@
 					:class="{ activate: selectKeyBoardEvent === 'teethpos' }"
 					@click="switchSelectKeyBoardEvent()"
 				/>
+				<div class="icon-switch bg" @click="switchToolPanel()" />
 			</div>
 		</div>
 		<div class="handle-box" :class="{ deactivate: !isTeethPositionAdjustFree }">
@@ -198,6 +199,10 @@ defineProps({
 		default: false,
 	},
 	exitToolPanel: {
+		type: Function,
+		default: () => {},
+	},
+	switchToolPanel: {
 		type: Function,
 		default: () => {},
 	},

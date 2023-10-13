@@ -1,21 +1,19 @@
 <template>
 	<div class="view-head">
 		<el-row class="head-line">
-			<el-col :span="currentShowPanel === -1 ? 1 : 0" class="title-block">
+			<el-col :span="currentShowPanel === -1 ? 3 : 0" class="title-block">
 				<div class="icon-icon bg" />
 			</el-col>
-			<el-col :span="currentShowPanel === -1 ? 5 : 0" class="title-block">
-				<ul class="normal-info">
-					<li>病人姓名: {{ patientName }}</li>
-					<li>
-						数据状态:
-						<span class="data-state-info" :class="uploadType.length === 0 ? 'done' : 'doing'">
-							{{ dataState }}
-						</span>
-					</li>
-				</ul>
+			<el-col :span="currentShowPanel === -1 ? 6 : 0" class="title-block info-block">
+				<div class="normal-info">
+					<span class="info-text">病人姓名: {{ patientName }}</span>
+					<span class="data-text">数据状态:</span>
+					<span class="data-state-info" :class="uploadType.length === 0 ? 'done' : 'doing'">
+						{{ dataState }}
+					</span>
+				</div>
 			</el-col>
-			<el-col :span="currentShowPanel === -1 ? 18 : 24" class="title-block no-margin over-vis">
+			<el-col :span="currentShowPanel === -1 ? 15 : 24" class="title-block no-margin over-vis">
 				<ToolMenu v-if="isManager"
 					:isShow="!arrangeShowState.isShow && currentShowPanel === -1"
 					:toolMenuList="toolMenuList"
@@ -211,125 +209,5 @@ function checkArchUpdated(){
 </script>
 
 <style lang="scss" scoped>
-$trans-time: 0.2s;
-$view-head-height: 66px;
-
-.clear-fix {
-	&::after,
-	&::before {
-		content: "";
-		clear: both;
-		display: table;
-	}
-}
-.view-head {
-	font-size: 14px;
-	height: $view-head-height;
-	background-color: #24292e;
-	color: rgba(255, 255, 255, 0.7);
-	line-height: 1.5;
-	padding: 0 10px;
-	z-index: 1000;
-
-	.icon-icon {
-		background-image: url("../../assets/Icon_newcase.png");
-	}
-
-	.head-line {
-		height: 100%;
-		user-select: none;
-	}
-	.bg {
-		position: relative;
-		width: 40px;
-		height: 40px;
-		backface-visibility: hidden;
-		background-size: 100% 100%;
-		background-repeat: no-repeat;
-	}
-	.title-block {
-		height: $view-head-height - 20px;
-		margin: 10px 0;
-		text-align: center;
-		// border-right: solid 1px #cccccc;
-		white-space: nowrap;
-		position: relative;
-		overflow: hidden;
-		&::after {
-			content: "";
-			position: absolute;
-			top: 0;
-			right: 0;
-			display: inline-block;
-			height: $view-head-height - 20px;
-			border-right: 1px solid #cccccc;
-		}
-		&.no-margin {
-			height: $view-head-height;
-			margin: 0;
-			&::after {
-				top: 10px;
-			}
-		}
-		&.over-vis {
-			overflow: visible;
-		}
-
-		ul li {
-			list-style: none;
-			height: 20px;
-			line-height: 20px;
-			width: 100%;
-			transition: $trans-time;
-			&.bold {
-				font-weight: bold;
-			}
-		}
-		.normal-info li {
-			letter-spacing: 0;
-			opacity: 1;
-		}
-		.data-state-info {
-			&.done {
-				color: #a7aeb4;
-			}
-			&.doing {
-				color: #43e050;
-			}
-		}
-	}
-	.op-block {
-		line-height: $view-head-height - 20px;
-		cursor: pointer;
-		width: 100%;
-		height: 100%;
-		display: block;
-		&:hover {
-			color: khaki;
-		}
-	}
-	.main-block.progress {
-		overflow: hidden;
-		height: 0px;
-		display: flex;
-		justify-content: center;
-		flex-wrap: wrap;
-		// margin: 8px 0;
-		transition: 0.2s;
-		visibility: hidden;
-		opacity: 0;
-		transform: translateY(10px) scaleY(0.1);
-		&.show {
-			height: 30px;
-			margin: 15px 0;
-			visibility: visible;
-			opacity: 1;
-			transform: none;
-		}
-		.arrange-progress-bar {
-			height: 50%;
-			width: 80%;
-		}
-	}
-}
+@import './indexStyle.scss';
 </style>

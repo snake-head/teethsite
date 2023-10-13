@@ -1342,6 +1342,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                         if (toNext) {
                             stlObj.teeth[teethType] = event.data.stlObj;
                             xmlObj[teethType] = event.data.xmlObj;
+                            console.log(xmlObj[teethType])
 
                             const {
                                 arrangeMatrix,

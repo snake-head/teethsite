@@ -361,6 +361,7 @@
 									/>
 								</el-button>
 								<!-- 2023.4.12更新：用于隐藏/显示原始牙列 -->
+								<!-- 2023.10.13更新：如果没有转矩信息则不需要显示该按钮 -->
 								<el-button
 									size="small"
 									@click="changeOriginToothShowState()"
@@ -368,6 +369,7 @@
 										(!isActorLoadedFinish.upper && !isActorLoadedFinish.lower) ||
 											!currentMode.straightenSimulation
 									"
+									v-if=hasRotateInfo
 								>
 									<div
 										class="bg"

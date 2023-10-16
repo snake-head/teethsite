@@ -28,6 +28,7 @@ function calculateLineActorPointsAndDistance(
     zNormal,
     floatDist
 ) {
+    // 2023.10.13更新：原先采用的距离线算法是距离线与牙齿长轴平行，现修改为与托槽znormal垂直
     // 我们需要构建的三段直线的另外两个顶点需要漂浮在actor上方(或者说前面)让用户看到
     // 因此,首先将center沿zNormal方向移动1.5个距离得到centerFloat, 使这个点必定在托槽脱离牙齿的上方
     const centerFloat = [
@@ -37,43 +38,84 @@ function calculateLineActorPointsAndDistance(
     ];
     // 构造平面startPointPlane: origin=startPoint, normal=endPoint-startPoint
     // 构造平面centerPointPlane: origin=center, normal=endPoint-startPoint
-    const normal = [
-        endPoint[0] - startPoint[0],
-        endPoint[1] - startPoint[1],
-        endPoint[2] - startPoint[2],
-    ];
-    normalize(normal); // 归一化
+    // const normal = [
+    //     endPoint[0] - startPoint[0],
+    //     endPoint[1] - startPoint[1],
+    //     endPoint[2] - startPoint[2],
+    // ];
+    // normalize(normal); // 归一化
     // 然后将centerFloat分别投射到平面startPointPlane、centerPointPlane得到第3个点startPlaneProj、第4个点centerPlaneProj
-    const startPlaneProj = projectPointToPlane(centerFloat, startPoint, normal);
-    const centerPlaneProj = projectPointToPlane(centerFloat, center, normal);
+    // const startPlaneProj = projectPointToPlane(centerFloat, startPoint, normal);
+    // const centerPlaneProj = projectPointToPlane(centerFloat, center, normal);
 
     // 我们需要的4个点构成一个LineActor, startPoint->startPlaneProj->centerPlaneProj->center
     // 为了distance考虑, distance需要显示在centerPlaneProj->startPlaneProj中间位置偏上(上方向定义为startPoint->startPlaneProj)
     // 因此多加一个点用于后续psMapper
+    // const upDirection = [
+    //     startPlaneProj[0] - startPoint[0],
+    //     startPlaneProj[1] - startPoint[1],
+    //     startPlaneProj[2] - startPoint[2],
+    // ];
+    // normalize(upDirection);
+    // const textPositionPoint = [
+    //     (centerPlaneProj[0] + startPlaneProj[0]) / 2 + 0.4 * upDirection[0],
+    //     (centerPlaneProj[1] + startPlaneProj[1]) / 2 + 0.4 * upDirection[1],
+    //     (centerPlaneProj[2] + startPlaneProj[2]) / 2 + 0.4 * upDirection[2],
+    // ];
+    // 以下是更新的代码
+    // 计算过startPoint，沿zNormal方向的向量
+    const CS = [
+        startPoint[0] - center[0],
+        startPoint[1] - center[1],
+        startPoint[2] - center[2],
+    ]
+    // startPoint 在zNormal上的投影点K
+    const K = projection(CS, zNormal);
+    const KS = [
+        startPoint[0] - K[0],
+        startPoint[1] - K[1],
+        startPoint[2] - K[2],
+    ]
+    const M = [
+        floatDist * zNormal[0] + KS[0],
+        floatDist * zNormal[1] + KS[1],
+        floatDist * zNormal[2] + KS[2],
+    ]
+
+    // startPoint->startPlaneProj->centerPlaneProj->center
+    // const pointValues = new Float32Array([
+    //     ...textPositionPoint, // 第0个点就是text的位置
+    //     ...startPoint,
+    //     ...startPlaneProj,
+    //     ...centerPlaneProj,
+    //     ...center,
+    // ]);
+    // startPoint->M->centerFloat->center
     const upDirection = [
-        startPlaneProj[0] - startPoint[0],
-        startPlaneProj[1] - startPoint[1],
-        startPlaneProj[2] - startPoint[2],
+        M[0] - startPoint[0],
+        M[1] - startPoint[1],
+        M[2] - startPoint[2],
     ];
     normalize(upDirection);
     const textPositionPoint = [
-        (centerPlaneProj[0] + startPlaneProj[0]) / 2 + 0.4 * upDirection[0],
-        (centerPlaneProj[1] + startPlaneProj[1]) / 2 + 0.4 * upDirection[1],
-        (centerPlaneProj[2] + startPlaneProj[2]) / 2 + 0.4 * upDirection[2],
+        (centerFloat[0] + M[0]) / 2 + 0.4 * upDirection[0],
+        (centerFloat[1] + M[1]) / 2 + 0.4 * upDirection[1],
+        (centerFloat[2] + M[2]) / 2 + 0.4 * upDirection[2],
     ];
-
-    // startPoint->startPlaneProj->centerPlaneProj->center
     const pointValues = new Float32Array([
         ...textPositionPoint, // 第0个点就是text的位置
         ...startPoint,
-        ...startPlaneProj,
-        ...centerPlaneProj,
+        ...M,
+        ...centerFloat,
         ...center,
     ]);
 
     // 计算两个平面之间的距离
+    // const distance = Math.sqrt(
+    //     distance2BetweenPoints(centerPlaneProj, startPlaneProj)
+    // );
     const distance = Math.sqrt(
-        distance2BetweenPoints(centerPlaneProj, startPlaneProj)
+        distance2BetweenPoints(M, centerFloat)
     );
 
     return { pointValues, distance };
@@ -95,6 +137,50 @@ function projectPointToPlane(x, origin, normal) {
     // x沿normal方向往下t个距离, 就是x在平面上的投影点
     return [x[0] - t * normal[0], x[1] - t * normal[1], x[2] - t * normal[2]];
 }
+
+/**
+ * 计算两个向量的点积
+ * @param {number[]} a - 第一个向量
+ * @param {number[]} b - 第二个向量
+ * @returns {number} 两个向量的点积
+ */
+function dotProduct(a, b) {
+    let result = 0;
+    for (let i = 0; i < a.length; i++) {
+        result += a[i] * b[i];
+    }
+    return result;
+}
+
+/**
+ * 计算一个向量的模长
+ * @param {number[]} b - 要计算模长的向量
+ * @returns {number} 向量的模长
+ */
+function vectorMagnitude(b) {
+    let result = 0;
+    for (let i = 0; i < b.length; i++) {
+        result += Math.pow(b[i], 2);
+    }
+    return Math.sqrt(result);
+}
+
+/**
+ * 计算一个向量在另一个向量上的投影坐标
+ * @param {number[]} a - 要投影的向量
+ * @param {number[]} b - 作为投影方向的向量
+ * @returns {number[]} 投影结果向量
+ */
+function projection(a, b) {
+    const dot = dotProduct(a, b);
+    const magSquared = Math.pow(vectorMagnitude(b), 2);
+    const scaleFactor = dot / magSquared;
+
+    const projection = b.map(element => element * scaleFactor);
+    return projection;
+}
+
+
 
 export { calculateLineActorPointsAndDistance };
 

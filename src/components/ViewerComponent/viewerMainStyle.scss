@@ -1,0 +1,211 @@
+$right-panel-width-normal: 250px;
+$table-height: 300px;
+.container {
+	transition: 0.1s;
+	width: calc(100% - $right-panel-width-normal);
+	height: 100%;
+	background-color: ivory;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	.text-container {
+		position: absolute;
+		top: 0;
+		right: 0;
+		bottom: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+	}
+}
+.demo-tabs {
+  :deep {
+    .el-tabs__header {
+    	margin-bottom: 0;
+		.el-tabs__item.is-top.is-active {
+		border-bottom: 1px solid rgba(192, 25, 25, 0.7);
+	}
+    }
+	.el-tabs__content {
+		height: calc(100% - 41px);
+	}
+  }
+}
+.right-side-menu {
+	transition: 0.1s;
+	opacity: 1;
+	width: $right-panel-width-normal;
+	height: 100%;
+	background-color: #e5e9e5;
+	position: absolute;
+	right: 0;
+	top: 0;
+	display: flex;
+	flex-direction: column;
+	z-index: 99;
+	overflow: hidden;
+	.demo-tabs{
+		display: block;
+		width: 100%;
+		height: 33%;
+		.demo-tab-pane {
+			height: 100%;
+		}
+		.distance-table {
+			display: block;
+			width: calc(100% - 2px);
+			height: 100%;
+			background-color: aquamarine;
+			overflow-y: hidden;
+			z-index: 99;
+			border: 1px solid rgba(147, 112, 219, 0.7);
+			.dt-col {
+				max-width: calc(100% / 7);
+				height: 100%;
+				flex: 0 0 calc(100% / 7);
+				float: left;
+				box-sizing: border-box;
+				.dt-row {
+					width: 100%;
+					height: 25%;
+					display: flex;
+					flex-wrap: wrap;
+					box-sizing: border-box;
+					position: relative;
+					.dt-name-box {
+						width: calc(100% - 2px);
+						height: calc(50% - 2px);
+						display: flex;
+						justify-content: center;
+						align-items: center;
+						border: 1px solid rgba(158, 158, 198, 0.5);
+						background-color: #eaeaea;
+						user-select: none;
+						&:hover {
+							margin-top: -1px;
+							margin-left: -1px;
+							margin-bottom: -1px;
+							border: 2px solid rgb(158, 158, 198);
+							background-color: #d2ead2;
+						}
+					}
+					.dt-dist-box {
+						width: calc(100% - 2px);
+						height: calc(50% - 2px);
+						display: flex;
+						justify-content: center;
+						align-items: center;
+						border: 1px solid rgba(158, 158, 158, 0.5);
+						background-color: #cccccc;
+						position: relative;
+						.dt-msg-box {
+							position: absolute;
+							bottom: 20px;
+							right: 0;
+							display: none;
+							font-size: x-small;
+							overflow: visible;
+							background-color: #fff;
+							border: 1px solid rgba(0, 0, 0, 0.8);
+							width: auto;
+							padding: 4px;
+							box-sizing: border-box;
+							z-index: 1;
+							span {
+								font-size: inherit;
+							}
+						}
+						&:hover {
+							.dt-msg-box {
+								display: block;
+							}
+						}
+					}
+
+					.dt-dist-box:hover .dt-msg-box {
+						display: block;
+					}
+					.dt-name-box span,
+					.dt-dist-box span {
+						transition: 0.1s;
+						font-size: 14px;
+					}
+					&.selected {
+						font-weight: 600;
+						.dt-dist-box {
+							background-color: #ffff69;
+						}
+					}
+				}
+			}
+		}
+	}
+	&.hide {
+		opacity: 0.6;
+		pointer-events: none;
+	}
+}
+
+.tooth-drag-window {
+	width: calc(100% - 2px);
+	height: 33%;
+	border: 1px solid rgba(147, 112, 219, 0.7);
+	.tooth-container {
+		width: 100%;
+		height: 100%;
+		background-color: ivory;
+		.pic-text-container {
+			position: absolute;
+			width: calc(100% - 2px);
+			height: calc(33% - 4px);
+		}
+	}
+}
+
+.bottom-drag-bar {
+	transition: 0.1s;
+	position: absolute;
+	height: 25px;
+	width: 100%;
+	bottom: -22px;
+	cursor: pointer;
+	background: linear-gradient(to right, rgba(128, 128, 128, 0.2) 50%, rgba(128, 128, 128, 0.8) 50%);
+	background-size: 200% 100%;
+	background-position: 0 0;
+	.drag-icon {
+		position: absolute;
+		top: 0;
+		right: 5px;
+		width: 25px;
+		height: 25px;
+		transition: 0.1s;
+		backface-visibility: hidden;
+		background-size: 100% 100%;
+	}
+	&:hover {
+		bottom: 0;
+		background-position: 100% 0;
+	}
+	&:active {
+		.drag-icon {
+			transform: translateX(-5px);
+		}
+	}
+	&.reverse {
+		.drag-icon {
+			transform: scaleX(-1);
+		}
+		&:active {
+			.drag-icon {
+				transform: scaleX(-1) translateX(-5px);
+			}
+		}
+	}
+}
+
+.demo-tabs > .el-tabs__content {
+    padding: 32px;
+    color: #6b778c;
+    font-size: 32px;
+    font-weight: 600;
+  }

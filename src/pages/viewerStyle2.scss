@@ -37,17 +37,19 @@ $btn-height: 30px;
 			position: absolute;
 			top: 0;
 			left: 0;
+			background-color: #f7f7f2;
 			// z-index: 100;
 			.aside-body {
 				width: 100%;
 				height: 100%;
-				background: #545c64;
+				background: #ffffff;
 				color: rgb(255, 255, 255);
 				overflow: hidden;
 				user-select: none;
 				transition: 0.2s;
 				visibility: visible;
 				position: absolute;
+				margin-top: 5px;
 
 				.asidemenu-icon {
 					width: 20px;
@@ -63,15 +65,16 @@ $btn-height: 30px;
 					height: $title-line-height;
 					line-height: $title-line-height;
 					font-size: 15px;
-					background-color: rgb(84, 92, 100);
+					background-color: rgb(255, 255, 255);
 					position: relative;
 					box-sizing: border-box;
+					color: black;
 					span {
 						vertical-align: middle;
 					}
 
 					&:hover {
-						background-color: rgb(67, 74, 80);
+						background-color: rgb(209, 216, 221);
 					}
 					&.clickable {
 						cursor: pointer;
@@ -122,9 +125,9 @@ $btn-height: 30px;
 					line-height: $item-line-height;
 					font-size: 12px;
 					transition: $trans-time;
-
+					color: black;
 					&:hover {
-						background-color: rgb(80, 87, 95);
+						background-color: rgb(209, 216, 221);
 					}
 					&.hide {
 						height: 0;
@@ -138,12 +141,46 @@ $btn-height: 30px;
 					}
 					.adjust-step {
 						/*text-align: center;*/
-						padding-left: $left-panel-width-normal/15;
+						padding-left: 0;
 						transition: $trans-time;
+						.el-input-number {
+							width: 90px;
+							height: 32px;
+							background-color: #f9fafb;
+							margin-left: 10px;
+							margin-right: 5px;
+
+							:deep {
+								.el-input-number__increase {
+									width: 20px;
+									line-height: 15px;
+								}
+								.el-input-number__decrease {
+									width: 20px;
+									line-height: 15px;
+								}
+								.el-input__inner {
+									padding-left: 0;
+									padding-right: 20px;
+									height: 32px;
+								}
+								.el-input {
+									line-height: 32px;
+								}
+							}
+						}
 						input {
 							width: 60px;
+							height: 30px;
 							outline: none;
 							text-align: center;
+							background-color: #f9fafb;
+							border: none;
+							margin-left: 10px;
+							border-radius: 5px;
+						}
+						.unit-text {
+							color: #909399;
 						}
 					}
 					.adjust-button {
@@ -151,11 +188,11 @@ $btn-height: 30px;
 						height: $btn-height;
 						line-height: $btn-height;
 						margin: ($item-line-height - $btn-height - 4px)/2 auto;
-						border: 2px outset rgb(133, 133, 133);
+						border: none;
 						cursor: pointer;
 						display: block;
 						border-radius: 3px;
-						background-color: rgb(230, 230, 230);
+						background-color: #f9fafb;
 						color: black;
 						position: relative;
 						transition: $trans-time;
@@ -187,6 +224,11 @@ $btn-height: 30px;
 							height: $btn-height * 0.7;
 							line-height: $btn-height * 0.7;
 						}
+						&.enter-button {
+							width: 50px;
+							border: 1px solid rgb(133, 133, 133, 0.3);
+							font-size: 15px;
+						}
 
 						.orient-text {
 							text-align: center;
@@ -203,36 +245,36 @@ $btn-height: 30px;
 							.up-text {
 								border-right: 10px solid transparent;
 								border-left: 10px solid transparent;
-								border-bottom: 17.3px solid rgba(67, 74, 80, 0.9);
+								border-bottom: 11.3px solid #888f96;
 								position: absolute;
 								left: calc($btn-width/2 - 10px);
-								top: calc($btn-height/2 - 17.3px / 2);
+								top: calc($btn-height/2 - 11.3px / 2);
 								transition: $trans-time;
 							}
 							.left-text {
 								border-top: 10px solid transparent;
 								border-bottom: 10px solid transparent;
-								border-right: 17.3px solid rgba(67, 74, 80, 0.85);
+								border-right: 11.3px solid #888f96;
 								position: absolute;
-								left: calc($btn-width/2 - 17.3px / 2);
+								left: calc($btn-width/2 - 11.3px / 2);
 								top: calc($btn-height/2 - 10px);
 								transition: $trans-time;
 							}
 							.down-text {
 								border-right: 10px solid transparent;
 								border-left: 10px solid transparent;
-								border-top: 17.3px solid rgba(67, 74, 80, 0.85);
+								border-top: 11.3px solid #888f96;
 								position: absolute;
 								left: calc($btn-width/2 - 10px);
-								top: calc($btn-height/2 - 17.3px / 2);
+								top: calc($btn-height/2 - 11.3px / 2);
 								transition: $trans-time;
 							}
 							.right-text {
 								border-top: 10px solid transparent;
 								border-bottom: 10px solid transparent;
-								border-left: 17.3px solid rgba(67, 74, 80, 0.85);
+								border-left: 11.3px solid #888f96;
 								position: absolute;
-								left: calc($btn-width/2 - 17.3px / 2);
+								left: calc($btn-width/2 - 11.3px / 2);
 								top: calc($btn-height/2 - 10px);
 								transition: $trans-time;
 							}
@@ -266,26 +308,30 @@ $btn-height: 30px;
 							}
 							.anti-text {
 								position: absolute;
-								transform: scale(2);
 								transition: $trans-time;
+								display: flex;
+								height: 24px;
+								top: 4px;
 								&::before {
-									content: "\21B6";
+									content: url("../assets/UE/icon／左旋转90°.png");
 								}
 								&.keybind {
 									opacity: 0;
-									transform: scale(2) translateY(-5px);
+									transform: translateY(-5px);
 								}
 							}
 							.along-text {
 								position: absolute;
-								transform: scale(2);
 								transition: $trans-time;
+								display: flex;
+								height: 24px;
+								top: 4px;
 								&::before {
-									content: "\21B7";
+									content: url("../assets/UE/icon／右旋转90°.png");
 								}
 								&.keybind {
 									opacity: 0;
-									transform: scale(2) translateY(-5px);
+									transform: translateY(-5px);
 								}
 							}
 							.bg {
@@ -350,10 +396,10 @@ $btn-height: 30px;
 								transform: scaleY(0.5) skewX(-30deg) translateZ(-200px);
 							}
 							.anti-text {
-								transform: scale(2) rotate(-45deg);
+								transform: rotate(-45deg);
 							}
 							.along-text {
-								transform: scale(2) rotate(45deg);
+								transform: rotate(45deg);
 							}
 						}
 						&:active {
@@ -410,7 +456,8 @@ $btn-height: 30px;
 						position: relative;
 						font-size: 12px;
 						text-align: center;
-						color: khaki;
+						color: #84c227;
+						font-weight: bold;
 						.adjust-button {
 							position: absolute;
 							top: $btn-height * 0.15;
@@ -633,60 +680,60 @@ $btn-height: 30px;
 	background-image: url("../assets/Icon_view_lower.png");
 }
 .show-upper-teeth-icon {
-	background-image: url("../assets/Icon_upper_teeth_show.png");
+	background-image: url("../assets/UE/icon／t上颌.png");
 }
 .hide-upper-teeth-icon {
 	background-image: url("../assets/Icon_upper_teeth_hide.png");
 }
 .show-lower-teeth-icon {
-	background-image: url("../assets/Icon_lower_teeth_show.png");
+	background-image: url("../assets/UE/icon／t托下颌.png");
 }
 .hide-lower-teeth-icon {
 	background-image: url("../assets/Icon_lower_teeth_hide.png");
 }
 .left-orient-icon {
-	background-image: url("../assets/Icon_view_left.png");
+	background-image: url("../assets/UE/icon／左视图.png");
 }
 .front-orient-icon {
-	background-image: url("../assets/Icon_view_front.png");
+	background-image: url("../assets/UE/icon／主视图.png");
 }
 .right-orient-icon {
-	background-image: url("../assets/Icon_view_right.png");
+	background-image: url("../assets/UE/icon／右视图.png");
 }
 .icon-icon {
 	background-image: url("../assets/Icon_newcase.png");
 }
 .hide-bracket-icon {
-	background-image: url("../assets/Icon_bracket_hide.jpg");
+	background-image: url("../assets/UE/icon／t托槽-2.png");
 }
 .show-bracket-icon {
-	background-image: url("../assets/Icon_bracket_show.jpg");
+	background-image: url("../assets/UE/icon／t托槽-3.png");
 }
 .show-bracket-arch-icon {
-	background-image: url("../assets/Icon_bracket_arch_show.png");
+	background-image: url("../assets/UE/icon／t托槽-1.png");
 }
 .show-arch-icon {
 	background-image: url("../assets/Icon_arch_show.png");
 }
 
 .show-teeth-icon {
-	background-image: url("../assets/Icon_teeth_show.jpg");
+	background-image: url("../assets/UE/icon／牙.png");
 }
 .show-gingiva-icon {
 	background-image: url("../assets/Icon_gingiva_show.png");
 }
 .show-teeth-gingiva-icon {
-	background-image: url("../assets/Icon_teeth_gingiva_show.jpg");
+	background-image: url("../assets/UE/icon／牙颌.png");
 }
 .icon-keyboard {
-	background-image: url("../assets/Icon_keyboard.png");
+	background-image: url("../assets/UE/icon／键盘.png");
 }
 
 .show-axis-icon {
-	background-image: url("../assets/Icon_axis_show.jpg");
+	background-image: url("../assets/UE/icon／牙-2.png");
 }
 .hide-axis-icon {
-	background-image: url("../assets/Icon_axis_hide.jpg");
+	background-image: url("../assets/UE/icon／牙.png");
 }
 .show-origin-icon {
 	background-image: url("../assets/Icon_origin_show.png");
@@ -698,10 +745,13 @@ $btn-height: 30px;
 	background-image: url("../assets/Icon_origin_hide.png");
 }
 .model-finetune-icon {
-	background-image: url("../assets/Icon_bracket_finetune.png");
+	background-image: url("../assets/UE/icon／标头@2x.png");
 }
 .model-save-online-icon {
-	background-image: url("../assets/Icon_saveOnline.png");
+	background-image: url("../assets/UE/icon／保存.png");
+}
+.model-upload-online-icon {
+	background-image: url("../assets/UE/icon／递交.png");
 }
 .icon-index-icon {
 	background-image: url("../assets/Icon_adjust_simulate.png");
@@ -715,6 +765,7 @@ $btn-height: 30px;
 	// margin-bottom: -15px;
 	z-index: 10;
 	position: relative;
+	color: black;
 }
 .model-save-checkbox {
 	width: 15px;

@@ -1,398 +1,421 @@
 <template>
-	<div id="view">
-		<Loading
-			:upperState="loadingMessage.upper"
-			:lowerState="loadingMessage.lower"
-			:loadingProgress="loadingMessage.loadingProgress"
-		/>
-		<Dialog
-			ref="dialog"
-			:showMessage="showMessage"
-			:saveCallBack="() => uploadDataOnline(false)"
-			:submitCallBack="() => uploadDataOnline(true)"
-		/>
-		<div class="view-container">
-			<TopPanel />
-			<div class="main-body-container">
-				<div class="left-panel">
-					<div class="aside-body">
-						<div class="menu-body">
-							<div class="title">
-								<div class="bg model-finetune-icon asidemenu-icon" />
-								<span>细调操作</span>
+	<div :class="themeType">
+		<div id="view">
+			<Loading
+				:upperState="loadingMessage.upper"
+				:lowerState="loadingMessage.lower"
+				:loadingProgress="loadingMessage.loadingProgress"
+			/>
+			<Dialog
+				ref="dialog"
+				:showMessage="showMessage"
+				:saveCallBack="() => uploadDataOnline(false)"
+				:submitCallBack="() => uploadDataOnline(true)"
+			/>
+			<div class="view-container">
+				<TopPanel />
+				<div class="main-body-container">
+					<div class="left-panel">
+						<div class="aside-body">
+							<div class="menu-body">
+								<div class="title">
+									<div class="bg model-finetune-icon asidemenu-icon" />
+									<span>细调操作</span>
+									<div
+										class="bg keyboard-bind icon-keyboard"
+										:class="{ activate: selectKeyBoardEvent === 'bracket' }"
+										@click="switchSelectKeyBoardEvent()"
+									/>
+								</div>
+								<div class="item-title">设置调整步长</div>
+								<div class="item-line">
+									<!-- 使用v-if来切换主题 -->
+									<div class="col-18 adjust-step" v-if="themeType=='origin'">
+										<label for="pan-step">平移: </label>
+										<input id="pan-step" type="number" step="0.01" v-model.number="adjustStep" />mm
+									</div>
+									<div class="col-18 adjust-step" v-if="themeType=='new'">
+										<label for="pan-step">平移: </label>
+										<el-input-number
+											id="pan-step"
+											v-model.number="adjustStep"
+											:step="0.01"
+											controls-position="right"
+										/>
+										<span class="unit-text">mm</span>
+									</div>
+								</div>
+								<div class="item-line">
+									<div class="col-18 adjust-step" v-if="themeType=='origin'">
+										<label for="rot-step">旋转: </label>
+										<input id="rot-step" type="number" step="1.0" v-model.number="adjustAngle" />度
+									</div>
+									<div class="col-18 adjust-step" v-if="themeType=='new'">
+										<label for="rot-step">旋转: </label>
+										<el-input-number
+											id="rot-step"
+											v-model.number="adjustAngle"
+											:step="1.0"
+											controls-position="right"
+										/>
+										<span class="unit-text">度</span>
+									</div>
+								</div>
+								<div class="item-title">平移</div>
+								<div class="item-line">
+									<div class="col-24 select-text">
+										<span>
+											当前:{{ currentSelectBracketName === "" ? "未选择" : currentSelectBracketName }}
+										</span>
+										<div class="adjust-button" @click="adjustButtonClick('RESETSINGLE')">
+											重置
+										</div>
+									</div>
+								</div>
+								<div class="item-line">
+									<div class="col-8" />
+									<div class="col-8">
+										<div class="adjust-button" @click="adjustButtonClick('UP')">
+											<div class="orient-text">
+												<div class="up-text" />
+											</div>
+										</div>
+									</div>
+								</div>
+								<div class="item-line">
+									<div class="col-8">
+										<div class="adjust-button" @click="adjustButtonClick('LEFT')">
+											<div class="orient-text">
+												<div class="left-text" />
+											</div>
+										</div>
+									</div>
+									<div class="col-8">
+										<div class="adjust-button" @click="adjustButtonClick('DOWN')">
+											<div class="orient-text">
+												<div class="down-text" />
+											</div>
+										</div>
+									</div>
+									<div class="col-8">
+										<div class="adjust-button" @click="adjustButtonClick('RIGHT')">
+											<div class="orient-text">
+												<div class="right-text" />
+											</div>
+										</div>
+									</div>
+								</div>
+								<div class="item-title">旋转</div>
+								<div class="item-line">
+									<div class="col-3" />
+									<div class="col-8">
+										<div class="adjust-button" @click="adjustButtonClick('ANTI')">
+											<div class="orient-text">
+												<div class="anti-text" />
+												<div class="keybind-text" :class="{ show: isKeyBoardEventSelected }">
+													z
+												</div>
+											</div>
+										</div>
+									</div>
+									<div class="col-3" />
+									<div class="col-8">
+										<div class="adjust-button" @click="adjustButtonClick('ALONG')">
+											<div class="orient-text">
+												<div class="along-text" />
+												<div class="keybind-text" :class="{ show: isKeyBoardEventSelected }">
+													c
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								<div class="item-title" v-if="hasRotateInfo&&currentMode.straightenSimulation">转矩</div>
+								<div class="item-line"  v-if="hasRotateInfo&&currentMode.straightenSimulation">
+									<div class="col-3" />
+									<div class="col-8">
+										<div class="adjust-button" @click="adjustButtonClick('XANTI')">
+											<div class="orient-text">
+												<div class="anti-text" />
+												<div class="keybind-text" :class="{ show: isKeyBoardEventSelected }">
+													z
+												</div>
+											</div>
+										</div>
+									</div>
+									<div class="col-3" />
+									<div class="col-8">
+										<div class="adjust-button" @click="adjustButtonClick('XALONG')">
+											<div class="orient-text">
+												<div class="along-text" />
+												<div class="keybind-text" :class="{ show: isKeyBoardEventSelected }">
+													c
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+								<div class="title">
+									<div class="bg model-finetune-icon asidemenu-icon" />
+									<span>模拟矫正</span>
+								</div>
 								<div
-									class="bg keyboard-bind icon-keyboard"
-									:class="{ activate: selectKeyBoardEvent === 'bracket' }"
-									@click="switchSelectKeyBoardEvent()"
-								/>
-							</div>
-							<div class="item-title">设置调整步长</div>
-							<div class="item-line">
-								<div class="col-18 adjust-step">
-									<label for="pan-step">平移: </label>
-									<input id="pan-step" type="number" step="0.01" v-model.number="adjustStep" />mm
-								</div>
-							</div>
-							<div class="item-line">
-								<div class="col-18 adjust-step">
-									<label for="rot-step">旋转: </label>
-									<input id="rot-step" type="number" step="1.0" v-model.number="adjustAngle" />度
-								</div>
-							</div>
-							<div class="item-title">平移</div>
-							<div class="item-line">
-								<div class="col-24 select-text">
-									<span>
-										当前:{{ currentSelectBracketName === "" ? "未选择" : currentSelectBracketName }}
-									</span>
-									<div class="adjust-button" @click="adjustButtonClick('RESETSINGLE')">
-										重置
+									class="item-line"
+									:class="{ hide: arrangeShowState.isShow || currentMode.straightenSimulation }"
+								>
+									<div class="col-8" />
+									<div class="col-8">
+										<div class="adjust-button" @click="updateCurrentMode('straightenSimulation', true)">
+											<div class="orient-text">进入</div>
+										</div>
 									</div>
+									<div class="col-8" />
 								</div>
-							</div>
-							<div class="item-line">
-								<div class="col-8" />
-								<div class="col-8">
-									<div class="adjust-button" @click="adjustButtonClick('UP')">
-										<div class="orient-text">
-											<div class="up-text" />
+								<div
+									class="item-line item-title"
+									:class="{ hide: arrangeShowState.isShow || !currentMode.straightenSimulation }"
+								>
+									移动对象
+								</div>
+								<div
+									class="item-line"
+									:class="{ hide: arrangeShowState.isShow || !currentMode.straightenSimulation }"
+								>
+									<div class="col-3" />
+									<div class="col-8">
+										<div
+											class="adjust-button"
+											:class="{ activate: simMode === 'simToothFix' }"
+											@click="updateSimMode('simToothFix')"
+										>
+											托槽
+										</div>
+									</div>
+									<div class="col-3" />
+									<div class="col-8">
+										<div
+											class="adjust-button"
+											:class="{ activate: simMode === 'simBracketFix' }"
+											@click="updateSimMode('simBracketFix')"
+										>
+											牙齿
 										</div>
 									</div>
 								</div>
-							</div>
-							<div class="item-line">
-								<div class="col-8">
-									<div class="adjust-button" @click="adjustButtonClick('LEFT')">
-										<div class="orient-text">
-											<div class="left-text" />
+								<div
+									class="item-line item-title"
+									:class="{ hide: arrangeShowState.isShow || !currentMode.straightenSimulation }"
+								>
+									操作
+								</div>
+								<div
+									class="item-line"
+									:class="{ hide: arrangeShowState.isShow || !currentMode.straightenSimulation }"
+								>
+									<div class="col-3" />
+									<div class="col-8">
+										<div class="adjust-button" @click="simForceUpdate()">
+											<div class="orient-text">更新</div>
+										</div>
+									</div>
+									<div class="col-3" />
+									<div class="col-8">
+										<div
+											class="adjust-button"
+											@click="updateCurrentMode('straightenSimulation', false)"
+										>
+											<div class="orient-text">退出</div>
 										</div>
 									</div>
 								</div>
-								<div class="col-8">
-									<div class="adjust-button" @click="adjustButtonClick('DOWN')">
-										<div class="orient-text">
-											<div class="down-text" />
-										</div>
+								<div
+									class="item-detail-line"
+									:class="{ hide: !isActorLoadedFinish.upper || arrangeMessage.upper === '' }"
+								>
+									<span>{{ arrangeMessage.upper }}</span>
+								</div>
+								<div
+									class="item-detail-line"
+									:class="{ hide: !isActorLoadedFinish.lower || arrangeMessage.lower === '' }"
+								>
+									<span>{{ arrangeMessage.lower }}</span>
+								</div>
+								<div class="item-line" :class="{ hide: !arrangeShowState.isShow }">
+									<div class="col-24">正在排牙中......</div>
+								</div>
+								<div>
+									<div class="check-toggle" @click="toggleDataSaveCheckbox()" v-if="userInfo.isRollBackAuthorized">
+										<input type="checkbox" :checked="isAnyDataCheckable" class="model-save-checkbox"/>
+										<span>方案已确认</span>
+									</div>
+									<div class="title clickable" @click="newDataSaveWithCheckable()">
+										<div class="bg model-save-online-icon asidemenu-icon" />
+										<span>方案在线保存</span>
 									</div>
 								</div>
-								<div class="col-8">
-									<div class="adjust-button" @click="adjustButtonClick('RIGHT')">
-										<div class="orient-text">
-											<div class="right-text" />
-										</div>
-									</div>
-								</div>
-							</div>
-							<div class="item-title">旋转</div>
-							<div class="item-line">
-								<div class="col-3" />
-								<div class="col-8">
-									<div class="adjust-button" @click="adjustButtonClick('ANTI')">
-										<div class="orient-text">
-											<div class="anti-text" />
-											<div class="keybind-text" :class="{ show: isKeyBoardEventSelected }">
-												z
-											</div>
-										</div>
-									</div>
-								</div>
-								<div class="col-3" />
-								<div class="col-8">
-									<div class="adjust-button" @click="adjustButtonClick('ALONG')">
-										<div class="orient-text">
-											<div class="along-text" />
-											<div class="keybind-text" :class="{ show: isKeyBoardEventSelected }">
-												c
-											</div>
-										</div>
-									</div>
-								</div>
-							</div>
-							<div class="item-title" v-if="hasRotateInfo&&currentMode.straightenSimulation">转矩</div>
-							<div class="item-line"  v-if="hasRotateInfo&&currentMode.straightenSimulation">
-								<div class="col-3" />
-								<div class="col-8">
-									<div class="adjust-button" @click="adjustButtonClick('XANTI')">
-										<div class="orient-text">
-											<div class="anti-text" />
-											<div class="keybind-text" :class="{ show: isKeyBoardEventSelected }">
-												z
-											</div>
-										</div>
-									</div>
-								</div>
-								<div class="col-3" />
-								<div class="col-8">
-									<div class="adjust-button" @click="adjustButtonClick('XALONG')">
-										<div class="orient-text">
-											<div class="along-text" />
-											<div class="keybind-text" :class="{ show: isKeyBoardEventSelected }">
-												c
-											</div>
-										</div>
-									</div>
-								</div>
-							</div>
-							<div class="title">
-								<div class="bg model-finetune-icon asidemenu-icon" />
-								<span>模拟矫正</span>
-							</div>
-							<div
-								class="item-line"
-								:class="{ hide: arrangeShowState.isShow || currentMode.straightenSimulation }"
-							>
-								<div class="col-8" />
-								<div class="col-8">
-									<div class="adjust-button" @click="updateCurrentMode('straightenSimulation', true)">
-										<div class="orient-text">进入</div>
-									</div>
-								</div>
-								<div class="col-8" />
-							</div>
-							<div
-								class="item-line item-title"
-								:class="{ hide: arrangeShowState.isShow || !currentMode.straightenSimulation }"
-							>
-								移动对象
-							</div>
-							<div
-								class="item-line"
-								:class="{ hide: arrangeShowState.isShow || !currentMode.straightenSimulation }"
-							>
-								<div class="col-3" />
-								<div class="col-8">
-									<div
-										class="adjust-button"
-										:class="{ activate: simMode === 'simToothFix' }"
-										@click="updateSimMode('simToothFix')"
-									>
-										托槽
-									</div>
-								</div>
-								<div class="col-3" />
-								<div class="col-8">
-									<div
-										class="adjust-button"
-										:class="{ activate: simMode === 'simBracketFix' }"
-										@click="updateSimMode('simBracketFix')"
-									>
-										牙齿
-									</div>
-								</div>
-							</div>
-							<div
-								class="item-line item-title"
-								:class="{ hide: arrangeShowState.isShow || !currentMode.straightenSimulation }"
-							>
-								操作
-							</div>
-							<div
-								class="item-line"
-								:class="{ hide: arrangeShowState.isShow || !currentMode.straightenSimulation }"
-							>
-								<div class="col-3" />
-								<div class="col-8">
-									<div class="adjust-button" @click="simForceUpdate()">
-										<div class="orient-text">更新</div>
-									</div>
-								</div>
-								<div class="col-3" />
-								<div class="col-8">
-									<div
-										class="adjust-button"
-										@click="updateCurrentMode('straightenSimulation', false)"
-									>
-										<div class="orient-text">退出</div>
-									</div>
-								</div>
-							</div>
-							<div
-								class="item-detail-line"
-								:class="{ hide: !isActorLoadedFinish.upper || arrangeMessage.upper === '' }"
-							>
-								<span>{{ arrangeMessage.upper }}</span>
-							</div>
-							<div
-								class="item-detail-line"
-								:class="{ hide: !isActorLoadedFinish.lower || arrangeMessage.lower === '' }"
-							>
-								<span>{{ arrangeMessage.lower }}</span>
-							</div>
-							<div class="item-line" :class="{ hide: !arrangeShowState.isShow }">
-								<div class="col-24">正在排牙中......</div>
-							</div>
-							<div>
-								<div class="check-toggle" @click="toggleDataSaveCheckbox()" v-if="userInfo.isRollBackAuthorized">
-									<input type="checkbox" :checked="isAnyDataCheckable" class="model-save-checkbox"/>
-									<span>方案已确认</span>
-								</div>
-								<div class="title clickable" @click="newDataSaveWithCheckable()">
+								<div class="title clickable" @click="dialog.changeDialogShowState('dataSubmit', true)">
 									<div class="bg model-save-online-icon asidemenu-icon" />
-									<span>方案在线保存</span>
+									<span>方案在线递交</span>
 								</div>
-							</div>
-							<div class="title clickable" @click="dialog.changeDialogShowState('dataSubmit', true)">
-								<div class="bg model-save-online-icon asidemenu-icon" />
-								<span>方案在线递交</span>
-							</div>
-							<div
-								class="title clickable"
-								@click="rollbackCheckedData()"
-								v-if="userInfo.isRollBackAuthorized"
-							>
-								<div class="bg model-save-online-icon asidemenu-icon" />
-								<span>递交方案撤回</span>
-							</div>
-							<div class="item-detail-line wrap" :class="{ hide: isBracketDataMatchMessage === '' }">
-								<span>{{ isBracketDataMatchMessage }}</span>
+								<div
+									class="title clickable"
+									@click="rollbackCheckedData()"
+									v-if="userInfo.isRollBackAuthorized"
+								>
+									<div class="bg model-save-online-icon asidemenu-icon" />
+									<span>递交方案撤回</span>
+								</div>
+								<div class="item-detail-line wrap" :class="{ hide: isBracketDataMatchMessage === '' }">
+									<span>{{ isBracketDataMatchMessage }}</span>
+								</div>
 							</div>
 						</div>
 					</div>
+					<el-main class="view-vtk-main">
+						<el-container class="vtk-view-container">
+							<el-aside width="100%" class="view-aside-menu">
+								<el-button-group class="model-buttonGroup">
+									<el-button
+										size="small"
+										@click="actorInScene.upper = !actorInScene.upper"
+										:disabled="!isActorLoadedFinish.upper"
+									>
+										<div
+											class="bg"
+											:class="[
+												actorInScene.upper ? 'show-upper-teeth-icon' : 'hide-upper-teeth-icon',
+												{ disabled: !isActorLoadedFinish.upper },
+											]"
+										/>
+									</el-button>
+									<el-button
+										size="small"
+										@click="actorInScene.lower = !actorInScene.lower"
+										:disabled="!isActorLoadedFinish.lower"
+									>
+										<div
+											class="bg"
+											:class="[
+												actorInScene.lower ? 'show-lower-teeth-icon' : 'hide-lower-teeth-icon',
+												{ disabled: !isActorLoadedFinish.lower },
+											]"
+										/>
+									</el-button>
+								</el-button-group>
+								<el-button-group class="buttonGroup">
+									<el-button
+										size="small"
+										@click="resetViewDirection('LEFT')"
+										:disabled="!actorInScene.upper && !actorInScene.lower"
+									>
+										<div
+											class="left-orient-icon bg"
+											:class="{ disabled: !actorInScene.upper && !actorInScene.lower }"
+										/>
+									</el-button>
+									<el-button
+										size="small"
+										@click="resetViewDirection('FRONT')"
+										:disabled="!actorInScene.upper && !actorInScene.lower"
+									>
+										<div
+											class="front-orient-icon bg"
+											:class="{ disabled: !actorInScene.upper && !actorInScene.lower }"
+										/>
+									</el-button>
+									<el-button
+										size="small"
+										@click="resetViewDirection('RIGHT')"
+										:disabled="!actorInScene.upper && !actorInScene.lower"
+									>
+										<div
+											class="right-orient-icon bg"
+											:class="{ disabled: !actorInScene.upper && !actorInScene.lower }"
+										/>
+									</el-button>
+								</el-button-group>
+								<el-button-group class="teeth-buttonGroup">
+									<el-button
+										size="small"
+										@click="changeBracketArchShowState()"
+										:disabled="!isActorLoadedFinish.upper && !isActorLoadedFinish.lower"
+									>
+										<div
+											class="bg"
+											:class="{
+												'show-bracket-arch-icon': actorInScene.arch === 0,
+												'show-arch-icon': actorInScene.arch === 1,
+												'show-bracket-icon': actorInScene.arch === 2,
+												'hide-bracket-icon': actorInScene.arch === 3,
+												'disabled': !isActorLoadedFinish.upper && !isActorLoadedFinish.lower,
+											}"
+										/>
+									</el-button>
+									<el-button
+										size="small"
+										@click="actorInScene.teethWithGingiva = (actorInScene.teethWithGingiva + 1) % 2"
+										:disabled="
+											(!isActorLoadedFinish.upper && !isActorLoadedFinish.lower) ||
+												currentMode.straightenSimulation
+										"
+									>
+										<div
+											class="bg"
+											:class="{
+												'show-teeth-gingiva-icon': actorInScene.teethWithGingiva === 0,
+												'show-teeth-icon': actorInScene.teethWithGingiva === 1,
+												'show-gingiva-icon': actorInScene.teethWithGingiva === 2,
+												'disabled': !isActorLoadedFinish.upper && !isActorLoadedFinish.lower,
+											}"
+										/>
+									</el-button>
+									<el-button
+										size="small"
+										@click="actorInScene.axis = !actorInScene.axis"
+										:disabled="!isActorLoadedFinish.upper && !isActorLoadedFinish.lower"
+									>
+										<div
+											class="bg"
+											:class="[
+												actorInScene.axis ? 'show-axis-icon' : 'hide-axis-icon',
+												{ disabled: !isActorLoadedFinish.upper && !isActorLoadedFinish.lower },
+											]"
+										/>
+									</el-button>
+									<!-- 2023.4.12更新：用于隐藏/显示原始牙列 -->
+									<!-- 2023.10.13更新：如果没有转矩信息则不需要显示该按钮 -->
+									<el-button
+										size="small"
+										@click="changeOriginToothShowState()"
+										:disabled="
+											(!isActorLoadedFinish.upper && !isActorLoadedFinish.lower) ||
+												!currentMode.straightenSimulation
+										"
+										v-if=hasRotateInfo
+									>
+										<div
+											class="bg"
+											:class="{
+												'hide-origin-icon': originShowStateFlag === 0,
+												'show-origin-icon': originShowStateFlag === 1,
+												'hide-originGingiva-icon': originShowStateFlag === 2,
+												'disabled': !isActorLoadedFinish.upper && !isActorLoadedFinish.lower,
+											}"
+										/>
+									</el-button>
+								</el-button-group>
+								<div class="slider-block" v-if="originShowStateFlag!=0">
+									<el-slider v-model="toothOpacity" />
+								</div>
+								<ViewerMain
+									ref="viewerMain"
+									:actorInScene="actorInScene"
+									:changeLoadingMessage="changeLoadingMessage"
+								/>
+							</el-aside>
+						</el-container>
+					</el-main>
 				</div>
-				<el-main class="view-vtk-main">
-					<el-container class="vtk-view-container">
-						<el-aside width="100%" class="view-aside-menu">
-							<el-button-group class="model-buttonGroup">
-								<el-button
-									size="small"
-									@click="actorInScene.upper = !actorInScene.upper"
-									:disabled="!isActorLoadedFinish.upper"
-								>
-									<div
-										class="bg"
-										:class="[
-											actorInScene.upper ? 'show-upper-teeth-icon' : 'hide-upper-teeth-icon',
-											{ disabled: !isActorLoadedFinish.upper },
-										]"
-									/>
-								</el-button>
-								<el-button
-									size="small"
-									@click="actorInScene.lower = !actorInScene.lower"
-									:disabled="!isActorLoadedFinish.lower"
-								>
-									<div
-										class="bg"
-										:class="[
-											actorInScene.lower ? 'show-lower-teeth-icon' : 'hide-lower-teeth-icon',
-											{ disabled: !isActorLoadedFinish.lower },
-										]"
-									/>
-								</el-button>
-							</el-button-group>
-							<el-button-group class="buttonGroup">
-								<el-button
-									size="small"
-									@click="resetViewDirection('LEFT')"
-									:disabled="!actorInScene.upper && !actorInScene.lower"
-								>
-									<div
-										class="left-orient-icon bg"
-										:class="{ disabled: !actorInScene.upper && !actorInScene.lower }"
-									/>
-								</el-button>
-								<el-button
-									size="small"
-									@click="resetViewDirection('FRONT')"
-									:disabled="!actorInScene.upper && !actorInScene.lower"
-								>
-									<div
-										class="front-orient-icon bg"
-										:class="{ disabled: !actorInScene.upper && !actorInScene.lower }"
-									/>
-								</el-button>
-								<el-button
-									size="small"
-									@click="resetViewDirection('RIGHT')"
-									:disabled="!actorInScene.upper && !actorInScene.lower"
-								>
-									<div
-										class="right-orient-icon bg"
-										:class="{ disabled: !actorInScene.upper && !actorInScene.lower }"
-									/>
-								</el-button>
-							</el-button-group>
-							<el-button-group class="teeth-buttonGroup">
-								<el-button
-									size="small"
-									@click="changeBracketArchShowState()"
-									:disabled="!isActorLoadedFinish.upper && !isActorLoadedFinish.lower"
-								>
-									<div
-										class="bg"
-										:class="{
-											'show-bracket-arch-icon': actorInScene.arch === 0,
-											'show-arch-icon': actorInScene.arch === 1,
-											'show-bracket-icon': actorInScene.arch === 2,
-											'hide-bracket-icon': actorInScene.arch === 3,
-											'disabled': !isActorLoadedFinish.upper && !isActorLoadedFinish.lower,
-										}"
-									/>
-								</el-button>
-								<el-button
-									size="small"
-									@click="actorInScene.teethWithGingiva = (actorInScene.teethWithGingiva + 1) % 2"
-									:disabled="
-										(!isActorLoadedFinish.upper && !isActorLoadedFinish.lower) ||
-											currentMode.straightenSimulation
-									"
-								>
-									<div
-										class="bg"
-										:class="{
-											'show-teeth-gingiva-icon': actorInScene.teethWithGingiva === 0,
-											'show-teeth-icon': actorInScene.teethWithGingiva === 1,
-											'show-gingiva-icon': actorInScene.teethWithGingiva === 2,
-											'disabled': !isActorLoadedFinish.upper && !isActorLoadedFinish.lower,
-										}"
-									/>
-								</el-button>
-								<el-button
-									size="small"
-									@click="actorInScene.axis = !actorInScene.axis"
-									:disabled="!isActorLoadedFinish.upper && !isActorLoadedFinish.lower"
-								>
-									<div
-										class="bg"
-										:class="[
-											actorInScene.axis ? 'show-axis-icon' : 'hide-axis-icon',
-											{ disabled: !isActorLoadedFinish.upper && !isActorLoadedFinish.lower },
-										]"
-									/>
-								</el-button>
-								<!-- 2023.4.12更新：用于隐藏/显示原始牙列 -->
-								<!-- 2023.10.13更新：如果没有转矩信息则不需要显示该按钮 -->
-								<el-button
-									size="small"
-									@click="changeOriginToothShowState()"
-									:disabled="
-										(!isActorLoadedFinish.upper && !isActorLoadedFinish.lower) ||
-											!currentMode.straightenSimulation
-									"
-									v-if=hasRotateInfo
-								>
-									<div
-										class="bg"
-										:class="{
-											'hide-origin-icon': originShowStateFlag === 0,
-											'show-origin-icon': originShowStateFlag === 1,
-											'hide-originGingiva-icon': originShowStateFlag === 2,
-											'disabled': !isActorLoadedFinish.upper && !isActorLoadedFinish.lower,
-										}"
-									/>
-								</el-button>
-							</el-button-group>
-							<div class="slider-block" v-if="originShowStateFlag!=0">
-								<el-slider v-model="toothOpacity" />
-							</div>
-							<ViewerMain
-								ref="viewerMain"
-								:actorInScene="actorInScene"
-								:changeLoadingMessage="changeLoadingMessage"
-							/>
-						</el-aside>
-					</el-container>
-				</el-main>
 			</div>
 		</div>
 	</div>
@@ -440,6 +463,8 @@ const viewerMain = ref(null);
 const store = useStore();
 const loadedBracketNameList = store.state.userHandleState.bracketNameList;
 const uploadType = computed(() => store.getters["userHandleState/uploadType"]);
+// 2023.10.16更新：由于要求不同的用户使用不同的样式主题，这里使用themeType来控制，themeType在请求用户信息时保存到vuex
+const themeType = computed(() => store.state.userHandleState.themeType);
 const isUploading = computed(() => store.getters["userHandleState/isUploading"]);
 const hasAnyDataSubmit = computed(() => store.getters["userHandleState/hasAnyDataSubmit"]); 
 
@@ -912,19 +937,15 @@ function newDataSaveWithCheckable(){
 </script>
 
 <style lang="scss" scoped>
-@import './viewerStyle.scss';
-</style>
-<style>
-#view .el-checkbox-button__inner {
-	padding: 0 5px;
+.origin {
+	@import './viewerStyle.scss';
+	height:100%;
+	display:contents;
 }
-#view .model-buttonGroup .el-button {
-	padding: 0 5px;
-}
-#view .buttonGroup .el-button {
-	padding: 0 5px;
-}
-#view .teeth-buttonGroup .el-button {
-	padding: 0 5px;
+.new {
+	@import './viewerStyle2.scss';
+	height:100%;
+	display:contents;
 }
 </style>
+

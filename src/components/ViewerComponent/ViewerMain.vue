@@ -1,65 +1,68 @@
 <template>
-	<div class="right-side-menu" :class="showRightSidemenu ? 'show' : 'hide'">
-		<el-tabs class="demo-tabs" v-model="activeTable" type="card">
-			<el-tab-pane class="demo-tab-pane" label="距离" name="distance">
-				<div class="distance-table">
-					<div class="dt-col" v-for="(itemList, index) in distanceMessageList" :key="index">
-						<div
-							class="dt-row"
-							:class="{ selected: currentSelectBracket.name === item.name }"
-							v-for="item in itemList"
-							:key="item.rowId + '-' + item.colId"
-						>
-							<div class="dt-name-box" @click="updateSelectedBracketActorByListClick(item.name)">
-								<span>{{ item.name }}</span>
-							</div>
-							<div class="dt-dist-box">
-								<span>{{ item.distance ? item.distance.toFixed(2) : "-" }}</span>
-							</div>
-						</div>
-					</div>
-				</div>
-			</el-tab-pane>
-			<el-tab-pane class="demo-tab-pane" label="转矩" name="rotate" v-if="hasRotateInfo">
-				<div class="distance-table">
-					<div class="dt-col" v-for="(itemList, index) in rotateMessageList" :key="index">
-						<div
-							class="dt-row"
-							:class="{ selected: currentSelectBracket.name === item.name }"
-							v-for="item in itemList"
-							:key="item.rowId + '-' + item.colId"
-						>
-							<div class="dt-name-box" @click="updateSelectedBracketActorByListClick(item.name)">
-								<span>{{ item.name }}</span>
-							</div>
-							<div class="dt-dist-box">
-								<span>{{ item.rotate ? item.rotate+item.plus : "-" }}</span>
-								<div class="dt-msg-box">
-									<span>{{ item.rotate ? 
-									item.rotate.toString()+(item.plus>=0?'+':'')+item.plus.toString()
-									: "-" }}</span>
+	<div :class="themeType">
+		<div class="right-side-menu" :class="showRightSidemenu ? 'show' : 'hide'">
+			<el-tabs class="demo-tabs" v-model="activeTable" type="card">
+				<el-tab-pane class="demo-tab-pane" label="距离" name="distance">
+					<div class="distance-table">
+						<div class="dt-col" v-for="(itemList, index) in distanceMessageList" :key="index">
+							<div
+								class="dt-row"
+								:class="{ selected: currentSelectBracket.name === item.name }"
+								v-for="item in itemList"
+								:key="item.rowId + '-' + item.colId"
+							>
+								<div class="dt-name-box" @click="updateSelectedBracketActorByListClick(item.name)">
+									<span>{{ item.name }}</span>
+								</div>
+								<div class="dt-dist-box">
+									<span>{{ item.distance ? item.distance.toFixed(2) : "-" }}</span>
 								</div>
 							</div>
-							
 						</div>
 					</div>
+				</el-tab-pane>
+				<el-tab-pane class="demo-tab-pane" label="转矩" name="rotate" v-if="hasRotateInfo">
+					<div class="distance-table">
+						<div class="dt-col" v-for="(itemList, index) in rotateMessageList" :key="index">
+							<div
+								class="dt-row"
+								:class="{ selected: currentSelectBracket.name === item.name }"
+								v-for="item in itemList"
+								:key="item.rowId + '-' + item.colId"
+							>
+								<div class="dt-name-box" @click="updateSelectedBracketActorByListClick(item.name)">
+									<span>{{ item.name }}</span>
+								</div>
+								<div class="dt-dist-box">
+									<span>{{ item.rotate ? item.rotate+item.plus : "-" }}</span>
+									<div class="dt-msg-box">
+										<span>{{ item.rotate ? 
+										item.rotate.toString()+(item.plus>=0?'+':'')+item.plus.toString()
+										: "-" }}</span>
+									</div>
+								</div>
+								
+							</div>
+						</div>
+					</div>
+				</el-tab-pane>
+			</el-tabs>
+			
+			<div class="tooth-drag-window">
+				<div ref="vtkSegToothContainer" class="tooth-container" />
+			</div>
+			<div class="tooth-drag-window">
+				<div ref="vtkPictureContainer" class="tooth-container">
+					<canvas ref="vtkPictureTextContainer" class="pic-text-container" />
 				</div>
-			</el-tab-pane>
-		</el-tabs>
-		
-		<div class="tooth-drag-window">
-			<div ref="vtkSegToothContainer" class="tooth-container" />
-		</div>
-		<div class="tooth-drag-window">
-			<div ref="vtkPictureContainer" class="tooth-container">
-				<canvas ref="vtkPictureTextContainer" class="pic-text-container" />
 			</div>
 		</div>
-	</div>
 
-	<div ref="vtkContainer" class="container">
-		<canvas ref="vtkTextContainer" class="text-container" />
+		<div ref="vtkContainer" class="container">
+			<canvas ref="vtkTextContainer" class="text-container" />
+		</div>
 	</div>
+	
 </template>
 
 <script setup>
@@ -148,6 +151,8 @@ const simMode = computed(() => store.state.actorHandleState.simMode);
 const isInFineTuneMode = computed(() => store.state.actorHandleState.currentMode.fineTune);
 const currentMode = computed(() => store.state.actorHandleState.currentMode);
 const userType = computed(() => store.state.userHandleState.userType);
+// 2023.10.16更新：由于要求不同的用户使用不同的样式主题，这里使用themeType来控制，themeType在请求用户信息时保存到vuex
+const themeType = computed(() => store.state.userHandleState.themeType);
 const activeTable = ref('distance')
 
 const toothOpacity = computed(() => store.state.actorHandleState.toothOpacity);
@@ -1146,6 +1151,16 @@ onMounted(() => {
 			renderer,
 		};
 	}
+});
+
+// 如果是新主题，必须监视themeType的变化来更新，因为omMounted时变量值还没发生改变
+watch(themeType, (newVal) => {
+	vtkContext.genericRenderer.setBackground([0.97, 0.97, 0.95]);
+	vtkSegToothContext.genericRenderer.setBackground([0.97, 0.97, 0.95]);
+	vtkPictureContext.genericRenderer.setBackground([0.97, 0.97, 0.95]);
+	vtkContext.renderWindow.render()
+	vtkSegToothContext.renderWindow.render()
+	vtkPictureContext.renderWindow.render()
 });
 
 onBeforeUnmount(() => {
@@ -2883,5 +2898,12 @@ defineExpose({
 </script>
 
 <style scoped lang="scss">
-@import './viewerMainStyle.scss';
+.origin {
+	@import './viewerMainStyle.scss';
+	height: 100%;
+}
+.new {
+	@import './viewerMainStyle2.scss';
+	height: 100%;
+}
 </style>

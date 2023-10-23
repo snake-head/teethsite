@@ -14,6 +14,9 @@ export default {
 		updateUserType(context, value) {
 			context.commit("UpdateUserType", value);
 		},
+		updateThemeType(context, value) {
+			context.commit("UpdateThemeType", value);
+		},
 		updateUserId(context, value) {
 			context.commit("UpdateUserId", value);
 		},
@@ -48,6 +51,9 @@ export default {
 		},
 		UpdateUserType(state, value) {
 			state.userType = value;
+		},
+		UpdateThemeType(state, value) {
+			state.themeType = value;
 		},
 		UpdateUserId(state, value) {
 			state.userId = value;
@@ -88,6 +94,7 @@ export default {
 		// 页面加载时会读取的各种病例信息
 		userType: "NORMAL", // 用户权限
 		userId: "", // 用户Id, 在提交数据时使用
+		themeType: "origin", // 主题类型
 		patientName: "-------", // 病人姓名
 		isDataChecked: {
 			upper: false,

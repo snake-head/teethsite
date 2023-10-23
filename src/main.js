@@ -4,7 +4,7 @@
  * @Autor: ZhuYichen
  * @Date: 2023-05-16 15:29:52
  * @LastEditors: ZhuYichen
- * @LastEditTime: 2023-05-31 15:44:46
+ * @LastEditTime: 2023-10-16 16:33:34
  */
 import { createApp } from "vue";
 import App from "./App.vue";
@@ -28,6 +28,7 @@ import {
     ElDropdownMenu,
     ElHeader,
     ElIcon,
+    ElInputNumber,
     ElMain,
     ElMenu,
     ElMenuItem,
@@ -69,6 +70,7 @@ const components = [
     ElDropdownMenu,
     ElHeader,
     ElIcon,
+    ElInputNumber,
     ElMain,
     ElMenu,
     ElMenuItem,

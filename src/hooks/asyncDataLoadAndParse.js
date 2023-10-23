@@ -1,4 +1,4 @@
-import { onMounted, reactive, ref, watch } from "vue";
+import { onMounted, reactive, ref, watch, computed } from "vue";
 import { DEFAULT_PATIENTUID, bracketNameList, rotateConfigList } from "../static_config";
 import { useRoute } from "vue-router";
 import { useStore } from "vuex";
@@ -424,6 +424,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
         getCurrentLoginUser(); // step1-1
     }
 
+    const userId = computed(() => store.state.userHandleState.userId);
     /**
      * @description step1-1 获取当前登录用户名, 如果login/没有登录则是用token登录, 用户名在地址栏中, 如果是正常登录方式则login/能直接取得信息
      */
@@ -440,11 +441,13 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                     "userHandleState/updateUserId",
                     resp.data.data.userInfo.userId
                 );
+
             } else {
                 // login/没有登录则是用token登录, 用户名在地址栏中
                 store.dispatch("userHandleState/updateUserId", authConfig.id);
             }
             getIfRollBackAuthorized(); // step1-2
+            getUserThemeType(userId.value); // step1-2-2
         });
     }
 
@@ -464,6 +467,34 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                 store.dispatch("userHandleState/updateUserType", "NORMAL");
             }
             getIfDataIsChecked(); // step 1-3
+        });
+    }
+
+    /**
+     * @description step1-2-2 获取该用户的主题
+     */
+    function getUserThemeType(userId) {
+        progressConfig.upper["1"].state.message = "正在获取主题类型......";
+        progressConfig.lower["1"].state.message = "正在获取主题类型......";
+        // 根据接口要求，必须传入count和index才会返回详细信息
+        sendRequestWithToken({
+            method: "GET",
+            url: window.linkConfig.userInfoQueryApi.replace(
+                "#param_userID#",
+                userId
+            ).replace(
+                "#user_count#",
+                1
+            ).replace(
+                "#index#",
+                1
+            ),
+        }).then((resp) => {
+            if(resp.data.data[0].webtheme==1){
+                store.dispatch("userHandleState/updateThemeType", "new");
+            }else{
+                store.dispatch("userHandleState/updateThemeType", "origin");
+            }
         });
     }
     /**

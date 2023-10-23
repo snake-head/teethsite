@@ -36,4 +36,6 @@ window.linkConfig = {
 
     rollbackDataApi: '/api/v2/data/ModelStateRollBackServlet/',
 
+    userInfoQueryApi: '/api/v2/data/UserInfos/?byUserId=#param_userID#&count=#user_count#&index=#index#',
+
 }

@@ -4,7 +4,7 @@
  * @Autor: ZhuYichen
  * @Date: 2023-05-16 15:39:32
  * @LastEditors: ZhuYichen
- * @LastEditTime: 2023-06-25 17:56:56
+ * @LastEditTime: 2023-10-23 16:37:37
 -->
 <template>
 	<div class="main-block panel" :class="{ show: isShow }">

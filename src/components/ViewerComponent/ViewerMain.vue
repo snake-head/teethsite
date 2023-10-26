@@ -118,6 +118,8 @@ import { sendRequestWithToken } from "../../utils/tokenRequest";
 import TeethBiteWorker from "../../hooks/teethBite.worker";
 import { norm } from "../../reDesignVtk/Math";
 import { presetArrangeDataList } from "../../static_config";
+import { ElMessage } from 'element-plus'
+
 
 const props = defineProps({
 	changeLoadingMessage: {
@@ -925,6 +927,14 @@ const generateRootRecord = computed(() => cloneDeep(store.state.actorHandleState
 watch(generateRootRecord,(newValue, oldValue) => {
 	for (let teethType of ['upper','lower']){
 		if(newValue[teethType]&&!oldValue[teethType]){
+			const elMessage = ElMessage({
+				message: '正在生成虚拟牙根...',
+				grouping: true,
+				type: 'warning',
+				duration: 0,
+				showClose: true,
+				offset: -7,
+			})
 			generateRoot(teethType)
 			.then((result) => {
 				allActorList[teethType].rootGenerate = result;
@@ -933,6 +943,8 @@ watch(generateRootRecord,(newValue, oldValue) => {
 					renderer.addActor(actor)
 				})
 				renderWindow.render()
+				elMessage.close()
+				console.log(allActorList)
 			})
 			.catch((error) => {
 				console.error(error); // 处理错误情况
@@ -2306,9 +2318,14 @@ function applyUserMatrixWhenSwitchMode(fromMode, toMode, render = false) {
 	updateApplyUserMatrixWhenSwitchMode(fromMode, toMode, toRaw(loadedBracketNameList));
 	// 变换actor矩阵
 	for (let teethType of ["upper", "lower"]) {
-		const { tooth, bracket, toothAxis, distanceLine, arch } = allActorList[teethType];
+		const { tooth, bracket, toothAxis, distanceLine, arch, rootGenerate } = allActorList[teethType];
 		// 牙齿
 		tooth.forEach((item) => {
+			const { name, actor } = item;
+			actor.setUserMatrix(applyCalMatrix.tad[name]);
+		});
+		// 牙根
+		rootGenerate.forEach((item) => {
 			const { name, actor } = item;
 			actor.setUserMatrix(applyCalMatrix.tad[name]);
 		});
@@ -2367,11 +2384,12 @@ function updateAndApplySingleBracketUserMatrix(bracketName, newFineTuneRecord, c
 	const matchItem = {
 		teethType: "upper",
 		tooth: [],
+		rootGenerate: [],
 		bracket: [],
 		toothAxis: [],
 		distanceLine: [],
 	};
-	for (let typeKey of ["tooth", "bracket", "toothAxis", "distanceLine"]) {
+	for (let typeKey of ["tooth", "bracket", "toothAxis", "distanceLine", "rootGenerate"]) {
 		for (let teethType of ["upper", "lower"]) {
 			const filteredItem = allActorList[teethType][typeKey].filter((item) => item.name === bracketName);
 			if (filteredItem.length > 0) {
@@ -2415,6 +2433,8 @@ function updateAndApplySingleBracketUserMatrix(bracketName, newFineTuneRecord, c
 	if (needToUpdate.tad) {
 		// 牙齿
 		matchItem.tooth.actor.setUserMatrix(applyCalMatrix.tad[bracketName]);
+		// 牙根
+		matchItem.rootGenerate.actor.setUserMatrix(applyCalMatrix.tad[bracketName]);
 		// 坐标轴
 		matchItem.toothAxis.actors.forEach((actor) => {
 			actor.setUserMatrix(applyCalMatrix.tad[bracketName]);
@@ -2699,9 +2719,14 @@ function updateMat4(teethType) {
 	);
 
 	// 设置setUserMatrix
-	const { tooth, bracket, toothAxis, distanceLine, arch, teethAxisSphere } = allActorList[teethType];
+	const { tooth, bracket, toothAxis, distanceLine, arch, teethAxisSphere, rootGenerate } = allActorList[teethType];
 	// 牙齿
 	tooth.forEach((item) => {
+		const { name, actor } = item;
+		actor.setUserMatrix(applyCalMatrix.tad[name]);
+	});
+	// 牙根
+	rootGenerate.forEach((item) => {
 		const { name, actor } = item;
 		actor.setUserMatrix(applyCalMatrix.tad[name]);
 	});

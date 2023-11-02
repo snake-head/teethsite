@@ -1536,12 +1536,15 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                                     userMatrixList.mat6[name] = initTransMatrixRotate; // 托槽初始变换矩阵即为mat1, 保存
                                     userMatrixList.invMat6[name] = invertMatrix4x4(initTransMatrixRotate); // 托槽初始变换矩阵即为mat1, 保存    
                                 }
+                                if(!hasRotateFlag){
+                                    fineTuneRecordRotate = fineTuneRecord
+                                }
                                 bracketData[teethType].push({
                                     name,
                                     direction,
                                     position,
                                     fineTuneRecord,
-                                    fineTuneRecordRotate:fineTuneRecord,
+                                    fineTuneRecordRotate,
                                     bottomFaceIndexList,
                                     bracketBottomPointValues,
                                 });

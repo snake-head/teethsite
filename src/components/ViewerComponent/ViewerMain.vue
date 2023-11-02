@@ -2451,7 +2451,6 @@ function updateAndApplySingleBracketUserMatrix(bracketName, newFineTuneRecord, c
 		// 牙齿
 		matchItem.tooth.actor.setUserMatrix(applyCalMatrix.tad[bracketName]);
 		// 牙根
-		console.log(matchItem.rootGenerate.actor)
 		if(matchItem.rootGenerate.actor){
 			matchItem.rootGenerate.actor.setUserMatrix(applyCalMatrix.tad[bracketName]);
 		}

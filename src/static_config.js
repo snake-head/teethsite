@@ -113,8 +113,8 @@ export const typedBracketNameList = {
 export const rotateConfigList = [
     {
         "bracketName": "日盛标准系列自锁-标准转矩",
-        // "bracketType": "f0ef5407e52b4fdd85c093a8d237ff32",
-        "bracketType": "8d04e6f479e9464298f1751ff7aea09e", //用古邵今的托槽做测试
+        "bracketType": "f0ef5407e52b4fdd85c093a8d237ff32",
+        // "bracketType": "8d04e6f479e9464298f1751ff7aea09e", //用古邵今的托槽做测试
         "upper": [
             {"name": "UL1", "rotate": 17},
             {"name": "UR1", "rotate": 17},

@@ -1,5 +1,19 @@
 $right-panel-width-normal: 250px;
 $table-height: 300px;
+.message-box {
+	position: fixed;
+	top: 33px;
+	left: 50%;
+	width: 220px;
+	transform: translate(-50%, -50%);
+	background-color: #fdf6ec;
+	color: #e6a23d;
+	border: 1px solid #e6a23d;
+	padding: 10px;
+	border-radius: 5px;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	text-align: center;
+}
 .container {
 	transition: 0.1s;
 	width: calc(100% - $right-panel-width-normal);

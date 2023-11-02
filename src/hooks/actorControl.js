@@ -28,7 +28,9 @@ export default function(allActorList) {
             gingiva: false, // 牙龈+牙齿
             originGingiva: false,
             tooth: false, // 牙齿
+            rootGenerate: false, //牙根
             originTooth: false, // 原始牙列
+            originRoot:false, // 原始牙根
             bracket: false, // 托槽
             originBracket: false,
             axis: false, // 坐标轴
@@ -39,7 +41,9 @@ export default function(allActorList) {
             gingiva: false, // 牙龈+牙齿
             originGingiva: false,
             tooth: false, // 牙齿
+            rootGenerate: false, //牙根
             originTooth: false, // 原始牙列
+            originRoot:false, // 原始牙根
             bracket: false, // 托槽
             originBracket: false,
             axis: false, // 坐标轴
@@ -321,10 +325,12 @@ export default function(allActorList) {
                 // 上颌牙
                 gingiva: upper && teethWithGingiva !== 1, // 牙龈
                 tooth: upper && teethWithGingiva !== 2, // 牙齿
+                rootGenerate: upper && teethWithGingiva !== 2, // 牙根
                 bracket: upper && arch % 2 === 0, // 托槽
                 axis: upper && axis,
                 arch: upper && arch <= 1, // 牙弓线
                 originTooth: upper && upperOrigin, //原始牙列
+                originRoot: upper && upperOrigin, //原始牙根
                 originBracket: upper && upperOriginBracket,
                 originGingiva: upper && upperOriginGingiva && upperOrigin,
             },
@@ -332,10 +338,12 @@ export default function(allActorList) {
                 // 下颌牙
                 gingiva: lower && teethWithGingiva !== 1, // 牙龈
                 tooth: lower && teethWithGingiva !== 2, // 牙齿
+                rootGenerate: upper && teethWithGingiva !== 2, // 牙根
                 bracket: lower && arch % 2 === 0, // 托槽
                 axis: lower && axis, // 坐标轴
                 arch: lower && arch <= 1, // 牙弓线
                 originTooth: lower && lowerOrigin, //原始牙列
+                originRoot: lower && lowerOrigin, //原始牙根
                 originBracket: lower && lowerOriginBracket,
                 originGingiva: lower && lowerOriginGingiva && lowerOrigin,
             },
@@ -376,6 +384,22 @@ export default function(allActorList) {
                 preActorInScene[teethType].tooth
             ) {
                 allActorList[teethType].tooth.forEach((item) => {
+                    delActorsList.push(item.actor);
+                });
+            }
+            if (
+                curActorInScene[teethType].rootGenerate &&
+                !preActorInScene[teethType].rootGenerate
+            ) {
+                allActorList[teethType].rootGenerate.forEach((item) => {
+                    addActorsList.push(item.actor);
+                });
+            }
+            if (
+                !curActorInScene[teethType].rootGenerate &&
+                preActorInScene[teethType].rootGenerate
+            ) {
+                allActorList[teethType].rootGenerate.forEach((item) => {
                     delActorsList.push(item.actor);
                 });
             }
@@ -460,6 +484,25 @@ export default function(allActorList) {
                         delActorsList.push(item.actor);
                     });
                 }
+                // 原始牙根
+                if (
+                    curActorInScene[teethType].originRoot &&
+                    !preActorInScene[teethType].originRoot
+                ) {
+                    allActorList[teethType].originRoot.forEach((item) => {
+                        item.actor.getProperty().setColor(isClickEnter?colorConfig.teeth:colorConfig.originTeeth)
+                        item.actor.getProperty().setOpacity(isClickEnter?1:toothOpacity.value/100)
+                        addActorsList.push(item.actor);
+                    });
+                }
+                if (
+                    !curActorInScene[teethType].originRoot &&
+                    preActorInScene[teethType].originRoot
+                ) {
+                    allActorList[teethType].originRoot.forEach((item) => {
+                        delActorsList.push(item.actor);
+                    });
+                }
 
                 // 原始托槽
                 // if (
@@ -525,12 +568,14 @@ export default function(allActorList) {
                 // 上颌牙
                 gingiva: upper && teethWithGingiva !== 1, // 牙龈
                 tooth: upper && teethWithGingiva !== 2, // 牙齿
+                rootGenerate: upper && teethWithGingiva !== 2, // 牙根
                 arch: upper && arch <= 1,
             },
             lower: {
                 // 下颌牙
                 gingiva: upper && teethWithGingiva !== 1, // 牙龈
                 tooth: upper && teethWithGingiva !== 2, // 牙齿
+                rootGenerate: upper && teethWithGingiva !== 2, // 牙根
                 arch: lower && arch <= 1,
             },
         };
@@ -565,30 +610,44 @@ export default function(allActorList) {
                 state.upperOriginGingiva = switchType === "enter" ? true : false
                 state.lowerOriginGingiva = switchType === "enter" ? true : false
                 if (allActorList[teethType].originTooth.length!=0){
-                    allActorList[teethType].originTooth.forEach(tooth=>{
+                    allActorList[teethType].originTooth.forEach(item=>{
                         (switchType === "enter" ? addActorsList : delActorsList).push(
-                            tooth.actor
+                            item.actor
+                        );
+                    })
+                }
+                if (allActorList[teethType].originRoot.length!=0){
+                    allActorList[teethType].originRoot.forEach(item=>{
+                        (switchType === "enter" ? addActorsList : delActorsList).push(
+                            item.actor
                         );
                     })
                 }
                 if (allActorList[teethType].tooth.length!=0){
-                    allActorList[teethType].tooth.forEach(tooth=>{
+                    allActorList[teethType].tooth.forEach(item=>{
                         (switchType === "exit" ? addActorsList : delActorsList).push(
-                            tooth.actor
+                            item.actor
+                        );
+                    })
+                }
+                if (allActorList[teethType].rootGenerate.length!=0){
+                    allActorList[teethType].rootGenerate.forEach(item=>{
+                        (switchType === "exit" ? addActorsList : delActorsList).push(
+                            item.actor
                         );
                     })
                 }
                 // if (allActorList[teethType].originBracket.length!=0){
-                //     allActorList[teethType].originBracket.forEach(tooth=>{
+                //     allActorList[teethType].originBracket.forEach(item=>{
                 //         (switchType === "enter" ? addActorsList : delActorsList).push(
-                //             tooth.actor
+                //             item.actor
                 //         );
                 //     })
                 // }
                 if (allActorList[teethType].bracket.length!=0){
-                    allActorList[teethType].bracket.forEach(tooth=>{
+                    allActorList[teethType].bracket.forEach(item=>{
                         (switchType === "exit" ? addActorsList : delActorsList).push(
-                            tooth.actor
+                            item.actor
                         );
                     })
                 }
@@ -615,8 +674,13 @@ export default function(allActorList) {
                 state.upperOriginGingiva = false
                 state.lowerOriginGingiva = false
                 if (allActorList[teethType].originTooth.length!=0){
-                    allActorList[teethType].originTooth.forEach(tooth=>{
-                        delActorsList.push(tooth.actor);
+                    allActorList[teethType].originTooth.forEach(item=>{
+                        delActorsList.push(item.actor);
+                    })
+                }
+                if (allActorList[teethType].originRoot.length!=0){
+                    allActorList[teethType].originRoot.forEach(item=>{
+                        delActorsList.push(item.actor);
                     })
                 }
                 // if (allActorList[teethType].originBracket.length!=0){

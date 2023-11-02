@@ -200,6 +200,9 @@ watch(toothOpacity,(newValue)=>{
 		allActorList[teethType].originTooth.forEach((item) => {
 			item.actor.getProperty().setOpacity(newValue/100)
 		});
+		allActorList[teethType].originRoot.forEach((item) => {
+			item.actor.getProperty().setOpacity(newValue/100)
+		});
 		if(allActorList[teethType].originGingiva.actor){
 			allActorList[teethType].originGingiva.actor.getProperty().setOpacity(newValue/100)    
 		}
@@ -290,6 +293,18 @@ watch(currentShowPanel, (newVal, oldVal) => {
 	if (oldVal === 2 && newVal === -1) {
 		adjustRootWidgetInScene("exit",vtkContext);
 		setGingivaOpacity(1);
+	}
+	// 从[虚拟牙根]进入到[牙弓线调整]
+	if (oldVal === 2 && newVal === 1) {
+		adjustRootWidgetInScene("exit",vtkContext);
+		setGingivaOpacity(1);
+		// 切换面板时，应该从dentalArchSettings中读取系数
+		regenerateDentalArchWidget([], true);
+		adjustDentalArchWidgetInScene("enter");
+		// 关闭托槽微调
+		store.dispatch("actorHandleState/updateCurrentMode", {
+			fineTune: false,
+		});
 	}
 });
 let dentalArchWidgets = {}; // 每次调整后再排牙后需要重新设置
@@ -935,21 +950,23 @@ watch(generateRootRecord,(newValue, oldValue) => {
 				showClose: true,
 				offset: -7,
 			})
-			generateRoot(teethType)
-			.then((result) => {
-				allActorList[teethType].rootGenerate = result;
-				const { renderWindow, renderer } = vtkContext;
-				allActorList[teethType].rootGenerate.forEach(({actor})=>{
-					renderer.addActor(actor)
+			// 如果不加这个延时，elMessage会延迟一小会才显示
+			setTimeout(()=>{
+				generateRoot(teethType)
+				.then((result) => {
+					allActorList[teethType].rootGenerate = result.rootList;
+					allActorList[teethType].originRoot = result.originRootList;
+					const { renderWindow, renderer } = vtkContext;
+					allActorList[teethType].rootGenerate.forEach(({actor})=>{
+						renderer.addActor(actor)
+					})
+					renderWindow.render()
+					elMessage.close()
 				})
-				renderWindow.render()
-				elMessage.close()
-				console.log(allActorList)
-			})
-			.catch((error) => {
-				console.error(error); // 处理错误情况
-			});
-			
+				.catch((error) => {
+					console.error(error); // 处理错误情况
+				});
+			}, 50)
 		}
 		if(!newValue[teethType]&&oldValue[teethType]){
 			// 清除牙根
@@ -2434,7 +2451,10 @@ function updateAndApplySingleBracketUserMatrix(bracketName, newFineTuneRecord, c
 		// 牙齿
 		matchItem.tooth.actor.setUserMatrix(applyCalMatrix.tad[bracketName]);
 		// 牙根
-		matchItem.rootGenerate.actor.setUserMatrix(applyCalMatrix.tad[bracketName]);
+		console.log(matchItem.rootGenerate.actor)
+		if(matchItem.rootGenerate.actor){
+			matchItem.rootGenerate.actor.setUserMatrix(applyCalMatrix.tad[bracketName]);
+		}
 		// 坐标轴
 		matchItem.toothAxis.actors.forEach((actor) => {
 			actor.setUserMatrix(applyCalMatrix.tad[bracketName]);

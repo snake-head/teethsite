@@ -63,6 +63,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
             OBB: {},
             root: [], // 牙根圆锥
             rootGenerate: [], //生成的牙根
+            originRoot: [], //和原始牙列位置相匹配的牙根
         },
         lower: {
             // 下颌牙
@@ -79,6 +80,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
             OBB: {},
             root: [], // 牙根圆锥
             rootGenerate: [], //生成的牙根
+            originRoot: [], //和原始牙列位置相匹配的牙根
         },
         picture: null,
         intersection: null

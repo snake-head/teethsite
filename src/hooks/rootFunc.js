@@ -140,6 +140,7 @@ export default function(allActorList,toothPolyDatas,bracketData) {
 
     async function generateRoot(teethType) {
         let rootList = [];
+        let originRootList = [];
         const promises = []; // 存储每个请求的 Promise 对象
       
         Object.entries(toothPolyDatas).forEach(([toothName, toothPolyData]) => {
@@ -175,17 +176,27 @@ export default function(allActorList,toothPolyDatas,bracketData) {
                 },
               })
                 .then((resp) => {
-                  const arrayBuffer = base64ToArrayBuffer(resp.data.polydata);
-                  // Use vtkXMLPolyDataReader to convert the ArrayBuffer to vtk polydata
-                  const reader = XML.vtkXMLPolyDataReader.newInstance();
-                  reader.parseAsArrayBuffer(arrayBuffer);
-                  const polyData = reader.getOutputData(0);
-                  const mapper = vtkMapper.newInstance();
-                  mapper.setInputData(polyData);
-                  const actor = vtkActor.newInstance();
-                  actor.setMapper(mapper);
-                  rootList.push({ name: toothName, actor, mapper });
-                  resolve(); // 请求成功，resolve
+                    const arrayBuffer = base64ToArrayBuffer(resp.data.polydata);
+                    const originArrayBuffer = arrayBuffer.slice(); // Perform a deep copy of arrayBuffer
+                    const reader = XML.vtkXMLPolyDataReader.newInstance();
+                    reader.parseAsArrayBuffer(arrayBuffer);
+                    const polyData = reader.getOutputData(0);
+                    const mapper = vtkMapper.newInstance();
+                    mapper.setInputData(polyData);
+                    const actor = vtkActor.newInstance();
+                    actor.setMapper(mapper);
+                    rootList.push({ name: toothName, actor, mapper });
+
+                    // Process the deep copy of polydata
+                    const originReader = XML.vtkXMLPolyDataReader.newInstance();
+                    originReader.parseAsArrayBuffer(originArrayBuffer);
+                    const originPolyData = originReader.getOutputData(0);
+                    const originMapper = vtkMapper.newInstance();
+                    originMapper.setInputData(originPolyData);
+                    const originActor = vtkActor.newInstance();
+                    originActor.setMapper(originMapper);
+                    originRootList.push({ name: toothName, actor: originActor, mapper: originMapper });
+                    resolve(); // 请求成功，resolve
                 })
                 .catch((error) => {
                   console.log("error");
@@ -198,7 +209,7 @@ export default function(allActorList,toothPolyDatas,bracketData) {
         });
       
         await Promise.all(promises); // 等待所有请求完成
-        return rootList;
+        return { rootList, originRootList };
       }
 
     function base64ToArrayBuffer(base64) {

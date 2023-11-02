@@ -1131,7 +1131,7 @@ function parseCADO() {
             stepConfig.xmlObj = result.CADOProject;
             const teethType = stepConfig.xmlObj.OriginalModel[0].$.jaw;
             if (stepConfig.xmlObj.ProcessState[0].$.collisionState){
-                firstReadFlag[teethType] = stepConfig.xmlObj.ProcessState[0].$.collisionState
+                firstReadFlag[teethType] = parseInt(stepConfig.xmlObj.ProcessState[0].$.collisionState)
             }
             // 从xml中的positionResult中找到托槽名字
             let targetBracketUID =

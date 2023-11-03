@@ -630,7 +630,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
         // 读取托槽center和zNormal
         const {
             fineTuneRecord: {
-                actorMatrix: { center, zNormal },
+                actorMatrix: { center, zNormal, xNormal },
             },
         } = bracketData[teethType].filter((item) => item.name === toothName)[0];
         // 读取牙齿polyData(切割源)
@@ -659,6 +659,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
             toothName,
             center,
             zNormal,
+            xNormal,
             renderer,
             renderWindow
         );
@@ -926,6 +927,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
         toothName,
         center,
         zNormal,
+        xNormal,
         renderer,
         renderWindow
     ) {
@@ -933,14 +935,20 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
         if (lineActorItem === null) {
             return;
         }
+        const pointValues = toothPolyDatas[toothName].getPoints().getData()
+        const cellValues = toothPolyDatas[toothName].getPolys().getData()
+
         updateDistanceLine(
             lineActorItem,
             toothName,
             center,
             zNormal,
+            xNormal,
             1.5,
             renderer,
-            renderWindow
+            renderWindow,
+            pointValues,
+            cellValues
         );
     }
     function findMatchDistanceLineItem(toothName) {

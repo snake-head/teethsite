@@ -11,7 +11,10 @@ import {
 import {
     calculateTransMatrix,
 } from "./userMatrixControl";
-import { calculateLineActorPointsAndDistance } from "./distanceLineControl";
+import { 
+    calculateLineActorPointsAndDistance, 
+    calculateLineActorPointsAndDistanceNew 
+} from "./distanceLineControl";
 import vtkMath, {
     add,
     angleBetweenVectors,
@@ -960,16 +963,29 @@ function getCutActorList(
  * @param endPoint 牙底点
  * @param zNormal 托槽法向量
  * @param floatDist 直线沿zNormal方向上浮距离
+ * @param pointValues 牙齿点数据
+ * @param cellValues 牙齿面片数据
  */
-function initDistanceLine(center, startPoint, endPoint, zNormal, floatDist) {
-    const { pointValues, distance } = calculateLineActorPointsAndDistance(
+function initDistanceLine(center, startPoint, endPoint, zNormal, xNormal, floatDist, pointValues, cellValues) {
+    // 2023.11.02更新：距离线计算不再以牙尖小球为终点，而是与牙齿最尖端相切
+    // const { pointValues, distance } = calculateLineActorPointsAndDistance(
+    //     center,
+    //     startPoint,
+    //     endPoint,
+    //     zNormal,
+    //     floatDist
+    // );
+    const { linePointValues, distance } = calculateLineActorPointsAndDistanceNew(
         center,
         startPoint,
         endPoint,
         zNormal,
-        floatDist
+        xNormal,
+        floatDist,
+        pointValues,
+        cellValues,
     );
-    const cellValues = new Uint32Array([
+    const lineCellValues = new Uint32Array([
         2,
         1,
         2, // startPoint->startPlaneProj
@@ -981,7 +997,11 @@ function initDistanceLine(center, startPoint, endPoint, zNormal, floatDist) {
         4, // centerPlaneProj->center
     ]);
 
-    return { pointValues, cellValues, distance };
+    return { 
+        pointValues:linePointValues, 
+        cellValues:lineCellValues, 
+        distance 
+    };
 }
 
 // step0(从地址中检测patientUID)+step1(登录身份认证)需要在主线程中完成
@@ -1711,7 +1731,7 @@ function generateTeethAxisActor(postCenter) {
         if (toothPolyData) {
             const { pointValues, cellValues } = toothPolyData;
             const {
-                position: { center, zNormal },
+                position: { center, zNormal, xNormal },
             } = bracketData[name];
             // 坐标轴来源：一个个垂直或平行的网格状相交平面与牙齿点集的交集
             // 平面决定于一个法向量+一个平面上的点
@@ -1732,7 +1752,10 @@ function generateTeethAxisActor(postCenter) {
                 startPoint,
                 endPoint,
                 zNormal,
-                1.5
+                xNormal,
+                1.5,
+                pointValues,
+                cellValues
             );
             allActorList.axis[name] = axisActors;
             allActorList.line[name] = lineActor;

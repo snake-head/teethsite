@@ -1661,7 +1661,7 @@ function resetSingleBracket() {
 	vtkSegToothContext.renderWindow.render();
 
 	// 重新计算距离 + 更新距离文字
-	updateDistanceLineActor(name, center, zNormal, renderer, renderWindow);
+	updateDistanceLineActor(name, center, zNormal, xNormal, renderer, renderWindow);
 }
 /**
  * @description 重置所有托槽位置
@@ -1685,10 +1685,10 @@ function resetAllBracket() {
 			};
 			if (name === selectBracketName) {
 				// 重新计算距离 + 更新距离文字
-				updateDistanceLineActor(name, center, zNormal, renderer, renderWindow);
+				updateDistanceLineActor(name, center, zNormal, xNormal, renderer, renderWindow);
 			} else {
 				// 当前无选中托槽, 仅更新距离
-				updateDistanceLineActor(name, center, zNormal);
+				updateDistanceLineActor(name, center, zNormal, xNormal);
 			}
 		});
 	}
@@ -1960,7 +1960,7 @@ function fineTuneBracket(moveOption) {
 	vtkSegToothContext.renderWindow.render();
 
 	// 重新计算距离 + 更新距离文字
-	updateDistanceLineActor(name, transCenter, transZNormal, renderer, renderWindow);
+	updateDistanceLineActor(name, transCenter, transZNormal, transXNormal, renderer, renderWindow);
 }
 const teethArrange = store.state.actorHandleState.teethArrange;
 function uploadDataOnline(uploadStateMessage, submit = false) {

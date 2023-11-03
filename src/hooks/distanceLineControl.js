@@ -8,6 +8,9 @@ import {
     dot,
     distance2BetweenPoints,
 } from "@kitware/vtk.js/Common/Core/Math";
+import vtkCutter from "@kitware/vtk.js/Filters/Core/Cutter";
+import vtkPlane from "@kitware/vtk.js/Common/DataModel/Plane";
+
 import { bracketNameList } from "../static_config";
 import { reactive } from "vue";
 import { detectPageZoom } from "../utils/browserTypeDetection";
@@ -122,6 +125,144 @@ function calculateLineActorPointsAndDistance(
 }
 
 /**
+ * @description: 在pointsValue中查找z最小的点坐标
+ * @param {*} points pointsValue
+ * @return {*} z最小的点坐标
+ * @author: ZhuYichen
+ */
+function findMinZCoordinate(points) {
+    let minZ = Infinity;
+    let minZPoint = null;
+
+    for (let i = 2; i < points.length; i += 3) {
+        const zCoordinate = points[i];
+        if (zCoordinate < minZ) {
+            minZ = zCoordinate;
+            minZPoint = [points[i-2], points[i-1], points[i]];
+        }
+    }
+
+    return minZPoint;
+}
+
+/**
+ * @description: 在pointsValue中查找z最大的点坐标
+ * @param {*} points pointsValue
+ * @return {*} z最大的点坐标
+ * @author: ZhuYichen
+ */
+function findMaxZCoordinate(points) {
+    let maxZ = -Infinity;
+    let maxZPoint = null;
+
+    for (let i = 2; i < points.length; i += 3) {
+        const zCoordinate = points[i];
+        if (zCoordinate > maxZ) {
+            maxZ = zCoordinate;
+            maxZPoint = [points[i-2], points[i-1], points[i]];
+        }
+    }
+
+    return maxZPoint;
+}
+
+/**
+ *
+ * @param center 托槽中心
+ * @param startPoint 牙尖点
+ * @param endPoint 牙底点
+ * @param zNormal 托槽法向量
+ * @param floatDist 直线沿zNormal方向上浮距离
+ * @return {{pointValues: Float32Array, distance: number}}
+ */
+function calculateLineActorPointsAndDistanceNew(
+    center,
+    startPoint,
+    endPoint,
+    zNormal,
+    xNormal,
+    floatDist,
+    pointValues,
+    cellValues,
+) {
+    // 2023.11.02更新：原先采用的距离线算法是以牙尖小球为距离线终点，现在改为牙齿最尖端
+    // 我们需要构建的三段直线的另外两个顶点需要漂浮在actor上方(或者说前面)让用户看到
+    // 因此,首先将center沿zNormal方向移动1.5个距离得到centerFloat, 使这个点必定在托槽脱离牙齿的上方
+    const centerFloat = [
+        center[0] + floatDist * zNormal[0],
+        center[1] + floatDist * zNormal[1],
+        center[2] + floatDist * zNormal[2],
+    ];
+    // 以下是更新的代码
+    // 把原算法的startPoint改成牙齿最尖端的点即可，因此需要构造一个平面切割牙齿点云
+    // 平面法向量是托槽的xNormal，点是center
+
+    // ----------------------------------
+    // 构造平面, 构造切割
+    // ----------------------------------
+    const toothPolyData = vtkPolyData.newInstance();
+    toothPolyData.getPoints().setData(pointValues);
+    toothPolyData.getPolys().setData(cellValues);
+    const plane = vtkPlane.newInstance();
+        plane.setOrigin(...center);
+        plane.setNormal(...xNormal);
+    const cutter = vtkCutter.newInstance();
+        cutter.setCutFunction(plane); // 使用plane切割
+        cutter.setInputData(toothPolyData); // 切割对象为牙齿polyData
+    const cutPoints = cutter.getOutputData().getPoints().getData()
+    // 上颌牙找最低点，下颌牙找最高点
+    const tipPoint = startPoint[2]<endPoint[2]?findMinZCoordinate(cutPoints):findMaxZCoordinate(cutPoints)
+
+    // 计算过tipPoint，沿zNormal方向的向量
+    const CS = [
+        tipPoint[0] - center[0],
+        tipPoint[1] - center[1],
+        tipPoint[2] - center[2],
+    ]
+    // tipPoint 在zNormal上的投影点K
+    const K = projection(CS, zNormal);
+    const KS = [
+        tipPoint[0] - K[0],
+        tipPoint[1] - K[1],
+        tipPoint[2] - K[2],
+    ]
+    const M = [
+        floatDist * zNormal[0] + KS[0],
+        floatDist * zNormal[1] + KS[1],
+        floatDist * zNormal[2] + KS[2],
+    ]
+
+    const upDirection = [
+        M[0] - tipPoint[0],
+        M[1] - tipPoint[1],
+        M[2] - tipPoint[2],
+    ];
+    normalize(upDirection);
+    const textPositionPoint = [
+        (centerFloat[0] + M[0]) / 2 + 0.4 * upDirection[0],
+        (centerFloat[1] + M[1]) / 2 + 0.4 * upDirection[1],
+        (centerFloat[2] + M[2]) / 2 + 0.4 * upDirection[2],
+    ];
+    const linePointValues = new Float32Array([
+        ...textPositionPoint, // 第0个点就是text的位置
+        ...tipPoint,
+        ...M,
+        ...centerFloat,
+        ...center,
+    ]);
+
+    // 计算两个平面之间的距离
+    // const distance = Math.sqrt(
+    //     distance2BetweenPoints(centerPlaneProj, startPlaneProj)
+    // );
+    const distance = Math.sqrt(
+        distance2BetweenPoints(M, centerFloat)
+    );
+
+    return { linePointValues, distance };
+}
+
+/**
  * @description 点投影至平面坐标
  * @param x
  * @param origin
@@ -182,7 +323,10 @@ function projection(a, b) {
 
 
 
-export { calculateLineActorPointsAndDistance };
+export { 
+    calculateLineActorPointsAndDistance, 
+    calculateLineActorPointsAndDistanceNew 
+};
 
 export default function() {
     let distanceMessageList = reactive([]);
@@ -305,20 +449,33 @@ export default function() {
         toothName,
         center,
         zNormal,
+        xNormal,
         floatDist,
         renderer,
-        renderWindow
+        renderWindow,
+        pointValues,
+        cellValues
     ) {
         let { startPoint, endPoint, linePolyData, lineActor } = lineActorItem;
 
-        const { pointValues, distance } = calculateLineActorPointsAndDistance(
+        // const { pointValues, distance } = calculateLineActorPointsAndDistance(
+        //     center,
+        //     startPoint,
+        //     endPoint,
+        //     zNormal,
+        //     floatDist
+        // );
+        const { linePointValues, distance } = calculateLineActorPointsAndDistanceNew(
             center,
             startPoint,
             endPoint,
             zNormal,
-            floatDist
+            xNormal,
+            floatDist,
+            pointValues,
+            cellValues,
         );
-        linePolyData.getPoints().setData(pointValues); // 更新直线
+        linePolyData.getPoints().setData(linePointValues); // 更新直线
         lineActorItem.distance = distance; // 更新距离与显示
 
         // 更新列表

@@ -10,6 +10,8 @@ import {
 } from "@kitware/vtk.js/Common/Core/Math";
 import vtkCutter from "@kitware/vtk.js/Filters/Core/Cutter";
 import vtkPlane from "@kitware/vtk.js/Common/DataModel/Plane";
+import vtkCylinderSource from "@kitware/vtk.js/Filters/Sources/CylinderSource";
+
 
 import { bracketNameList } from "../static_config";
 import { reactive } from "vue";
@@ -73,7 +75,7 @@ function calculateLineActorPointsAndDistance(
         startPoint[2] - center[2],
     ]
     // startPoint 在zNormal上的投影点K
-    const K = projection(CS, zNormal);
+    const K = projectionPoint2Vector(CS, zNormal);
     const KS = [
         startPoint[0] - K[0],
         startPoint[1] - K[1],
@@ -125,47 +127,92 @@ function calculateLineActorPointsAndDistance(
 }
 
 /**
- * @description: 在pointsValue中查找z最小的点坐标
+ * @description: 在pointsValue中查找沿SE方向距离endpoint最远的点
  * @param {*} points pointsValue
- * @return {*} z最小的点坐标
+ * @return {*} 最远点坐标
  * @author: ZhuYichen
  */
-function findMinZCoordinate(points) {
-    let minZ = Infinity;
-    let minZPoint = null;
+function findMaxDistancePoint(points, S, E) {
+    let maxDistance = -Infinity;
+    let maxDistancePoint = null;
+    const ES = [
+        S[0]-E[0],
+        S[1]-E[1],
+        S[2]-E[2],
+    ]
 
-    for (let i = 2; i < points.length; i += 3) {
-        const zCoordinate = points[i];
-        if (zCoordinate < minZ) {
-            minZ = zCoordinate;
-            minZPoint = [points[i-2], points[i-1], points[i]];
+    for (let i = 0; i < points.length; i += 3) {
+        const K = [
+            points[i],
+            points[i+1],
+            points[i+2],
+        ]
+        const EK = [
+            K[0]-E[0],
+            K[1]-E[1],
+            K[2]-E[2],
+        ]
+        // 将点投影到ES向量上
+        const EP = projectionPoint2Vector(EK, ES);
+        const distance = vectorMagnitude(EP)
+        if (distance > maxDistance) {
+            maxDistance = distance;
+            maxDistancePoint = K
         }
     }
 
-    return minZPoint;
+    return maxDistancePoint;
 }
 
 /**
- * @description: 在pointsValue中查找z最大的点坐标
- * @param {*} points pointsValue
- * @return {*} z最大的点坐标
+ * @description: 向量叉乘
+ * @param {*} vector1
+ * @param {*} vector2
+ * @return {*}
  * @author: ZhuYichen
  */
-function findMaxZCoordinate(points) {
-    let maxZ = -Infinity;
-    let maxZPoint = null;
-
-    for (let i = 2; i < points.length; i += 3) {
-        const zCoordinate = points[i];
-        if (zCoordinate > maxZ) {
-            maxZ = zCoordinate;
-            maxZPoint = [points[i-2], points[i-1], points[i]];
-        }
-    }
-
-    return maxZPoint;
+function crossProduct(vector1, vector2) {
+    const x = vector1[1] * vector2[2] - vector1[2] * vector2[1];
+    const y = vector1[2] * vector2[0] - vector1[0] * vector2[2];
+    const z = vector1[0] * vector2[1] - vector1[1] * vector2[0];
+    return [x, y, z];
 }
 
+/**
+ * @description: 借助cylindersource构造一个圆面
+ * @param {*} center
+ * @param {*} radius
+ * @param {*} direction
+ * @return {*}
+ * @author: ZhuYichen
+ */
+function createCircleGeometry(center, radius, direction) {
+    const resolution = 320; // 分辨率，可以根据需要调整
+  
+    // 创建一个圆形的几何图形
+    const circleSource = vtkCylinderSource.newInstance({
+      height: 0,   // 高度设置为0以创建一个平面
+      radius,      // 圆的半径
+      resolution,  // 分辨率，决定圆的光滑度
+    });
+  
+    // 设置圆心位置
+    circleSource.setCenter(center);
+  
+    // 设置方向
+    normalize(direction)
+    const normal = direction;
+    circleSource.setDirection(normal);
+  
+    // 获取几何数据
+    const outputData = circleSource.getOutputData();
+  
+    // 获取点数据和多边形数据
+    const circlePoints = outputData.getPoints().getData();
+    const circlePolys = outputData.getPolys().getData();
+  
+    return { circlePoints, circlePolys };
+  }
 /**
  *
  * @param center 托槽中心
@@ -194,43 +241,29 @@ function calculateLineActorPointsAndDistanceNew(
         center[2] + floatDist * zNormal[2],
     ];
     // 以下是更新的代码
-    // 把原算法的startPoint改成牙齿最尖端的点即可，因此需要构造一个平面切割牙齿点云
-    // 平面法向量是托槽的xNormal，点是center
+    // 将所有牙齿所有的点投影到startpoint->endpoint这条线上
+    // 尖端=距离endpoint最远的投影点
+    const SE = [
+        endPoint[0] - startPoint[0],
+        endPoint[1] - startPoint[1],
+        endPoint[2] - startPoint[2],
+    ]
+    // 由于距离线要求与zNormal垂直，但垂面的方向需要由SE方向决定
+    // 所以首先将S和E都投影到以z为法向量过centerFloat的平面上
+    const S2 = projectPointToPlane(startPoint, centerFloat, zNormal)
+    const E2 = projectPointToPlane(endPoint, centerFloat, zNormal)
+    // 以S2E2为垂面法向量，则垂面必然平行于z
+    const planeNormal = [
+        E2[0] - S2[0],
+        E2[1] - S2[1],
+        E2[2] - S2[2],
+    ]
 
-    // ----------------------------------
-    // 构造平面, 构造切割
-    // ----------------------------------
-    const toothPolyData = vtkPolyData.newInstance();
-    toothPolyData.getPoints().setData(pointValues);
-    toothPolyData.getPolys().setData(cellValues);
-    const plane = vtkPlane.newInstance();
-        plane.setOrigin(...center);
-        plane.setNormal(...xNormal);
-    const cutter = vtkCutter.newInstance();
-        cutter.setCutFunction(plane); // 使用plane切割
-        cutter.setInputData(toothPolyData); // 切割对象为牙齿polyData
-    const cutPoints = cutter.getOutputData().getPoints().getData()
-    // 上颌牙找最低点，下颌牙找最高点
-    const tipPoint = startPoint[2]<endPoint[2]?findMinZCoordinate(cutPoints):findMaxZCoordinate(cutPoints)
+    const tipPoint = findMaxDistancePoint(pointValues, S2, E2)
 
-    // 计算过tipPoint，沿zNormal方向的向量
-    const CS = [
-        tipPoint[0] - center[0],
-        tipPoint[1] - center[1],
-        tipPoint[2] - center[2],
-    ]
-    // tipPoint 在zNormal上的投影点K
-    const K = projection(CS, zNormal);
-    const KS = [
-        tipPoint[0] - K[0],
-        tipPoint[1] - K[1],
-        tipPoint[2] - K[2],
-    ]
-    const M = [
-        floatDist * zNormal[0] + KS[0],
-        floatDist * zNormal[1] + KS[1],
-        floatDist * zNormal[2] + KS[2],
-    ]
+    // 将centerFloat投影到垂面上，得到M点
+    normalize(planeNormal)
+    const M = projectPointToPlane(centerFloat, tipPoint, planeNormal)
 
     const upDirection = [
         M[0] - tipPoint[0],
@@ -243,23 +276,20 @@ function calculateLineActorPointsAndDistanceNew(
         (centerFloat[1] + M[1]) / 2 + 0.4 * upDirection[1],
         (centerFloat[2] + M[2]) / 2 + 0.4 * upDirection[2],
     ];
+    // 构造距离线，这里写两个M是因为之前由四个顶点构成，现在只需要三个点
     const linePointValues = new Float32Array([
         ...textPositionPoint, // 第0个点就是text的位置
-        ...tipPoint,
+        ...M,
         ...M,
         ...centerFloat,
         ...center,
     ]);
-
-    // 计算两个平面之间的距离
-    // const distance = Math.sqrt(
-    //     distance2BetweenPoints(centerPlaneProj, startPlaneProj)
-    // );
     const distance = Math.sqrt(
         distance2BetweenPoints(M, centerFloat)
     );
-
-    return { linePointValues, distance };
+    // 构造垂面
+    const {circlePoints, circlePolys} = createCircleGeometry(tipPoint, 5, planeNormal)
+    return { linePointValues, distance, circlePoints, circlePolys };
 }
 
 /**
@@ -312,16 +342,14 @@ function vectorMagnitude(b) {
  * @param {number[]} b - 作为投影方向的向量
  * @returns {number[]} 投影结果向量
  */
-function projection(a, b) {
+function projectionPoint2Vector(a, b) {
     const dot = dotProduct(a, b);
     const magSquared = Math.pow(vectorMagnitude(b), 2);
     const scaleFactor = dot / magSquared;
 
-    const projection = b.map(element => element * scaleFactor);
-    return projection;
+    const projectionPoint2Vector = b.map(element => element * scaleFactor);
+    return projectionPoint2Vector;
 }
-
-
 
 export { 
     calculateLineActorPointsAndDistance, 
@@ -383,7 +411,7 @@ export default function() {
     ) {
         const linePolyData = vtkPolyData.newInstance();
         linePolyData.getPoints().setData(pointValues);
-        linePolyData.getLines().setData(cellValues);
+        linePolyData.getLines().setData(cellValues.slice(0,9));
 
         const mapper = vtkMapper.newInstance();
         mapper.setInputData(linePolyData);
@@ -391,6 +419,18 @@ export default function() {
 
         lineActor.setMapper(mapper);
         lineActor.getProperty().setColor(1, 0, 1);
+        // 分别构造line和plane的actor
+        const planePolyData = vtkPolyData.newInstance();
+        planePolyData.getPoints().setData(pointValues);
+        planePolyData.getPolys().setData(cellValues);
+
+        const planeMapper = vtkMapper.newInstance();
+        planeMapper.setInputData(planePolyData);
+        const planeActor = vtkActor.newInstance();
+
+        planeActor.setMapper(planeMapper);
+        planeActor.getProperty().setColor(1, 0, 1);
+        planeActor.getProperty().setOpacity(0.4);
 
         const psMapper = vtkPixelSpaceCallbackMapper.newInstance(); // 遍历输入数据的每个点, 根据相机3D坐标计算平面2D坐标
         psMapper.setInputData(linePolyData);
@@ -403,9 +443,11 @@ export default function() {
             startPoint,
             endPoint,
             lineActor,
+            planeActor,
             textActor,
             distance, // 修改distance即可直接修改显示的距离文字
             linePolyData, // 修改其中的points数组即可影响到直线actor的生成
+            planePolyData,
             mapper,
             psMapper,
         };
@@ -434,6 +476,21 @@ export default function() {
     }
 
     /**
+     * @description: 用于合并两个pointsdata
+     * @param {*} pointsData1
+     * @param {*} pointsData2
+     * @return {*}
+     * @author: ZhuYichen
+     */
+    function combinePointData(pointsData1, pointsData2) {
+        // 合并两组点数据
+        const combinedPointsData = new Float32Array(pointsData1.length + pointsData2.length);
+        combinedPointsData.set(pointsData1, 0);
+        combinedPointsData.set(pointsData2, pointsData1.length);
+      
+        return combinedPointsData;
+      }
+    /**
      * @description 在托槽微调时调用, 重置时也调用, 更新对应lineActor
      * 微调时直接用, 重置单个时直接用, 重置所有时读取当前选中托槽名称直接用
      * @param lineActorItem 从其中读取
@@ -456,7 +513,7 @@ export default function() {
         pointValues,
         cellValues
     ) {
-        let { startPoint, endPoint, linePolyData, lineActor } = lineActorItem;
+        let { startPoint, endPoint, linePolyData, planePolyData, lineActor, planeActor } = lineActorItem;
 
         // const { pointValues, distance } = calculateLineActorPointsAndDistance(
         //     center,
@@ -465,7 +522,7 @@ export default function() {
         //     zNormal,
         //     floatDist
         // );
-        const { linePointValues, distance } = calculateLineActorPointsAndDistanceNew(
+        const { linePointValues, distance, circlePoints, circlePolys } = calculateLineActorPointsAndDistanceNew(
             center,
             startPoint,
             endPoint,
@@ -475,7 +532,9 @@ export default function() {
             pointValues,
             cellValues,
         );
-        linePolyData.getPoints().setData(linePointValues); // 更新直线
+        const combinedPointsData= combinePointData(linePointValues, circlePoints)
+        linePolyData.getPoints().setData(combinedPointsData); // 更新直线
+        planePolyData.getPoints().setData(combinedPointsData); // 更新底面
         lineActorItem.distance = distance; // 更新距离与显示
 
         // 更新列表
@@ -490,8 +549,10 @@ export default function() {
         // mapper的设置方式为inputData可能导致其无法及时根据输入更新, 此处为强制更新(先移出屏幕再移进去)
         if (renderer && renderWindow) {
             renderer.removeActor(lineActor);
+            renderer.removeActor(planeActor);
             renderWindow.render(); // 重新计算移除直线后的屏幕
             renderer.addActor(lineActor); // 以新的actor移入屏幕触发mapper重新根据输入数据计算
+            renderer.addActor(planeActor); // 以新的actor移入屏幕触发mapper重新根据输入数据计算
             renderWindow.render();
         }
     }

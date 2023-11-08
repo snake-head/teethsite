@@ -945,6 +945,35 @@ function getCutActorList(
     });
     return cutterActorList;
 }
+/**
+ * @description: 将两个polydata拼接到一起
+ * @param {*} pointsData1
+ * @param {*} polysData1
+ * @param {*} pointsData2
+ * @param {*} polysData2
+ * @return {*} 拼接好的points和polys
+ * @author: ZhuYichen
+ */
+function combinePointDataAndPolysData(pointsData1, polysData1, pointsData2, polysData2) {
+    // 合并两组点数据
+    const combinedPointsData = new Float32Array(pointsData1.length + pointsData2.length);
+    combinedPointsData.set(pointsData1, 0);
+    combinedPointsData.set(pointsData2, pointsData1.length);
+  
+    // 由于多边形的索引需要更新，我们需要将第二组多边形数据中的索引偏移
+    const offset = pointsData1.length / 3; // 每个点有3个坐标
+    const offsetPolysData2 = new Uint32Array(polysData2.length);
+    for (let i = 0; i < polysData2.length; i++) {
+      offsetPolysData2[i] = polysData2[i] + offset;
+    }
+  
+    // 合并两组多边形数据
+    const combinedPolysData = new Uint32Array(polysData1.length + offsetPolysData2.length);
+    combinedPolysData.set(polysData1, 0);
+    combinedPolysData.set(offsetPolysData2, polysData1.length);
+  
+    return { combinedPointsData, combinedPolysData };
+  }
 
 /**
  * @description 需要计算沿长轴平行方向上托槽中心与startPoint的投影距离之差, 并构建相应Line作为回顾
@@ -975,7 +1004,7 @@ function initDistanceLine(center, startPoint, endPoint, zNormal, xNormal, floatD
     //     zNormal,
     //     floatDist
     // );
-    const { linePointValues, distance } = calculateLineActorPointsAndDistanceNew(
+    const { linePointValues, distance, circlePoints, circlePolys } = calculateLineActorPointsAndDistanceNew(
         center,
         startPoint,
         endPoint,
@@ -996,11 +1025,13 @@ function initDistanceLine(center, startPoint, endPoint, zNormal, xNormal, floatD
         3,
         4, // centerPlaneProj->center
     ]);
-
+    // 为了方便，这里将距离线和垂面的polydata做了拼接
+    // TODO:将两部分分开返回
+    const {combinedPointsData, combinedPolysData} = combinePointDataAndPolysData(linePointValues, lineCellValues, circlePoints, circlePolys)
     return { 
-        pointValues:linePointValues, 
-        cellValues:lineCellValues, 
-        distance 
+        pointValues:combinedPointsData, 
+        cellValues:combinedPolysData, 
+        distance,
     };
 }
 

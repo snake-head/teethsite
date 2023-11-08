@@ -287,8 +287,10 @@ export default function(allActorList) {
             );
             if (itemMatch.length > 0) {
                 return {
+                    // 距离线和垂面分别显示，便于控制透明度等参数
                     actors: [
                         itemMatch[0].lineActorItem.lineActor,
+                        itemMatch[0].lineActorItem.planeActor,
                         itemMatch[0].lineActorItem.textActor,
                     ],
                     widgets: [

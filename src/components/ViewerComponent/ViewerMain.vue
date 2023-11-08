@@ -2361,12 +2361,14 @@ function applyUserMatrixWhenSwitchMode(fromMode, toMode, render = false) {
 		distanceLine.forEach((item) => {
 			const {
 				name,
-				lineActorItem: { lineActor, psMapper },
+				lineActorItem: { lineActor, planeActor, psMapper },
 				startPointRep,
 				endPointRep,
 			} = item;
 			// 距离线
 			lineActor.setUserMatrix(applyCalMatrix.tad[name]);
+			// 垂面
+			planeActor.setUserMatrix(applyCalMatrix.tad[name]);
 			// 距离文字
 			psMapper.setMatrix2(applyCalMatrix.tad[name]);
 			// 轴点反映射
@@ -2460,6 +2462,8 @@ function updateAndApplySingleBracketUserMatrix(bracketName, newFineTuneRecord, c
 		});
 		// 距离线
 		matchItem.distanceLine.lineActorItem.lineActor.setUserMatrix(applyCalMatrix.tad[bracketName]);
+		// 垂面
+		matchItem.distanceLine.lineActorItem.planeActor.setUserMatrix(applyCalMatrix.tad[bracketName]);
 		// 距离文字
 		matchItem.distanceLine.lineActorItem.psMapper.setMatrix2(applyCalMatrix.tad[bracketName]);
 	}
@@ -2764,12 +2768,14 @@ function updateMat4(teethType) {
 	distanceLine.forEach((item) => {
 		const {
 			name,
-			lineActorItem: { lineActor, psMapper },
+			lineActorItem: { lineActor, planeActor, psMapper },
 			startPointRep,
 			endPointRep,
 		} = item;
 		// 距离线
 		lineActor.setUserMatrix(applyCalMatrix.tad[name]);
+		// 垂面
+		planeActor.setUserMatrix(applyCalMatrix.tad[name]);
 		// 距离文字
 		psMapper.setMatrix2(applyCalMatrix.tad[name]);
 		// 轴点反映射

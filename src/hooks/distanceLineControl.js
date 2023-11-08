@@ -213,6 +213,44 @@ function createCircleGeometry(center, radius, direction) {
   
     return { circlePoints, circlePolys };
   }
+
+/**
+ * @description: 求直线AB与平面的交点C
+ * @param pointA 直线上一点A
+ * @param pointB 直线上一点B
+ * @param normal 平面法向量
+ * @param pointO 平面上一点O
+ * @return {*} 交点C的坐标
+ * @author: ZhuYichen
+ */
+function lineCrossPlane(
+    pointA,
+    pointB,
+    normal,
+    pointO,
+){
+    const a = pointA[0] - pointB[0];
+    const b = pointA[1] - pointB[1];
+    const c = pointA[2] - pointB[2];
+
+    const d = normal[0];
+    const e = normal[1];
+    const f = normal[2];
+
+    const x0 = pointA[0];
+    const y0 = pointA[1];
+    const z0 = pointA[2];
+
+    const x1 = pointO[0];
+    const y1 = pointO[1];
+    const z1 = pointO[2];
+
+    const t = (d * (x1 - x0) + e * (y1 - y0) + f * (z1 - z0)) / (d * a + e * b + f * c);
+
+    const intersectionPoint = [x0 + t * a, y0 + t * b, z0 + t * c];
+
+    return intersectionPoint;
+}
 /**
  *
  * @param center 托槽中心
@@ -288,7 +326,8 @@ function calculateLineActorPointsAndDistanceNew(
         distance2BetweenPoints(M, centerFloat)
     );
     // 构造垂面
-    const {circlePoints, circlePolys} = createCircleGeometry(tipPoint, 5, planeNormal)
+    const C = lineCrossPlane(endPoint, startPoint, planeNormal, tipPoint)
+    const {circlePoints, circlePolys} = createCircleGeometry(C, 4, planeNormal)
     return { linePointValues, distance, circlePoints, circlePolys };
 }
 

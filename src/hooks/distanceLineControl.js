@@ -251,6 +251,44 @@ function lineCrossPlane(
 
     return intersectionPoint;
 }
+
+/**
+ * @description: 求pointsData在xy方向上的bbox
+ * @param {*} pointsData
+ * @return {*}
+ * @author: ZhuYichen
+ */
+function findMinMax(pointsData) {
+    let minX = Infinity;
+    let minY = Infinity;
+    let minZ = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    let maxZ = -Infinity;
+    for (let i = 0; i < pointsData.length; i += 3) {
+        let x = pointsData[i];
+        let y = pointsData[i + 1];
+        let z = pointsData[i + 2];
+        minX = Math.min(minX, x);
+        minY = Math.min(minY, y);
+        minZ = Math.min(minZ, z);
+        maxX = Math.max(maxX, x);
+        maxY = Math.max(maxY, y);
+        maxZ = Math.max(maxZ, z);
+    }
+
+    return {
+        minX: minX,
+        minY: minY,
+        minZ: minZ,
+        maxX: maxX,
+        maxY: maxY,
+        maxZ: maxZ
+    };
+}
+
+
+
 /**
  *
  * @param center 托槽中心
@@ -314,20 +352,45 @@ function calculateLineActorPointsAndDistanceNew(
         (centerFloat[1] + M[1]) / 2 + 0.4 * upDirection[1],
         (centerFloat[2] + M[2]) / 2 + 0.4 * upDirection[2],
     ];
-    // 构造距离线，这里写两个M是因为之前由四个顶点构成，现在只需要三个点
-    const linePointValues = new Float32Array([
-        ...textPositionPoint, // 第0个点就是text的位置
-        ...M,
-        ...M,
-        ...centerFloat,
-        ...center,
-    ]);
+    
     const distance = Math.sqrt(
         distance2BetweenPoints(M, centerFloat)
     );
     // 构造垂面
-    const C = lineCrossPlane(endPoint, startPoint, planeNormal, tipPoint)
-    const {circlePoints, circlePolys} = createCircleGeometry(C, 4, planeNormal)
+    const {minX, minY, minZ, maxX, maxY, maxZ} = findMinMax(pointValues)
+    const yNormal = crossProduct(xNormal, zNormal)
+    const toothCenter1 = [
+        (minX+maxX)/2,
+        (minY+maxY)/2,
+        (minZ+maxZ)/2,
+    ]
+    var toothCenter2 = [
+        (minX+maxX)/2,
+        (minY+maxY)/2,
+        (minZ+maxZ)/2,
+    ]
+    // 由于牙弓的排布有不同的朝向，可能在xy平面也可能在xz平面，所以根据托槽的yNormal进行判断
+    // 该方法并不严谨，如果排布不在任何一个坐标平面上，包围盒的计算会有问题
+    // TODO: 修改为对pointsData进行旋转变换，再计算包围盒
+    if(Math.abs(yNormal[2])>0.5){
+        toothCenter2[2] += 1;
+    }else if(Math.abs(yNormal[1])>0.5){
+        toothCenter2[1] += 1;
+    }else if(Math.abs(yNormal[0])>0.5){
+        toothCenter2[0] += 1;
+    }
+    const radius = Math.max((maxX-minX)/2, (maxY-minY)/2)
+    const C = lineCrossPlane(toothCenter1, toothCenter2, planeNormal, tipPoint)
+    const {circlePoints, circlePolys} = createCircleGeometry(C, radius, planeNormal)
+
+    // 构造距离线
+    const linePointValues = new Float32Array([
+        ...textPositionPoint, // 第0个点就是text的位置
+        ...C,
+        ...M,
+        ...centerFloat,
+        ...center,
+    ]);
     return { linePointValues, distance, circlePoints, circlePolys };
 }
 

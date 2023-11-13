@@ -4,7 +4,7 @@
  * @Autor: ZhuYichen
  * @Date: 2022-09-27 11:03:07
  * @LastEditors: ZhuYichen
- * @LastEditTime: 2023-11-08 14:48:32
+ * @LastEditTime: 2023-11-08 15:43:52
  */
 module.exports = {
     lintOnSave: false, // 关闭语法检查

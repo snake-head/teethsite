@@ -494,6 +494,15 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
         }).then((resp) => {
             if(resp.data.data[0].webtheme==1){
                 store.dispatch("userHandleState/updateThemeType", "new");
+                const currentBaseUrl = process.env.BASE_URL;
+                const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
+                link.type = 'image/x-icon';
+                link.rel = 'icon';
+                link.href = currentBaseUrl + 'logo.ico';
+          
+                // 添加或更新<link>元素到<head>中
+                const head = document.head || document.getElementsByTagName('head')[0];
+                head.appendChild(link);
             }else{
                 store.dispatch("userHandleState/updateThemeType", "origin");
             }

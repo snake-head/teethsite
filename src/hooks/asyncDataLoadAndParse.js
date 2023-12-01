@@ -444,7 +444,8 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                     resp.data.data.userInfo.userId
                 );
 
-            } else {
+            }
+            if (authConfig.id){
                 // login/没有登录则是用token登录, 用户名在地址栏中
                 store.dispatch("userHandleState/updateUserId", authConfig.id);
             }
@@ -489,7 +490,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                 1
             ).replace(
                 "#index#",
-                1
+                0
             ),
         }).then((resp) => {
             if(resp.data.data[0].webtheme==1){
@@ -555,6 +556,16 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                             "userHandleState/updatePatientName",
                             matchPatientsInfo.name
                         );
+                        store.dispatch(
+                            "userHandleState/updatePatientBelongUserId",
+                            matchPatientsInfo.userId
+                        )
+                        // 备注后6位是订单id，只有VIPMMM001有
+                        store.dispatch(
+                            "userHandleState/updateOrderId",
+                            matchPatientsInfo.remarks.slice(-7, -1)
+                        );
+                        console.log(matchPatientsInfo.remarks.slice(-7, -1))
                         store.dispatch(
                             "userHandleState/updateDataCheckedState",
                             {

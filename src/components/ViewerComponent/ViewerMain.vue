@@ -2080,6 +2080,10 @@ function uploadDataOnline(uploadStateMessage, submit = false) {
 					teethType: "lower",
 					value: 0,
 				});
+				store.dispatch("userHandleState/updateSetDataCheckableFlag", {
+					teethType: teethType,
+					value: true,
+				});
 				if (submit) {
 					// 成功保存后进行数据递交
 					checkDataOnline();
@@ -2184,8 +2188,43 @@ function checkDataOnline() {
 		);
 	});
 }
+const setDataCheckableFlag = computed(() => store.state.userHandleState.setDataCheckableFlag);
 
+// 保存，需要发送upload
+watch(setDataCheckableFlag, (newVal)=>{
+	if(newVal.upper&&newVal.lower){
+		// 修改方案是否已确认的标志位
+		setDataCheckable()
+		// 通知后台发送方案上传请求
+		sendPostRequest('upload')
+		store.dispatch("userHandleState/updateSetDataCheckableFlag", {
+			teethType: 'upper',
+			value: false,
+		});
+		store.dispatch("userHandleState/updateSetDataCheckableFlag", {
+			teethType: 'lower',
+			value: false,
+		});
+	}
+}, { deep: true })
+
+const isDataChecked = computed(() => store.state.userHandleState.isDataChecked);
+
+
+watch(isDataChecked, (newVal)=>{
+	// 递交，需要发送audit(存在一个问题，如果数据已被递交然后刷新页面，也会触发这个监视)
+	if(newVal.upper&&newVal.lower){
+		sendPostRequest('audit')
+	}
+	// 撤回，需要发送audit
+	if(!newVal.upper&&!newVal.lower){
+		sendPostRequest('audit')
+	}
+}, { deep: true })
 const isAnyDataCheckable = computed(() => store.getters["userHandleState/isAnyDataCheckable"]); 
+const userId = computed(() => store.state.userHandleState.userId);
+const orderId = computed(() => store.state.userHandleState.orderId);
+const patientBelongUserId = computed(() => store.state.userHandleState.patientBelongUserId);
 
 /**
  * @description: 2023.9.7更新：给管理员用户提供的功能，表明方案是不是已经确认完成。
@@ -2216,6 +2255,77 @@ function setDataCheckable(){
 			}
 		);
 	});
+	// 2023.11.13更新：如果方案已确认，还需要给舒雅发个通知；
+	// 该功能目前只对ID为VIPMMM001的用户有效
+	// if(patientBelongUserId.value == 'vipmmm001'){
+	// 	if(flag){
+	// 		sendRequestWithToken({
+	// 			method: "POST",
+	// 			url: window.linkConfig.suyaUploadDesignApi,
+	// 			data: {
+	// 				patientId: patientUID.value,
+	// 				orderId: orderId.value,
+	// 			},
+	// 		}).then(
+	// 			(res) => {
+	// 				console.log(res)
+	// 			},
+	// 			(error) => {
+	// 				console.log(error)
+	// 			}
+	// 		);
+	// 	}
+	// }
+}
+
+/**
+ * @description: 通知后端发送方案上传/医生方案审核请求
+ * @param {*} requestType 如果是upload，则说明点击的是保存，后端发送方案上传请求；如果是audit，则说明点击递交，后端发送医生方案审核通知请求
+ * @return {*}
+ * @author: ZhuYichen
+ */
+function sendPostRequest(requestType){
+	sendRequestWithToken({
+			method: "POST",
+			url: window.linkConfig.sendPostRequestApi,
+			data: {
+				patientUid: patientUID.value,
+				requestType: requestType,
+			},
+		}).then(
+			(res) => {
+				console.log(res)
+			},
+			(error) => {
+				console.log(error)
+			}
+		);
+}
+
+/**
+ * @description: 递交时，需要调舒雅的api，发送医生方案审核通知
+ * @return {*}
+ * @author: ZhuYichen
+ */
+function suyaDoctorAudit(){
+	const flag = isAnyDataCheckable.value
+	if(patientBelongUserId.value == 'vipmmm001'){
+		sendRequestWithToken({
+			method: "POST",
+			url: window.linkConfig.suyaDoctorAuditApi,
+			data: {
+				patientId: patientUID.value,
+				auditStatus: flag,
+			},
+		}).then(
+			(res) => {
+				console.log(res)
+			},
+			(error) => {
+				console.log(error)
+			}
+		);
+	}
 }
 /**
  * @description 在提交数据后, 用当前微调位置覆盖原始微调位置
@@ -2944,6 +3054,7 @@ defineExpose({
 	uploadDataOnline,
 	rollbackCheckedData,
 	setDataCheckable,
+	suyaDoctorAudit,
 });
 </script>
 

@@ -1,3 +1,11 @@
+/*
+ * @Description: 
+ * @Version: 1.0
+ * @Autor: ZhuYichen
+ * @Date: 2022-09-27 11:03:06
+ * @LastEditors: ZhuYichen
+ * @LastEditTime: 2023-11-23 16:49:50
+ */
 window.linkConfig = {
     login: '/api/v2/login/',
     // login: '/teethAPI2.0d/api/login',
@@ -36,6 +44,12 @@ window.linkConfig = {
 
     rollbackDataApi: '/api/v2/data/ModelStateRollBackServlet/',
 
-    userInfoQueryApi: '/api/v2/data/UserInfos/?byUserId=#param_userID#&count=#user_count#&index=#index#',
+    sendPostRequestApi: '/api/v2/data/SendPostRequest/',
 
+    userInfoQueryApi: '/api/v2/data/UserInfos/?UserId=#param_userID#&count=#user_count#&index=#index#',
+
+    // 舒雅API
+    suyaUploadDesignApi: 'http://suyastar-admin-api.hansfive.com/bracket-order/yy/upload-design/',
+    // suyaUploadDesignApi: 'http://api5.icloudent.com/bracket-order/yy/upload-design/'
+    suyaDoctorAuditApi: 'http://suyastar-admin-api.hansfive.com/bracket-order/yy/doctor-audit/',
 }

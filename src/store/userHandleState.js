@@ -5,6 +5,9 @@ export default {
 		updatePatientName(context, value) {
 			context.commit("UpdatePatientName", value);
 		},
+		updateOrderId(context, value) {
+			context.commit("UpdateOrderId", value);
+		},
 		updateDataCheckedState(context, value) {
 			context.commit("UpdateDataCheckedState", value);
 		},
@@ -19,6 +22,12 @@ export default {
 		},
 		updateUserId(context, value) {
 			context.commit("UpdateUserId", value);
+		},
+		updatePatientBelongUserId(context, value) {
+			context.commit("UpdatePatientBelongUserId", value);
+		},
+		updateSetDataCheckableFlag(context, value) {
+			context.commit("UpdateSetDataCheckableFlag", value);
 		},
 		updateLoadedTeethType(context, value) {
 			context.commit("UpdateLoadedTeethType", value);
@@ -43,6 +52,9 @@ export default {
 		UpdatePatientName(state, value) {
 			state.patientName = value;
 		},
+		UpdateOrderId(state, value) {
+			state.orderId = value;
+		},
 		UpdateDataCheckedState(state, value) {
 			state.isDataChecked[value.teethType] = value.value;
 		},
@@ -57,6 +69,12 @@ export default {
 		},
 		UpdateUserId(state, value) {
 			state.userId = value;
+		},
+		UpdatePatientBelongUserId(state, value) {
+			state.patientBelongUserId = value;
+		},
+		UpdateSetDataCheckableFlag(state, value) {
+			state.setDataCheckableFlag[value.teethType] = value.value;
 		},
 		UpdateLoadedTeethType(state, value) {
 			state.loadedTeethType[value.teethType] = value.value;
@@ -94,8 +112,14 @@ export default {
 		// 页面加载时会读取的各种病例信息
 		userType: "NORMAL", // 用户权限
 		userId: "", // 用户Id, 在提交数据时使用
+		patientBelongUserId: "", //当前病例属于哪个用户Id
 		themeType: "origin", // 主题类型
 		patientName: "-------", // 病人姓名
+		orderId: "", //舒雅订单id，目前只有VIPMMM001账号有
+		setDataCheckableFlag: {
+			upper: false,
+			lower: false,
+		},
 		isDataChecked: {
 			upper: false,
 			lower: false,

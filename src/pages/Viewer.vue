@@ -248,7 +248,7 @@
 										<input type="checkbox" :checked="isAnyDataCheckable" class="model-save-checkbox"/>
 										<span>方案已确认</span>
 									</div>
-									<div class="title clickable" @click="newDataSaveWithCheckable()">
+									<div class="title clickable" @click="dialog.changeDialogShowState('dataSave', true)">
 										<div class="bg model-save-online-icon asidemenu-icon" />
 										<span>方案在线保存</span>
 									</div>
@@ -806,7 +806,15 @@ function uploadDataOnline(submit = false) {
 		});
 		return;
 	}
+	// 保存数据请求
 	viewerMain.value.uploadDataOnline(uploadStateMessage, submit);
+	// 方案确认状态修改请求
+	// 2023.11.21更新：修改为上下颌都成功保存后再调用
+	// viewerMain.value.setDataCheckable()
+	// 如果是递交，调用舒雅医生方案审核通知接口
+	// if (submit){
+	// 	viewerMain.value.suyaDoctorAudit()
+	// }
 }
 
 function changeBracketArchShowState() {
@@ -922,16 +930,6 @@ function toggleDataSaveCheckbox(){
 			value: flag,
 		});
 	}
-}
-
-/**
- * @description: 2023.9.8更新：点击保存时需要发送两个请求，一个是保存数据，一个是修改是否确认的标志位
- * @return {*}
- * @author: ZhuYichen
- */
-function newDataSaveWithCheckable(){
-	dialog.value.changeDialogShowState('dataSave', true)
-	viewerMain.value.setDataCheckable()
 }
 
 </script>

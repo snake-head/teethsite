@@ -11,6 +11,7 @@ import {
 import vtkCutter from "@kitware/vtk.js/Filters/Core/Cutter";
 import vtkPlane from "@kitware/vtk.js/Common/DataModel/Plane";
 import vtkCylinderSource from "@kitware/vtk.js/Filters/Sources/CylinderSource";
+import vtkPlaneSource from "@kitware/vtk.js/Filters/Sources/PlaneSource";
 
 
 import { bracketNameList } from "../static_config";
@@ -215,6 +216,58 @@ function createCircleGeometry(center, radius, direction) {
   }
 
 /**
+ * @description: 借助vtkPlaneSource构造一个矩形面
+ * @param {*} center
+ * @param {*} width
+ * @param {*} height
+ * @param {*} direction
+ * @return {*}
+ * @author: ZhuYichen
+ */
+function createRectangleGeometry(center, width, height, planeXDirection, planeYDirection) {
+    normalize(planeXDirection)
+    normalize(planeYDirection)
+    const halfWidth = width / 2;
+    const halfHeight = height / 2;
+    
+    // 计算矩形的四个顶点坐标
+    const topLeft = [
+      center[0] - halfWidth * planeXDirection[0] + halfHeight * planeYDirection[0],
+      center[1] - halfWidth * planeXDirection[1] + halfHeight * planeYDirection[1],
+      center[2] - halfWidth * planeXDirection[2] + halfHeight * planeYDirection[2],
+    ];
+    
+    const topRight = [
+        center[0] + halfWidth * planeXDirection[0] + halfHeight * planeYDirection[0],
+        center[1] + halfWidth * planeXDirection[1] + halfHeight * planeYDirection[1],
+        center[2] + halfWidth * planeXDirection[2] + halfHeight * planeYDirection[2],
+    ];
+    
+    const bottomLeft = [
+        center[0] - halfWidth * planeXDirection[0] - halfHeight * planeYDirection[0],
+        center[1] - halfWidth * planeXDirection[1] - halfHeight * planeYDirection[1],
+        center[2] - halfWidth * planeXDirection[2] - halfHeight * planeYDirection[2],
+    ];
+    
+    const bottomRight = [
+        center[0] + halfWidth * planeXDirection[0] - halfHeight * planeYDirection[0],
+        center[1] + halfWidth * planeXDirection[1] - halfHeight * planeYDirection[1],
+        center[2] + halfWidth * planeXDirection[2] - halfHeight * planeYDirection[2],
+    ];
+    console.log(topLeft, topRight, bottomLeft, bottomRight)
+
+    // 创建矩形的点数据
+    const circlePoints = new Float32Array([
+      ...topLeft, ...topRight, ...bottomLeft, ...bottomRight,
+    ]);
+
+    // 创建矩形的多边形数据
+    const circlePolys = new Uint32Array([4, 0, 1, 3, 2]);
+  
+    return { circlePoints, circlePolys };
+}
+
+/**
  * @description: 求直线AB与平面的交点C
  * @param pointA 直线上一点A
  * @param pointB 直线上一点B
@@ -287,7 +340,40 @@ function findMinMax(pointsData) {
     };
 }
 
+/**
+ * @description: 计算最远的牙齿点时，只取牙齿的前半部分，该函数用于过滤所有在牙齿center后方的点
+ * @param {*} pointValues 原始的牙齿点
+ * @param {*} center 牙齿质心
+ * @param {*} normal 沿zNormal方向计算
+ * @return {*} 新的牙齿点
+ * @author: ZhuYichen
+ */
+function filterPoints(pointValues, center, normal) {
+    // 存储大于0的点
+    const newPointValues = [];
+  
+    // 遍历输入的点坐标
+    for (let i = 0; i < pointValues.length; i += 3) {
+      const x = pointValues[i];
+      const y = pointValues[i + 1];
+      const z = pointValues[i + 2];
+  
+      // 计算向量从center到当前点的坐标
+      const vector = [x - center[0], y - center[1], z - center[2]];
+  
+      // 计算点乘结果
+      const dotProduct = vector[0] * normal[0] + vector[1] * normal[1] + vector[2] * normal[2];
+  
+      // 如果点乘结果大于0，则将当前点添加到结果数组中
+      if (dotProduct > 0) {
+        newPointValues.push(x, y, z);
+      }
+    }
+  
+    return newPointValues;
+  }
 
+  
 
 /**
  *
@@ -317,13 +403,6 @@ function calculateLineActorPointsAndDistanceNew(
         center[2] + floatDist * zNormal[2],
     ];
     // 以下是更新的代码
-    // 将所有牙齿所有的点投影到startpoint->endpoint这条线上
-    // 尖端=距离endpoint最远的投影点
-    const SE = [
-        endPoint[0] - startPoint[0],
-        endPoint[1] - startPoint[1],
-        endPoint[2] - startPoint[2],
-    ]
     // 由于距离线要求与zNormal垂直，但垂面的方向需要由SE方向决定
     // 所以首先将S和E都投影到以z为法向量过centerFloat的平面上
     const S2 = projectPointToPlane(startPoint, centerFloat, zNormal)
@@ -334,8 +413,35 @@ function calculateLineActorPointsAndDistanceNew(
         E2[1] - S2[1],
         E2[2] - S2[2],
     ]
-
-    const tipPoint = findMaxDistancePoint(pointValues, S2, E2)
+    // 计算牙齿的边界框
+    const {minX, minY, minZ, maxX, maxY, maxZ} = findMinMax(pointValues)
+    // 计算托槽y方向的向量
+    const yNormal = crossProduct(xNormal, zNormal)
+    // 计算牙齿中心
+    const toothCenter1 = [
+        (minX+maxX)/2,
+        (minY+maxY)/2,
+        (minZ+maxZ)/2,
+    ]
+    // 只保留在zNormal方向上，位于牙齿中心前方的点
+    const newPointValues = filterPoints(pointValues, toothCenter1, zNormal)
+    // 计算牙齿前半部分的边界框
+    const {
+        minX: frontMinX, 
+        minY: frontMinY, 
+        minZ: frontMinZ, 
+        maxX: frontMaxX, 
+        maxY: frontMaxY, 
+        maxZ: frontMaxZ
+    } = findMinMax(newPointValues)
+    // 计算前半部分牙齿中心
+    const frontToothCenter1 = [
+        (frontMinX+frontMaxX)/2,
+        (frontMinY+frontMaxY)/2,
+        (frontMinZ+frontMaxZ)/2,
+    ]
+    // 找到S2E2方向上，最远的牙齿点。由此可得垂面的法向量是planeNormal，过tipPoint点。
+    const tipPoint = findMaxDistancePoint(newPointValues, S2, E2)
 
     // 将centerFloat投影到垂面上，得到M点
     normalize(planeNormal)
@@ -357,31 +463,35 @@ function calculateLineActorPointsAndDistanceNew(
         distance2BetweenPoints(M, centerFloat)
     );
     // 构造垂面
-    const {minX, minY, minZ, maxX, maxY, maxZ} = findMinMax(pointValues)
-    const yNormal = crossProduct(xNormal, zNormal)
-    const toothCenter1 = [
-        (minX+maxX)/2,
-        (minY+maxY)/2,
-        (minZ+maxZ)/2,
+    // 前面已经确定了垂面的法向量和平面上的一点，但由于要求垂面是一个圆面
+    // 现在还需要确定圆的半径和圆心
+    // 圆心要求邻近牙齿中心，因此构造一个center2，是中心沿垂面法向量移动1个单位距离的点
+    var frontToothCenter2 = [
+        (frontMinX+frontMaxX)/2+planeNormal[0],
+        (frontMinY+frontMaxY)/2+planeNormal[1],
+        (frontMinZ+frontMaxZ)/2+planeNormal[2],
     ]
-    var toothCenter2 = [
-        (minX+maxX)/2,
-        (minY+maxY)/2,
-        (minZ+maxZ)/2,
+    // if(Math.abs(yNormal[2])>0.5){
+    //     toothCenter2[2] += 1;
+    // }else if(Math.abs(yNormal[1])>0.5){
+    //     toothCenter2[1] += 1;
+    // }else if(Math.abs(yNormal[0])>0.5){
+    //     toothCenter2[0] += 1;
+    // }
+    // 半径设为边界框的一半
+    const width = frontMaxX-frontMinX
+    const height = frontMaxY-frontMinY
+    // 计算center1->center2与垂面的交点，以此作为圆心
+    const C = lineCrossPlane(frontToothCenter1, frontToothCenter2, planeNormal, tipPoint)
+    const planeYDirection = [
+        M[0]-C[0],
+        M[1]-C[1],
+        M[2]-C[2],
     ]
-    // 由于牙弓的排布有不同的朝向，可能在xy平面也可能在xz平面，所以根据托槽的yNormal进行判断
-    // 该方法并不严谨，如果排布不在任何一个坐标平面上，包围盒的计算会有问题
-    // TODO: 修改为对pointsData进行旋转变换，再计算包围盒
-    if(Math.abs(yNormal[2])>0.5){
-        toothCenter2[2] += 1;
-    }else if(Math.abs(yNormal[1])>0.5){
-        toothCenter2[1] += 1;
-    }else if(Math.abs(yNormal[0])>0.5){
-        toothCenter2[0] += 1;
-    }
-    const radius = Math.max((maxX-minX)/2, (maxY-minY)/2)
-    const C = lineCrossPlane(toothCenter1, toothCenter2, planeNormal, tipPoint)
-    const {circlePoints, circlePolys} = createCircleGeometry(C, radius, planeNormal)
+    normalize(planeYDirection)
+    normalize(planeNormal)
+    const planeXDirection = crossProduct(planeYDirection, planeNormal)
+    const {circlePoints, circlePolys} = createRectangleGeometry(C, 8, 4, planeXDirection, planeYDirection)
 
     // 构造距离线
     const linePointValues = new Float32Array([

@@ -145,6 +145,7 @@ export default function(allActorList,toothPolyDatas,bracketData) {
       
         Object.entries(toothPolyDatas).forEach(([toothName, toothPolyData]) => {
           if (toothName[0].toLowerCase() === teethType[0]) {
+        //   if (toothName === 'UR3') {
             let writer = XML.vtkXMLPolyDataWriter.newInstance();
             let polyDataAsString = writer.write(toothPolyData);
             const { rootRep } = allActorList[teethType].root.filter(

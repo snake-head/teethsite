@@ -572,8 +572,8 @@ const isArrangeConditionSatisfy = computed(() => store.getters["userHandleState/
 let arrangeMessage = computed(() => {
 	// 排牙条件: 托槽总数多于5个 && 托槽左边右边至少各有1个 && 2对s
 	return {
-		upper: isArrangeConditionSatisfy.value.upper ? "" : "注：上颌牙托槽不满足排牙条件，不会进行排牙",
-		lower: isArrangeConditionSatisfy.value.lower ? "" : "注：下颌牙托槽不满足排牙条件，不会进行排牙",
+		upper: isArrangeConditionSatisfy.value.upper ? "" : "注：上颌牙托槽不满足排牙条件",
+		lower: isArrangeConditionSatisfy.value.lower ? "" : "注：下颌牙托槽不满足排牙条件",
 	};
 });
 const isBracketDataMatchTeethType = computed(() => store.getters["userHandleState/isBracketDataMatchTeethType"]);

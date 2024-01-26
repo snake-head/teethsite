@@ -489,8 +489,9 @@ $btn-height: 30px;
 					height: auto;
 					line-height: $item-line-height / 2;
 					font-size: 12px;
+					font-weight: 800;
 					transition: $trans-time;
-					color: #a8a8a8;
+					color: #000000;
 					&:hover {
 						background-color: rgb(80, 87, 95);
 					}

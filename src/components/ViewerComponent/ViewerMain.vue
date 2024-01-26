@@ -2,7 +2,7 @@
 	<div :class="themeType">
 		<div class="right-side-menu" :class="showRightSidemenu ? 'show' : 'hide'">
 			<el-tabs class="demo-tabs" v-model="activeTable" type="card">
-				<el-tab-pane class="demo-tab-pane" label="距离" name="distance">
+				<el-tab-pane class="demo-tab-pane" label="垂直向高度(mm)" name="distance">
 					<div class="distance-table">
 						<div class="dt-col" v-for="(itemList, index) in distanceMessageList" :key="index">
 							<div
@@ -15,7 +15,7 @@
 									<span>{{ item.name }}</span>
 								</div>
 								<div class="dt-dist-box">
-									<span>{{ item.distance ? item.distance.toFixed(2) : "-" }}</span>
+									<span>{{ item.distance ? item.distance.toFixed(1) : "-" }}</span>
 								</div>
 							</div>
 						</div>

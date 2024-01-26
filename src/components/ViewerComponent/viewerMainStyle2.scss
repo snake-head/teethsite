@@ -34,8 +34,9 @@ $table-height: 300px;
 			text-align: center;
 			justify-content: center;
 			align-items: center;
-			display: flex;
+			display: inline-flex;
 			border: none;
+			// width: 120px;
 		}
 
 		.el-tabs__item.is-top.is-active {

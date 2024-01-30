@@ -26,10 +26,10 @@ export default function(allActorList,toothPolyDatas,bracketData) {
      * @return {*}
      * @author: ZhuYichen
      */
-    function generateRootDirection(){
+    function generateRootDirection(teethRootObj){
         for(let teethType of ["upper", "lower"]){
             if(!allActorList[teethType].root.length){
-                handleRootActorDatas(teethType)
+                handleRootActorDatas(teethType, teethRootObj[teethType])
             }
         }
     }
@@ -38,40 +38,51 @@ export default function(allActorList,toothPolyDatas,bracketData) {
      * @description 根据给出数据构造牙根方向
      * @param teethType upper | lower
      */
-    function handleRootActorDatas(teethType) {
+    function handleRootActorDatas(teethType, teethRootData) {
         for(let toothName in toothPolyDatas){
             if(toothName[0].toLowerCase()==teethType[0]){
-                var upNormal = [];
-                // 使用托槽z轴方向作为牙根方向
-                bracketData[teethType].forEach((bracket)=>{
-                    if(bracket.name==toothName){
-                        upNormal = [...bracket.direction.left]
-                    }
-                })
-                const bounds = toothPolyDatas[toothName].getBounds()
-                const rootTopPoint = [
-                    (bounds[0]+bounds[1])/2,
-                    (bounds[2]+bounds[3])/2,
-                    (bounds[4]+bounds[5])/2,
-                ] //牙根底部点坐标
-                // const upNormal = []
-                // subtract(longAxisData[toothName].endPoint,longAxisData[toothName].startPoint,upNormal)
-                // normalize(upNormal)
-                const rootBottomPoint = [] //牙根顶部点坐标
-                add(rootTopPoint, multiplyScalar(upNormal, 7), rootBottomPoint)
-                const rootRadius = Math.min(bounds[1]-bounds[0],bounds[3]-bounds[2])/4
-                const radiusNormal = [] //半径方向
-                cross(upNormal, [0,1,0], radiusNormal)
-                normalize(radiusNormal)
-                const rootRadiusNormal = [] //牙根半径点坐标
-                add(rootBottomPoint, multiplyScalar(radiusNormal, rootRadius), rootRadiusNormal)
-
+                var rootTopPoint;
+                var rootBottomPoint;
+                var rootRadiusPoint;
+                if(teethRootData.length>0){
+                    const curRootData = teethRootData.filter(obj => obj.toothName[0] === toothName)[0];
+                    rootTopPoint = curRootData.topSphereCenter[0].split(",").map(part => parseFloat(part))
+                    rootBottomPoint = curRootData.bottomSphereCenter[0].split(",").map(part => parseFloat(part))
+                    rootRadiusPoint = curRootData.radiusSphereCenter[0].split(",").map(part => parseFloat(part))
+                }else{
+                    var upNormal = [];
+                    // 使用托槽z轴方向作为牙根方向
+                    bracketData[teethType].forEach((bracket)=>{
+                        if(bracket.name==toothName){
+                            upNormal = [...bracket.direction.left]
+                        }
+                    })
+                    const bounds = toothPolyDatas[toothName].getBounds()
+                    rootTopPoint = [
+                        (bounds[0]+bounds[1])/2,
+                        (bounds[2]+bounds[3])/2,
+                        (bounds[4]+bounds[5])/2,
+                    ] //牙根底部点坐标
+                    // const upNormal = []
+                    // subtract(longAxisData[toothName].endPoint,longAxisData[toothName].startPoint,upNormal)
+                    // normalize(upNormal)
+                    rootBottomPoint = [] //牙根顶部点坐标
+                    add(rootTopPoint, multiplyScalar(upNormal, 7), rootBottomPoint)
+                    const rootRadius = Math.min(bounds[1]-bounds[0],bounds[3]-bounds[2])/4
+                    const radiusNormal = [] //半径方向
+                    cross(upNormal, [0,1,0], radiusNormal)
+                    normalize(radiusNormal)
+                    rootRadiusPoint = [] //牙根半径点坐标
+                    add(rootBottomPoint, multiplyScalar(radiusNormal, rootRadius), rootRadiusPoint)
+                }
+                
                 //制造牙根底部、牙根顶部、牙根半径三个小球
                 const rootRep = vtkRootHandleRepresentation.newInstance({
                     rootInitValue: {
                         bottomSphereCenter: rootBottomPoint,
                         topSphereCenter: rootTopPoint,
-                        radiusSphereCenter: rootRadiusNormal,                },
+                        radiusSphereCenter: rootRadiusPoint
+                    },
                 });
                 const rootWidget = rootHandleWidget.newInstance({
                     allowHandleResize: 1,
@@ -87,6 +98,8 @@ export default function(allActorList,toothPolyDatas,bracketData) {
     }
 
     const dentalArchAdjustType = computed(() => store.state.actorHandleState.teethArrange.dentalArchAdjustRecord.teethType);
+    const generateRootRecord = computed(() => store.state.actorHandleState.generateRootRecord);
+
     /**
      * @description: 
      * @param {*} mode 操作
@@ -100,7 +113,9 @@ export default function(allActorList,toothPolyDatas,bracketData) {
             case "enter": {
                 allActorList[selectedTeethType].root.forEach(({ rootWidget }) => {
                     rootWidget.setInteractor(vtkContext.renderWindow.getInteractor());
-                    rootWidget.setEnabled(true);
+                    if(!generateRootRecord.value[selectedTeethType]){
+                        rootWidget.setEnabled(true);
+                    }
                 });
                 break;
             }
@@ -115,7 +130,9 @@ export default function(allActorList,toothPolyDatas,bracketData) {
                     if (teethType === selectedTeethType) {
                         allActorList[teethType].root.forEach(({ rootWidget }) => {
                             rootWidget.setInteractor(vtkContext.renderWindow.getInteractor());
-                            rootWidget.setEnabled(true);
+                            if(!generateRootRecord.value[teethType]){
+                                rootWidget.setEnabled(true);
+                            }
                         });
                     } else {
                         allActorList[teethType].root.forEach(({ rootWidget }) => {
@@ -145,7 +162,7 @@ export default function(allActorList,toothPolyDatas,bracketData) {
       
         Object.entries(toothPolyDatas).forEach(([toothName, toothPolyData]) => {
           if (toothName[0].toLowerCase() === teethType[0]) {
-        //   if (toothName === 'UR3') {
+        //   if (toothName === 'LR6') {
             let writer = XML.vtkXMLPolyDataWriter.newInstance();
             let polyDataAsString = writer.write(toothPolyData);
             const { rootRep } = allActorList[teethType].root.filter(
@@ -185,6 +202,7 @@ export default function(allActorList,toothPolyDatas,bracketData) {
                     const mapper = vtkMapper.newInstance();
                     mapper.setInputData(polyData);
                     const actor = vtkActor.newInstance();
+                    actor.getProperty().setColor([1, 0.73, 0.73]);
                     actor.setMapper(mapper);
                     rootList.push({ name: toothName, actor, mapper });
 
@@ -196,6 +214,7 @@ export default function(allActorList,toothPolyDatas,bracketData) {
                     originMapper.setInputData(originPolyData);
                     const originActor = vtkActor.newInstance();
                     originActor.setMapper(originMapper);
+                    originActor.getProperty().setColor([1, 0.73, 0.73]);
                     originRootList.push({ name: toothName, actor: originActor, mapper: originMapper });
                     resolve(); // 请求成功，resolve
                 })
@@ -207,6 +226,7 @@ export default function(allActorList,toothPolyDatas,bracketData) {
       
             promises.push(promise); // 将每个请求的 Promise 对象添加到数组中
           }
+        // }
         });
       
         await Promise.all(promises); // 等待所有请求完成

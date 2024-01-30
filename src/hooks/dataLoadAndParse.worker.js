@@ -1213,7 +1213,7 @@ function parseCADO() {
                         retData.toNext = true;
                         retData.stlObj = stepConfig.stlObj;
                         retData.xmlObj = stepConfig.xmlObj;
-                        // console.log(JSON.stringify(retData.xmlObj))
+                        // console.log(JSON.stringify(retData.xmlObj.teethRootData))
                         retData.arrangeData = parseArrangeData(retData.xmlObj);
                         // retData.rotateSetting = generateTeethRotateSetting(stepConfig.xmlObj)
                         self.postMessage({ ...retData, ...stepConfig.state });

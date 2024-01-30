@@ -340,7 +340,7 @@ export default function(allActorList) {
                 // 下颌牙
                 gingiva: lower && teethWithGingiva !== 1, // 牙龈
                 tooth: lower && teethWithGingiva !== 2, // 牙齿
-                rootGenerate: upper && teethWithGingiva !== 2, // 牙根
+                rootGenerate: lower && teethWithGingiva !== 2, // 牙根
                 bracket: lower && arch % 2 === 0, // 托槽
                 axis: lower && axis, // 坐标轴
                 arch: lower && arch <= 1, // 牙弓线

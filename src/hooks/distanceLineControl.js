@@ -254,7 +254,6 @@ function createRectangleGeometry(center, width, height, planeXDirection, planeYD
         center[1] + halfWidth * planeXDirection[1] - halfHeight * planeYDirection[1],
         center[2] + halfWidth * planeXDirection[2] - halfHeight * planeYDirection[2],
     ];
-    console.log(topLeft, topRight, bottomLeft, bottomRight)
 
     // 创建矩形的点数据
     const circlePoints = new Float32Array([

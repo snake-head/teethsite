@@ -292,7 +292,11 @@ watch(currentShowPanel, (newVal, oldVal) => {
 	}
 	// 从[工具菜单]进入[虚拟牙根]
 	if (oldVal === -1 && newVal === 2) {
-		generateRootDirection();
+		const teethRootObj = {
+			'upper': xmlObj.upper.teethRootData,
+			'lower': xmlObj.lower.teethRootData,
+		}
+		generateRootDirection(teethRootObj);
 		adjustRootWidgetInScene("enter",vtkContext);
 		setGingivaOpacity(0.5);
 	}
@@ -979,6 +983,9 @@ watch(generateRootRecord,(newValue, oldValue) => {
 					allActorList[teethType].rootGenerate.forEach(({actor})=>{
 						renderer.addActor(actor)
 					})
+					allActorList[teethType].root.forEach(({ rootWidget }) => {
+						rootWidget.setEnabled(false);
+					});
 					renderWindow.render()
 					elMessage.close()
 				})
@@ -993,6 +1000,9 @@ watch(generateRootRecord,(newValue, oldValue) => {
 			allActorList[teethType].rootGenerate.forEach(({actor})=>{
 				renderer.removeActor(actor)
 			})
+			allActorList[teethType].root.forEach(({ rootWidget }) => {
+				rootWidget.setEnabled(true);
+			});
 			renderWindow.render()
 		}
 	}
@@ -2349,6 +2359,15 @@ function uploadDataOnline(uploadStateMessage, submit = false) {
 			},
 			teethAxisFinetuneRecord: teethAxisFinetuneRecord[teethType], // 初始的牙齿坐标系 + 后续的咬合调整构成最终矩阵
 			dentalArchAdjustRecord: dentalArchAdjustRecord[teethType].resetCenters,
+			teethRootData: allActorList[teethType].root.map((item) => {
+				const { toothName, rootRep } = item;
+				return {
+					toothName,
+					bottomSphereCenter: rootRep.getCenters()[0],
+					topSphereCenter: rootRep.getCenters()[1],
+					radiusSphereCenter: rootRep.getCenters()[2],
+				};
+			}),
 		};
 		uploadCurrentData(
 			toRaw(stlObj.teeth[teethType]),
@@ -2384,7 +2403,8 @@ function uploadDataOnline(uploadStateMessage, submit = false) {
 					});
 				}
 			},
-			() => {
+			(e) => {
+				console.log(e)
 				uploadStateMessage[teethType].failed(); // 显示失败信息弹窗
 				store.dispatch("userHandleState/updateUploadingProgress", {
 					teethType: "upper",

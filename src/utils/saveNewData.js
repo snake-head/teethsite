@@ -23,6 +23,7 @@ function parseAndMountToData(xmlData, dataToMount) {
 		teethArrangeData,
 		teethAxisFinetuneRecord,
 		dentalArchAdjustRecord,
+		teethRootData,
 	} = dataToMount;
 	// 根据新托槽信息更新xml数据
 	xmlData.ProcessState[0].$.collisionState = 1 //只要上传就已经是经过碰撞检测，collisionState置1
@@ -171,6 +172,19 @@ function parseAndMountToData(xmlData, dataToMount) {
 					[...center, ...invMatrix].map((val, indexT) => [`transform${indexT}`, val.toString()])
 				),
 			};
+		});
+	}
+
+	// 存牙根方向数据
+	if (teethRootData && Object.keys(teethRootData).length > 0) {
+		xmlData.teethRootData = [];
+		teethRootData.forEach(({ toothName, bottomSphereCenter, topSphereCenter, radiusSphereCenter }, index) => {
+			xmlData.teethRootData.push({
+				toothName,
+				bottomSphereCenter: bottomSphereCenter.toString(),
+				topSphereCenter: topSphereCenter.toString(),
+				radiusSphereCenter: radiusSphereCenter.toString(),
+			})
 		});
 	}
 

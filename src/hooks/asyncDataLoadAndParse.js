@@ -565,7 +565,6 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                             "userHandleState/updateOrderId",
                             matchPatientsInfo.remarks.slice(-7, -1)
                         );
-                        console.log(matchPatientsInfo.remarks.slice(-7, -1))
                         store.dispatch(
                             "userHandleState/updateDataCheckedState",
                             {

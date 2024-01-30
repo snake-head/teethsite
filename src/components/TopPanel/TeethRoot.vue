@@ -4,7 +4,7 @@
  * @Autor: ZhuYichen
  * @Date: 2023-05-16 15:39:32
  * @LastEditors: ZhuYichen
- * @LastEditTime: 2023-10-23 16:37:37
+ * @LastEditTime: 2024-01-29 16:56:41
 -->
 <template>
 	<div class="main-block panel" :class="{ show: isShow }">
@@ -65,15 +65,15 @@
 				<div class="half clear-fix">
 					<button
 						class="handle-btn teeth-type-button"
-						:class="{ disabled: !canUserSaveAdjustRecord }"
-						@click="saveTeethRootRecord()"
+						:class="{ disabled: false }"
+						@click="resetTeethRootParams()"
 					>
-						保存
+						重置
 					</button>
 				</div>
 				<div class="half clear-fix">
 					<button class="handle-btn teeth-type-button" @click="resetTeethRoot()">
-						重置
+						取消
 					</button>
 				</div>
 			</div>
@@ -119,6 +119,11 @@ function updateDentalArchAdjustType(value) {
 	});
 }
 
+/**
+ * @description: 取消生成的牙根，回到调整方向的状态
+ * @return {*}
+ * @author: ZhuYichen
+ */
 function resetTeethRoot() {
 	if(dentalArchAdjustType.value=='upper'){
 		store.dispatch("actorHandleState/updateGenerateRootRecord", {
@@ -146,9 +151,14 @@ function generateTeethRoot() {
 
 const canUserSaveAdjustRecord = computed(() => store.getters["actorHandleState/canUserSaveAdjustRecord"]);
 
-function saveTeethRootRecord() {
+/**
+ * @description: 重置牙根方向参数
+ * @return {*}
+ * @author: ZhuYichen
+ */
+function resetTeethRootParams() {
 	// 保存参数, 覆盖牙弓线和bracketMatrix
-	store.dispatch("actorHandleState/saveDentalArchAdjustRecord");
+	console.log('重置牙根方向')
 }
 
 </script>

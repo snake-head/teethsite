@@ -292,11 +292,11 @@ watch(currentShowPanel, (newVal, oldVal) => {
 	}
 	// 从[工具菜单]进入[虚拟牙根]
 	if (oldVal === -1 && newVal === 2) {
-		const teethRootObj = {
-			'upper': xmlObj.upper.teethRootData,
-			'lower': xmlObj.lower.teethRootData,
-		}
-		generateRootDirection(teethRootObj);
+		// const teethRootObj = {
+		// 	'upper': xmlObj.upper.teethRootData,
+		// 	'lower': xmlObj.lower.teethRootData,
+		// }
+		// generateRootDirection(teethRootObj);
 		adjustRootWidgetInScene("enter",vtkContext);
 		setGingivaOpacity(0.5);
 	}
@@ -965,6 +965,10 @@ const generateRootRecord = computed(() => cloneDeep(store.state.actorHandleState
 watch(generateRootRecord,(newValue, oldValue) => {
 	for (let teethType of ['upper','lower']){
 		if(newValue[teethType]&&!oldValue[teethType]){
+			if (allActorList[teethType].rootGenerate.length>0){
+				// 如果存在牙根数据，说明初始已加载，这里不需要再请求
+				continue;
+			}
 			const elMessage = ElMessage({
 				message: '正在生成虚拟牙根...',
 				grouping: true,
@@ -1000,6 +1004,7 @@ watch(generateRootRecord,(newValue, oldValue) => {
 			allActorList[teethType].rootGenerate.forEach(({actor})=>{
 				renderer.removeActor(actor)
 			})
+			allActorList[teethType].rootGenerate = []
 			allActorList[teethType].root.forEach(({ rootWidget }) => {
 				rootWidget.setEnabled(true);
 			});
@@ -1009,6 +1014,41 @@ watch(generateRootRecord,(newValue, oldValue) => {
 },
 { deep: true }
 );
+
+const initRootFlag = computed(() => cloneDeep(store.state.actorHandleState.initRootFlag));
+const initRootParams = computed(() => store.state.actorHandleState.initRootParams)
+watch(initRootFlag, (newValue, oldValue)=>{
+	for (let teethType of ['upper','lower']){
+		if(newValue[teethType]&&!oldValue[teethType]){
+			if (allActorList[teethType].rootGenerate.length>0){
+				// 如果存在牙根数据，则无法重置参数
+				const elMessage = ElMessage({
+					message: '需要先取消已生成的牙根！',
+					grouping: true,
+					type: 'warning',
+					duration: 3000,
+					showClose: true,
+					offset: -7,
+				})
+			}else{
+				initRootParams.value[teethType].forEach(({toothName, bottomSphereCenter, topSphereCenter, radiusSphereCenter})=>{
+					allActorList[teethType].root.forEach((item)=>{
+						if(item.toothName == toothName){
+							item.rootRep.setCenters(
+								bottomSphereCenter,
+								topSphereCenter,
+								radiusSphereCenter,
+							)
+						}
+					})
+				})
+			}
+			store.dispatch("actorHandleState/setInitRootFlag", {
+				[teethType]: false,
+			});
+		}
+	}
+})
 
 const { proxy } = getCurrentInstance();
 
@@ -1800,6 +1840,26 @@ watch(finishLoad, (newVal) => {
 				value: true,
 			});
 		}
+
+		// 在这里判断是否显示牙根
+		const { renderWindow, renderer } = vtkContext;
+		for(let teethType of ['upper', 'lower']){
+			if(allActorList[teethType].rootGenerate.length>0){
+				store.dispatch("actorHandleState/updateGenerateRootRecord", {
+					[teethType]: true,
+				});
+				allActorList[teethType].rootGenerate.forEach(({actor})=>{
+					renderer.addActor(actor)
+				})
+			}
+			// if(allActorList[teethType].originRoot.length>0){
+			// 	allActorList[teethType].originRoot.forEach(({actor})=>{
+			// 		renderer.addActor(actor)
+			// 	})
+			// }
+			// setGingivaOpacity(0.5);
+			renderWindow.render()
+		}
 		postInitialDataToWorker(
 			{
 				tooth: toothPolyDatas,
@@ -2357,9 +2417,10 @@ function uploadDataOnline(uploadStateMessage, submit = false) {
 				dentalArchSettings: dentalArchSettings[teethType],
 				teethStandardAxis: teethStandardAxis[teethType],
 			},
+
 			teethAxisFinetuneRecord: teethAxisFinetuneRecord[teethType], // 初始的牙齿坐标系 + 后续的咬合调整构成最终矩阵
 			dentalArchAdjustRecord: dentalArchAdjustRecord[teethType].resetCenters,
-			teethRootData: allActorList[teethType].root.map((item) => {
+			teethRootData: allActorList[teethType].rootGenerate.length>0 ? allActorList[teethType].root.map((item) => {
 				const { toothName, rootRep } = item;
 				return {
 					toothName,
@@ -2367,7 +2428,7 @@ function uploadDataOnline(uploadStateMessage, submit = false) {
 					topSphereCenter: rootRep.getCenters()[1],
 					radiusSphereCenter: rootRep.getCenters()[2],
 				};
-			}),
+			}):[],
 		};
 		uploadCurrentData(
 			toRaw(stlObj.teeth[teethType]),

@@ -112,8 +112,13 @@ export default {
         },
         updateSelectKeyBoardEvent1(context, value){
             context.commit("UpdateSelectKeyBoardEvent1", value);
+        },        setInitRootParams(context, value){
+            context.commit("SetInitRootParams", value);
         },
-    },
+        setInitRootFlag(context, value) {
+            context.commit("SetInitRootFlag", value);
+        },
+   },
     mutations: {
         UpdateSimMode(state, value) {
             state.simMode = value;
@@ -505,6 +510,14 @@ export default {
             upper: false,
             lower: false,
         },
+        initRootParams: {
+            upper: [],
+            lower: [],
+        }, // 用于保存重置牙根圆锥方向的参数
+        initRootFlag: {
+            upper: false,
+            lower: false,
+        }, // 用于触发圆锥方向的重置
         BoxSlicing:{
             SelectedPosition: "",
             SelectedToothBox: "",

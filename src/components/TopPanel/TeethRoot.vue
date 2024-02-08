@@ -4,7 +4,7 @@
  * @Autor: ZhuYichen
  * @Date: 2023-05-16 15:39:32
  * @LastEditors: ZhuYichen
- * @LastEditTime: 2024-01-29 16:56:41
+ * @LastEditTime: 2024-02-08 16:29:17
 -->
 <template>
 	<div class="main-block panel" :class="{ show: isShow }">
@@ -149,8 +149,6 @@ function generateTeethRoot() {
 	}
 }
 
-const canUserSaveAdjustRecord = computed(() => store.getters["actorHandleState/canUserSaveAdjustRecord"]);
-
 /**
  * @description: 重置牙根方向参数
  * @return {*}
@@ -158,7 +156,15 @@ const canUserSaveAdjustRecord = computed(() => store.getters["actorHandleState/c
  */
 function resetTeethRootParams() {
 	// 保存参数, 覆盖牙弓线和bracketMatrix
-	console.log('重置牙根方向')
+	if(dentalArchAdjustType.value=='upper'){
+		store.dispatch("actorHandleState/setInitRootFlag", {
+			upper: true,
+		});
+	}else if(dentalArchAdjustType.value=='lower'){
+		store.dispatch("actorHandleState/setInitRootFlag", {
+			lower: true,
+		});
+	}
 }
 
 </script>

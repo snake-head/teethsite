@@ -82,7 +82,13 @@ export default {
         },
         updateGenerateRootRecord(context, value) {
             context.commit("UpdateGenerateRootRecord", value);
-        }
+        },
+        setInitRootParams(context, value){
+            context.commit("SetInitRootParams", value);
+        },
+        setInitRootFlag(context, value) {
+            context.commit("SetInitRootFlag", value);
+        },
     },
     mutations: {
         UpdateSimMode(state, value) {
@@ -301,7 +307,13 @@ export default {
         },
         UpdateGenerateRootRecord(state, value){
             Object.assign(state.generateRootRecord,value)
-        }
+        },
+        SetInitRootParams(state, value){
+            Object.assign(state.initRootParams,value)
+        },
+        SetInitRootFlag(state, value){
+            Object.assign(state.initRootFlag,value)
+        },
     },
     state: {
         toothOpacity: 50,
@@ -420,6 +432,14 @@ export default {
             upper: false,
             lower: false,
         },
+        initRootParams: {
+            upper: [],
+            lower: [],
+        }, // 用于保存重置牙根圆锥方向的参数
+        initRootFlag: {
+            upper: false,
+            lower: false,
+        }, // 用于触发圆锥方向的重置
     },
     getters: {
         fineTuneMode(state) {

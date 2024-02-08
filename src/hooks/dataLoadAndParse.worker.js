@@ -34,6 +34,9 @@ import {
     setUserIdHeader,
     sendRequestWithToken,
 } from "../utils/tokenRequest";
+import vtkRootHandleRepresentation from "../reDesignVtk/rootHandleWidget/RootHandleRepresentation";
+import rootHandleWidget from "../reDesignVtk/rootHandleWidget";
+// import XML from '@kitware/vtk.js/IO/XML';
 
 let token = "";
 let userId = "";
@@ -127,7 +130,7 @@ let progressConfig = {
         toothData: {},
         bracketData: {},
     },
-    // 完成上述9步后即为结束
+    // 制造轴线actor
     9: {
         state: {
             message: "正在制造teethType轴线模型......",
@@ -135,7 +138,15 @@ let progressConfig = {
             progress: "",
         },
     },
+    // 制造牙根actor
     10: {
+        state: {
+            message: "正在制造teethType虚拟牙根模型......",
+            type: "wait",
+            progress: "",
+        },
+    },
+    11: {
         state: {
             message: "完成！",
             type: "success",
@@ -1802,6 +1813,169 @@ function generateTeethAxisActor(postCenter) {
     self.postMessage({ ...retData, ...stepConfig.state });
 }
 
+// step10
+function generateTeethRootActor() {
+    const retData = {
+        step: 10, // 当前正在执行第10步
+        toNext: false, // 是否继续执行下一步
+        longAxisData: {},
+        allActorList: {
+            root: [],
+            rootGenerate: [],
+            originRoot: [],
+        },
+    };
+    const teethType = targetTeethType;
+    const { xmlObj } = progressConfig["5"];
+    const teethRootData = xmlObj.teethRootData
+    const { toothData, bracketData } = progressConfig["8"];
+    const toothPolyDatas = [];
+    Object.keys(toothData).forEach((name) => {
+        const polyData = vtkPolyData.newInstance();
+        polyData.getPoints().setData(toothData[name].pointValues);
+        polyData.getPolys().setData(toothData[name].cellValues);
+        toothPolyDatas[name] = polyData;
+    });
+    const stepConfig = progressConfig["10"];
+
+    let finish = 0;
+    let total = 1;
+    stepConfig.state.progress = finish + "/" + total;
+    self.postMessage({ ...retData, ...stepConfig.state });
+    // 生成牙根方向圆锥数据
+    for(let toothName in toothPolyDatas){
+        if(toothName[0].toLowerCase()==teethType[0]){
+            var rootTopPoint;
+            var rootBottomPoint;
+            var rootRadiusPoint;
+            if(teethRootData && teethRootData.length>0){
+                const curRootData = teethRootData.filter(obj => obj.toothName[0] === toothName)[0];
+                rootTopPoint = curRootData.topSphereCenter[0].split(",").map(part => parseFloat(part))
+                rootBottomPoint = curRootData.bottomSphereCenter[0].split(",").map(part => parseFloat(part))
+                rootRadiusPoint = curRootData.radiusSphereCenter[0].split(",").map(part => parseFloat(part))
+            }else{
+                // 使用托槽z轴方向作为牙根方向
+                var upNormal = [
+                    -bracketData[toothName].position.yNormal[0],
+                    -bracketData[toothName].position.yNormal[1],
+                    -bracketData[toothName].position.yNormal[2],
+                ];             
+                const bounds = toothPolyDatas[toothName].getBounds()
+                rootTopPoint = [
+                    (bounds[0]+bounds[1])/2,
+                    (bounds[2]+bounds[3])/2,
+                    (bounds[4]+bounds[5])/2,
+                ] //牙根底部点坐标
+                // const upNormal = []
+                // subtract(longAxisData[toothName].endPoint,longAxisData[toothName].startPoint,upNormal)
+                // normalize(upNormal)
+                rootBottomPoint = [] //牙根顶部点坐标
+                add(rootTopPoint, multiplyScalar(upNormal, 7), rootBottomPoint)
+                const rootRadius = Math.min(bounds[1]-bounds[0],bounds[3]-bounds[2])/4
+                const radiusNormal = [] //半径方向
+                cross(upNormal, [0,1,0], radiusNormal)
+                normalize(radiusNormal)
+                rootRadiusPoint = [] //牙根半径点坐标
+                add(rootBottomPoint, multiplyScalar(radiusNormal, rootRadius), rootRadiusPoint)
+            }
+            
+            //由于worker不能发送actor对象，只能先将坐标发回去，在主线程中构造
+            retData.allActorList.root.push({
+                toothName,
+                bottomSphereCenter: rootBottomPoint,
+                topSphereCenter: rootTopPoint,
+                radiusSphereCenter: rootRadiusPoint,
+            })
+        }
+    }
+
+    // 如果CADO中含有牙根数据，说明之前保存过，则需要直接生成牙根
+    // 如果不存在牙根数据，则不生成
+    if(teethRootData && teethRootData.length>0){
+        generateRoot(teethType, toothData, retData.allActorList.root)
+        .then((result) => {
+            retData.allActorList.rootGenerate = result.rootList;
+            retData.allActorList.originRoot = result.originRootList;
+
+            finish++;
+            stepConfig.state.progress = finish + "/" + total;
+            self.postMessage({ ...retData, ...stepConfig.state });
+
+            retData.toNext = true;
+            self.postMessage({ ...retData, ...stepConfig.state });
+        })
+        .catch((error) => {
+            console.error(error); // 处理错误情况
+        });
+    }else{
+        finish++;
+        stepConfig.state.progress = finish + "/" + total;
+        self.postMessage({ ...retData, ...stepConfig.state });
+
+        retData.toNext = true;
+        self.postMessage({ ...retData, ...stepConfig.state });
+    }
+}
+
+async function generateRoot(teethType, toothData, rootInfoList) {
+    let rootList = [];
+    let originRootList = [];
+    const promises = []; // 存储每个请求的 Promise 对象
+  
+    Object.entries(toothData).forEach(([toothName, toothValues]) => {
+      if (toothName[0].toLowerCase() === teethType[0]) {
+    //   if (toothName === 'LR6') {
+        const rootInfo = rootInfoList.filter(obj => obj.toothName === toothName)[0];
+        const jsonPart = JSON.stringify(rootInfo);
+        let formData = new FormData();
+        formData.append("polyData", new Blob([JSON.stringify(toothValues)], { type: "application/json" }));
+        formData.append("jsonPart", new Blob([jsonPart], { type: "application/json" }));
+  
+        const generateRootPath = "/backend/generate_root_json/";
+  
+        // 将请求包装成 Promise 对象
+        const promise = new Promise((resolve, reject) => {
+          sendRequestWithToken({
+            method: "POST",
+            url: encodeURI(generateRootPath),
+            data: formData,
+            responseType: "json",
+            headers: {
+              "Cache-Control": "no-cache",
+            },
+          })
+            .then((resp) => {
+                const pointValues = resp.data.pointValues;
+                const cellValues = resp.data.cellValues;
+                rootList.push({ 
+                    toothName, 
+                    pointValues,
+                    cellValues,
+                });
+                const clonePointValues = structuredClone(pointValues)
+                const cloneCellValues = structuredClone(cellValues)
+                originRootList.push({ 
+                    toothName, 
+                    pointValues: clonePointValues,
+                    cellValues: cloneCellValues,
+                });
+                resolve(); // 请求成功，resolve
+            })
+            .catch((error) => {
+              console.log("error");
+              reject(error); // 请求失败，reject
+            });
+        });
+  
+        promises.push(promise); // 将每个请求的 Promise 对象添加到数组中
+      }
+    // }
+    });
+  
+    await Promise.all(promises); // 等待所有请求完成
+    return { rootList, originRootList };
+  }
+
 self.onmessage = function(event) {
     const { step } = event.data;
     switch (step) {
@@ -1851,6 +2025,11 @@ self.onmessage = function(event) {
         case 9: {
             const {postCenter} = event.data;
             generateTeethAxisActor(postCenter);
+            break;
+        }
+        case 10: {
+            const {} = event.data;
+            generateTeethRootActor();
             break;
         }
     }

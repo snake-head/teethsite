@@ -176,17 +176,17 @@ function parseAndMountToData(xmlData, dataToMount) {
 	}
 
 	// 存牙根方向数据
-	if (teethRootData && Object.keys(teethRootData).length > 0) {
-		xmlData.teethRootData = [];
-		teethRootData.forEach(({ toothName, bottomSphereCenter, topSphereCenter, radiusSphereCenter }, index) => {
-			xmlData.teethRootData.push({
-				toothName,
-				bottomSphereCenter: bottomSphereCenter.toString(),
-				topSphereCenter: topSphereCenter.toString(),
-				radiusSphereCenter: radiusSphereCenter.toString(),
-			})
-		});
-	}
+	// if (teethRootData && Object.keys(teethRootData).length > 0) {
+	xmlData.teethRootData = [];
+	teethRootData.forEach(({ toothName, bottomSphereCenter, topSphereCenter, radiusSphereCenter }, index) => {
+		xmlData.teethRootData.push({
+			toothName,
+			bottomSphereCenter: bottomSphereCenter.toString(),
+			topSphereCenter: topSphereCenter.toString(),
+			radiusSphereCenter: radiusSphereCenter.toString(),
+		})
+	});
+	// }
 
 	// 什么都没有, 则不需要存
 	if (Object.keys(xmlData.dentalArch[0]).length === 1) {

@@ -34,6 +34,8 @@ import {
     getRequestWithToken,
     sendRequestWithToken,
 } from "../utils/tokenRequest";
+import vtkRootHandleRepresentation from "../reDesignVtk/rootHandleWidget/RootHandleRepresentation";
+import rootHandleWidget from "../reDesignVtk/rootHandleWidget";
 
 export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
     const {
@@ -160,7 +162,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                     progress: "",
                 },
             },
-            // 完成上述9步后即为结束
+            // 制造轴线actor
             9: {
                 state: {
                     message: "正在制造上颌牙轴线模型......",
@@ -168,7 +170,15 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                     progress: "",
                 },
             },
+            // 制造牙根actor
             10: {
+                state: {
+                    message: "正在制造虚拟牙根模型......",
+                    type: "wait",
+                    progress: "",
+                },
+            },
+            11: {
                 state: {
                     message: "完成！",
                     type: "success",
@@ -249,15 +259,23 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                     progress: "",
                 },
             },
-            // 完成上述9步后即为结束
+            // 制造轴线actor
             9: {
                 state: {
-                    message: "正在制造下颌牙轴线模型......",
+                    message: "正在制造上颌牙轴线模型......",
                     type: "wait",
                     progress: "",
                 },
             },
+            // 制造牙根actor
             10: {
+                state: {
+                    message: "正在制造虚拟牙根模型......",
+                    type: "wait",
+                    progress: "",
+                },
+            },
+            11: {
                 state: {
                     message: "完成！",
                     type: "success",
@@ -1617,6 +1635,66 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                                 teethType,
                                 event.data.allActorList
                             );
+                            // worker.terminate();
+                            currentStep[teethType]++;
+                            worker.postMessage({
+                                step: 10,
+                            });
+                        }
+                        break;
+                    }
+                    case 10: {
+                        // generateTeethAxisActor
+                        for (let stateKey in progressConfig[teethType]["10"]
+                            .state) {
+                            // message, type, progress
+                            progressConfig[teethType]["10"].state[stateKey] =
+                                event.data[stateKey];
+                        }
+                        const { toNext } = event.data;
+                        if (toNext) {
+                            const { root, rootGenerate, originRoot } = event.data.allActorList
+                            root.forEach(({toothName, bottomSphereCenter, topSphereCenter, radiusSphereCenter})=>{
+                                //制造牙根底部、牙根顶部、牙根半径三个小球
+                                const rootRep = vtkRootHandleRepresentation.newInstance({
+                                    rootInitValue: {
+                                        bottomSphereCenter,
+                                        topSphereCenter,
+                                        radiusSphereCenter,
+                                    },
+                                });
+                                const rootWidget = rootHandleWidget.newInstance({
+                                    allowHandleResize: 1,
+                                    widgetRep: rootRep,
+                                });
+                                allActorList[teethType].root.push({
+                                    toothName,
+                                    rootRep,
+                                    rootWidget,
+                                })
+                            })
+                            store.dispatch(
+                                "actorHandleState/setInitRootParams",
+                                {[teethType]: root,}
+                            );
+                            
+                            if (rootGenerate.length>0){
+                                const rootList = []
+                                const originRootList = []
+                                rootGenerate.forEach(({toothName, pointValues, cellValues})=>{
+                                    const {actor, mapper} = generateActorByData({pointValues, cellValues})
+                                    actor.getProperty().setColor([1, 0.73, 0.73]);
+                                    rootList.push({ name: toothName, actor, mapper })
+                                })
+                                originRoot.forEach(({toothName, pointValues, cellValues})=>{
+                                    const {actor, mapper} = generateActorByData({pointValues, cellValues})
+                                    actor.getProperty().setColor([1, 0.73, 0.73]);
+                                    originRootList.push({ name: toothName, actor, mapper })
+                                })
+                                allActorList[teethType].rootGenerate = rootList;
+					            allActorList[teethType].originRoot = originRootList;
+                            }
+
                             worker.terminate();
                             currentStep[teethType]++;
                         }

@@ -227,6 +227,45 @@ $view-head-height: 66px;
                     }
                 }
 
+                .tooth-selection-button {
+                    width: 80px;
+                    height: 24px;
+                    line-height: 24px;
+                    margin: (($view-head-height - 6px) / 2 - 28px) / 2 0;
+                    border: #cccccc 2px solid;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    text-align: center;
+                    color: black;
+                    background-color: rgb(230, 230, 230);
+                    cursor: pointer;
+                    transition: $trans-time;
+
+                    &:hover {
+                        background-color: rgb(240, 240, 240);
+                    }
+
+                    &.activate {
+                        background-color: #f4f4f4;
+                        border: rgb(137, 211, 245) 2px solid;
+
+                        &::after {
+                            content: "\2714";
+                            background: rgb(94, 199, 226);
+                            color: white;
+                            display: inline-block;
+                            width: 20px;
+                            height: 20px;
+                            border-radius: 10px;
+                            line-height: 20px;
+                        }
+                    }
+                    &.disabled {
+                        opacity: 0.4;
+                        pointer-events: none;
+                    }
+                }
+
                 .preset-button {
                     width: 90px;
                     height: 24px;
@@ -272,7 +311,7 @@ $view-head-height: 66px;
                     line-height: ($view-head-height - 6px) / 2;
 
                     input {
-                        width: 75px;
+                        width: 75px;//矩形的长
                         vertical-align: text-bottom;
 
                         &.long {

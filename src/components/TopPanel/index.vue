@@ -39,6 +39,10 @@
 						:isShow="!arrangeShowState.isShow && currentShowPanel === 2"
 						:exitToolPanel="exitToolPanel"
 					/>
+					<TeethSlicing v-if="isManager"
+						:isShow="!arrangeShowState.isShow && currentShowPanel === 3"
+						:exitToolPanel="exitToolPanel"
+					/>
 					<div class="main-block progress" :class="{ show: arrangeShowState.isShow }">
 						<div class="arrange-progress-bar">
 							<el-dual-progress
@@ -121,6 +125,10 @@
 						:isShow="!arrangeShowState.isShow && currentShowPanel === 2"
 						:exitToolPanel="exitToolPanel"
 					/>
+					<TeethSlicing v-if="isManager"
+						:isShow="!arrangeShowState.isShow && currentShowPanel === 3"
+						:exitToolPanel="exitToolPanel"
+					/>
 					<div class="main-block progress" :class="{ show: arrangeShowState.isShow }">
 						<div class="arrange-progress-bar">
 							<el-dual-progress
@@ -180,6 +188,7 @@ import TeethPosAdjust from "./TeethPosAdjust.vue";
 import ToolMenu from "./ToolMenu.vue";
 import DentalArchAdjust from "./DentalArchAdjust.vue";
 import TeethRoot from "./TeethRoot.vue"
+import TeethSlicing from "./TeethSlicing.vue"
 
 const store = useStore();
 const isManager = computed(() => 
@@ -237,6 +246,18 @@ const toolMenuList = computed(() => {
 		{
 			toolName: "生成虚拟牙根",
 			toolIntro: "调整虚拟牙根方向，随后生成虚拟牙根",
+			activate: true,
+			toolLimits: [
+				{
+					intro: "需要在[普通]模式下使用",
+					isFit: !isInSimMode.value,
+				},
+			],
+			allLimitsFit: false,
+		},
+		{
+			toolName: "牙齿切片",
+			toolIntro: "正在调试ing:对单个牙齿进行切片",
 			activate: true,
 			toolLimits: [
 				{

@@ -1,5 +1,6 @@
 import { reactive, computed, watch, inject } from "vue";
 import { useStore } from "vuex";
+import { FineTunePiece, generateEveryTooth } from "../hooks/Slicing"
 
 const colorConfig = {
     teeth: [1.0, 1.0, 1.0],
@@ -423,35 +424,37 @@ export default function(allActorList) {
                 });
             }
 
-            if (
-                curActorInScene[teethType].axis &&
-                !preActorInScene[teethType].axis
-            ) {
-                if (currentSelectBracket.name !== "") {
-                    // 开启上/下颌牙坐标轴显示,则需要看当前是否有上/下颌牙托槽被选中,只有此时才应该有对应坐标轴actor加入窗口
-                    findAxisMatchActors(
-                        currentSelectBracket.name,
-                        teethType
-                    ).forEach((actor) => {
-                        addActorsList.push(actor);
-                    });
+            const currentShowPanel = store.state.actorHandleState.currentShowPanel;
+            if (currentShowPanel !== 3){
+                if (
+                    curActorInScene[teethType].axis &&
+                    !preActorInScene[teethType].axis
+                ) {
+                    if (currentSelectBracket.name !== "") {
+                        // 开启上/下颌牙坐标轴显示,则需要看当前是否有上/下颌牙托槽被选中,只有此时才应该有对应坐标轴actor加入窗口
+                        findAxisMatchActors(
+                            currentSelectBracket.name,
+                            teethType
+                        ).forEach((actor) => {
+                            addActorsList.push(actor);
+                        });
+                    }
+                }
+                if (
+                    !curActorInScene[teethType].axis &&
+                    preActorInScene[teethType].axis
+                ) {
+                    if (currentSelectBracket.name !== "") {
+                        // 隐藏上/下颌牙坐标轴显示,则需要看当前是否有上/下颌牙托槽被选中,只有此时才有坐标轴actor在屏幕中, 才需要移除
+                        findAxisMatchActors(
+                            currentSelectBracket.name,
+                            teethType
+                        ).forEach((actor) => {
+                            delActorsList.push(actor);
+                        });
+                    }
                 }
             }
-            if (
-                !curActorInScene[teethType].axis &&
-                preActorInScene[teethType].axis
-            ) {
-                if (currentSelectBracket.name !== "") {
-                    // 隐藏上/下颌牙坐标轴显示,则需要看当前是否有上/下颌牙托槽被选中,只有此时才有坐标轴actor在屏幕中, 才需要移除
-                    findAxisMatchActors(
-                        currentSelectBracket.name,
-                        teethType
-                    ).forEach((actor) => {
-                        delActorsList.push(actor);
-                    });
-                }
-            }
-
             // [模拟排牙]模式下控制牙弓线和原始牙列的显示
             if (isInSimulationMode) {
                 if (
@@ -553,6 +556,142 @@ export default function(allActorList) {
         return { addActorsList, delActorsList };
     }
 
+    /**
+     * Function:牙齿切片时切换切片前和切片后的牙齿全景
+     */
+    function actorShowStateUpdateSlicing(state, Tuneactor){
+        let { upper, upperOrigin, upperOriginBracket, upperOriginGingiva, lower, lowerOrigin, lowerOriginBracket, lowerOriginGingiva,teethWithGingiva, axis, arch } = state;
+            let curActorInScene = {
+                upper: {
+                    // 上颌牙
+                    gingiva: upper && teethWithGingiva !== 1, // 牙龈
+                    tooth: upper && teethWithGingiva !== 2, // 牙齿
+                    rootGenerate: upper && teethWithGingiva !== 2, // 牙根
+                    bracket: upper && arch % 2 === 0, // 托槽
+                    axis: upper && axis,
+                    arch: upper && arch <= 1, // 牙弓线
+                    originTooth: upper && upperOrigin, //原始牙列
+                    originRoot: upper && upperOrigin, //原始牙根
+                    originBracket: upper && upperOriginBracket,
+                    originGingiva: upper && upperOriginGingiva && upperOrigin,
+                },
+                lower: {
+                    // 下颌牙
+                    gingiva: lower && teethWithGingiva !== 1, // 牙龈
+                    tooth: lower && teethWithGingiva !== 2, // 牙齿
+                    rootGenerate: upper && teethWithGingiva !== 2, // 牙根
+                    bracket: lower && arch % 2 === 0, // 托槽
+                    axis: lower && axis, // 坐标轴
+                    arch: lower && arch <= 1, // 牙弓线
+                    originTooth: lower && lowerOrigin, //原始牙列
+                    originRoot: lower && lowerOrigin, //原始牙根
+                    originBracket: lower && lowerOriginBracket,
+                    originGingiva: lower && lowerOriginGingiva && lowerOrigin,
+                },
+            };
+            //需要生成的单颗牙齿名称
+            const ToothSlicingName = currentSelectBracket.name;
+
+            const addActorsList = []; // 根据状态对比(false->true),生成应该加入屏幕的actor列表
+            const delActorsList = []; // 根据状态对比(true->false),生成应该移出屏幕的actor列表
+            for (let teethType of ["upper", "lower"]){
+                allActorList[teethType].tooth.forEach((item) => {
+                    if (item.name == ToothSlicingName){
+                        delActorsList.push(item.actor);
+                        item.actor = Tuneactor;
+                        addActorsList.push(item.actor);
+                    }
+                });
+                allActorList[teethType].rootGenerate.forEach((item) => {
+                    if (item.name == ToothSlicingName){
+                        delActorsList.push(item.actor);
+                    }
+                });
+                // allActorList[teethType].bracket.forEach((item) => {
+                //     if (item.name == ToothSlicingName){
+                //         delActorsList.push(item.actor);
+                //     }
+                // });
+                
+            }
+            preActorInScene = curActorInScene;
+            return { addActorsList, delActorsList };
+    }
+
+    function actorShowStateUpdateSlicingReset(state, toothPolyDatas, store, values){
+        let { upper, upperOrigin, upperOriginBracket, upperOriginGingiva, lower, lowerOrigin, lowerOriginBracket, lowerOriginGingiva,teethWithGingiva, axis, arch } = state;
+            let curActorInScene = {
+                upper: {
+                    // 上颌牙
+                    gingiva: upper && teethWithGingiva !== 1, // 牙龈
+                    tooth: upper && teethWithGingiva !== 2, // 牙齿
+                    rootGenerate: upper && teethWithGingiva !== 2, // 牙根
+                    bracket: upper && arch % 2 === 0, // 托槽
+                    axis: upper && axis,
+                    arch: upper && arch <= 1, // 牙弓线
+                    originTooth: upper && upperOrigin, //原始牙列
+                    originRoot: upper && upperOrigin, //原始牙根
+                    originBracket: upper && upperOriginBracket,
+                    originGingiva: upper && upperOriginGingiva && upperOrigin,
+                },
+                lower: {
+                    // 下颌牙
+                    gingiva: lower && teethWithGingiva !== 1, // 牙龈
+                    tooth: lower && teethWithGingiva !== 2, // 牙齿
+                    rootGenerate: upper && teethWithGingiva !== 2, // 牙根
+                    bracket: lower && arch % 2 === 0, // 托槽
+                    axis: lower && axis, // 坐标轴
+                    arch: lower && arch <= 1, // 牙弓线
+                    originTooth: lower && lowerOrigin, //原始牙列
+                    originRoot: lower && lowerOrigin, //原始牙根
+                    originBracket: lower && lowerOriginBracket,
+                    originGingiva: lower && lowerOriginGingiva && lowerOrigin,
+                },
+            };
+            //生成的单颗牙齿名称
+            const ToothSlicingName = currentSelectBracket.name;
+
+            const addActorsList = []; // 根据状态对比(false->true),生成应该加入屏幕的actor列表
+            const delActorsList = []; // 根据状态对比(true->false),生成应该移出屏幕的actor列表
+
+            if (values == 'Reset'){
+                for (let teethType of ["upper", "lower"]){
+                    allActorList[teethType].tooth.forEach((item) => {
+                        delActorsList.push(item.actor);
+                        const actor = generateEveryTooth(item.name, toothPolyDatas, store);
+                        item.actor = actor;
+                        addActorsList.push(item.actor);
+                    });
+                    // allActorList[teethType].rootGenerate.forEach((item) => {
+                    //     delActorsList.push(item.actor);
+                    // });
+                    
+                }
+            }
+            
+            if (values == 'TEMPReset'){
+                for (let teethType of ["upper", "lower"]){
+                    allActorList[teethType].tooth.forEach((item) => {
+                        if (item.name == ToothSlicingName){
+                            delActorsList.push(item.actor);
+                            const actor = generateEveryTooth(item.name, toothPolyDatas, store);
+                            item.actor = actor;
+                            addActorsList.push(item.actor);
+                        }
+                    });
+                    // allActorList[teethType].rootGenerate.forEach((item) => {
+                    //     if (item.name == ToothSlicingName){
+                    //         delActorsList.push(item.actor);
+                    //     }
+                    // });
+                }
+            }
+            
+            preActorInScene = curActorInScene;
+            return { addActorsList, delActorsList };
+    }
+
+    
     let isClickEnter=false;
     let firstEnter=true; // 要求只有第一次进入时显示原始牙列
     const resetOriginShowStateFlag = inject('resetOriginShowStateFlag')
@@ -750,6 +889,8 @@ export default function(allActorList) {
         updateDbClickSelectedActor,
         exitSelection,
         actorShowStateUpdateFusion,
+        actorShowStateUpdateSlicing,
+        actorShowStateUpdateSlicingReset,
         axisActorShowStateUpdate,
         adjustActorWhenSwitchSimulationMode,
     };

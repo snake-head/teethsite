@@ -82,7 +82,37 @@ export default {
         },
         updateGenerateRootRecord(context, value) {
             context.commit("UpdateGenerateRootRecord", value);
-        }
+        },
+        updataSelectedTooth(context, value){
+            context.commit("UpdateSelectedToothBox", value);
+        },
+        updataSelectedPositionTooth(context, value){
+            context.commit("UpdateSelectedPositionToothBox", value);
+        },
+        updateavailableToothSides(context, value){
+			context.commit("UpdateavailableToothSides", value);
+		},
+        updateSurroudingBoxs(context, value){
+            context.commit("UpdateSurroudingBoxs", value);
+        },
+        updateTuneBoxs(context, value){
+            context.commit("UpdateTuneBoxs", value);
+        },
+        updateBoxPositionAdjustMoveType(context, value) {
+            context.commit("UpdateBoxPositionAdjustMoveType", value);
+        },
+        updateBoxPositionAdjustType(context, value) {
+            context.commit("UpdateBoxPositionAdjustType", value);
+        },
+        updateBoxPositionAdjustStep(context, value) {
+            context.commit("UpdateBoxPositionAdjustStep", value);
+        },
+        updataBoxAxis(context, value){
+            context.commit("UpdataBoxAxis", value);
+        },
+        updateSelectKeyBoardEvent1(context, value){
+            context.commit("UpdateSelectKeyBoardEvent1", value);
+        },
     },
     mutations: {
         UpdateSimMode(state, value) {
@@ -301,7 +331,62 @@ export default {
         },
         UpdateGenerateRootRecord(state, value){
             Object.assign(state.generateRootRecord,value)
-        }
+        },
+        UpdateSelectedToothBox(state, value){
+            state.BoxSlicing.SelectedToothBox = value;
+        },
+        UpdateSelectedPositionToothBox(state, value){
+            state.BoxSlicing.SelectedPosition = value;
+        },
+        UpdateavailableToothSides(state, value){
+			if (value == 'left'){
+                state.BoxSlicing.availableToothSides.face = 'left';
+				state.BoxSlicing.availableToothSides.left = true;
+				state.BoxSlicing.availableToothSides.right = false;
+			}
+			else if (value == 'right'){
+                state.BoxSlicing.availableToothSides.face = 'right';
+				state.BoxSlicing.availableToothSides.left = false;
+				state.BoxSlicing.availableToothSides.right = true;
+			}
+		},
+        UpdateSurroudingBoxs(state, value){
+            state.BoxSlicing.BoxPoints.Point0 = value[0];
+            state.BoxSlicing.BoxPoints.Point1 = value[1];
+            state.BoxSlicing.BoxPoints.Point2 = value[2];
+            state.BoxSlicing.BoxPoints.Point3 = value[3];
+            state.BoxSlicing.BoxPoints.Point4 = value[4];
+            state.BoxSlicing.BoxPoints.Point5 = value[5];
+            state.BoxSlicing.BoxPoints.Point6 = value[6];
+            state.BoxSlicing.BoxPoints.Point7 = value[7];
+        },
+        UpdateTuneBoxs(state, value){
+            state.BoxSlicing.boxPositionAdjust.BoxPoints.Point0 = value.Point0;
+            state.BoxSlicing.boxPositionAdjust.BoxPoints.Point1 = value.Point1;
+            state.BoxSlicing.boxPositionAdjust.BoxPoints.Point2 = value.Point2;
+            state.BoxSlicing.boxPositionAdjust.BoxPoints.Point3 = value.Point3;
+            state.BoxSlicing.boxPositionAdjust.BoxPoints.Point4 = value.Point4;
+            state.BoxSlicing.boxPositionAdjust.BoxPoints.Point5 = value.Point5;
+            state.BoxSlicing.boxPositionAdjust.BoxPoints.Point6 = value.Point6;
+            state.BoxSlicing.boxPositionAdjust.BoxPoints.Point7 = value.Point7;
+        },
+        UpdateBoxPositionAdjustMoveType(state, value) {
+            state.BoxSlicing.boxPositionAdjustMoveType = value;
+        },
+        UpdateBoxPositionAdjustType(state, value) {
+            state.BoxSlicing.boxPositionAdjust.faceType = value;
+        },
+        UpdateBoxPositionAdjustStep(state, value) {
+            state.BoxSlicing.boxPositionAdjust.step = value;
+        },
+        UpdataBoxAxis(state, value){
+            state.BoxSlicing.boxPositionAdjust.x_axis = value[0];
+            state.BoxSlicing.boxPositionAdjust.y_axis = value[1];
+            state.BoxSlicing.boxPositionAdjust.z_axis = value[2];
+        },
+        UpdateSelectKeyBoardEvent1(state, value) {
+            state.selectKeyBoardEvent = value;
+        },
     },
     state: {
         toothOpacity: 50,
@@ -419,6 +504,45 @@ export default {
         generateRootRecord: {
             upper: false,
             lower: false,
+        },
+        BoxSlicing:{
+            SelectedPosition: "",
+            SelectedToothBox: "",
+            availableToothSides:{
+                face: "left",
+                left: false,
+                right: false,
+            }, // 记录单颗牙齿的包围盒左右面选中情况
+            BoxPoints:{
+                Point0: [0, 0, 0],
+                Point1: [0, 0, 0],
+                Point2: [0, 0, 0],
+                Point3: [0, 0, 0],
+                Point4: [0, 0, 0],
+                Point5: [0, 0, 0],
+                Point6: [0, 0, 0],
+                Point7: [0, 0, 0],
+            },  // 包围盒的八个顶点
+            boxPositionAdjustMoveType: "", // 键盘操作的移动
+            boxPositionAdjust: {
+                // boxType: "left or right", 见availableToothSides里面的face
+                step: 1,
+                faceType: "left", // （理论上）左面只能向右调整，右面只能向左调整（未写死）
+                x_axis: [0, 0, 0],
+                y_axis: [0, 0, 0],
+                z_axis: [0, 0, 0],
+                BoxPoints:{
+                    Point0: [0, 0, 0],
+                    Point1: [0, 0, 0],
+                    Point2: [0, 0, 0],
+                    Point3: [0, 0, 0],
+                    Point4: [0, 0, 0],
+                    Point5: [0, 0, 0],
+                    Point6: [0, 0, 0],
+                    Point7: [0, 0, 0],
+                }
+            },
+            
         },
     },
     getters: {

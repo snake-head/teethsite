@@ -95,7 +95,7 @@ import vtkInteractorStyleTrackballCameraNew from "../../reDesignVtk/reDesignInte
 import vtkSphereLinkHandleRepresentation from "../../reDesignVtk/dentalArchHandleWidget/SphereLinkHandleRepresentation";
 import dentalArchHandleWidget from "../../reDesignVtk/dentalArchHandleWidget";
 
-import actorControl from "../../hooks/actorControl";
+import actorControl, { colorConfig } from "../../hooks/actorControl";
 import rootFunc from "../../hooks/rootFunc";
 import asyncDataLoadAndParse from "../../hooks/asyncDataLoadAndParse";
 import { uploadCurrentData } from "../../utils/saveNewData";
@@ -119,6 +119,13 @@ import TeethBiteWorker from "../../hooks/teethBite.worker";
 import { norm } from "../../reDesignVtk/Math";
 import { presetArrangeDataList } from "../../static_config";
 import { ElMessage } from 'element-plus'
+import Slicing from "../../hooks/Slicing"
+import { FineTunePiece } from "../../hooks/Slicing"
+import vtkPolyData from "@kitware/vtk.js/Common/DataModel/PolyData";
+import vtkCellArray from "@kitware/vtk.js/Common/Core/CellArray";
+import vtkPoints from "@kitware/vtk.js/Common/Core/Points";
+import vtkActor from "@kitware/vtk.js/Rendering/Core/Actor";
+import vtkMapper from "@kitware/vtk.js/Rendering/Core/Mapper";
 
 
 const props = defineProps({
@@ -305,6 +312,17 @@ watch(currentShowPanel, (newVal, oldVal) => {
 		store.dispatch("actorHandleState/updateCurrentMode", {
 			fineTune: false,
 		});
+	}
+	// 从[工具菜单]进入[牙齿切片]
+	if (oldVal === -1 && newVal === 3) {
+		// console.log('管理员模式', store.state.userHandleState.userType)
+	}
+	// 从[牙齿切片]退出到[工具菜单]
+	if (oldVal === 3 && newVal === -1) {
+		resetgenerateBoxToolTune(vtkContext, Tuneactor);
+		resetgenerateBoxTool(vtkContext, actors);
+		vtkContext.renderWindow.render();
+		resetSurroundingBoxsPoints();
 	}
 });
 let dentalArchWidgets = {}; // 每次调整后再排牙后需要重新设置
@@ -929,6 +947,7 @@ function teethPositionAdjust(moveType) {
 		moveType,
 		teethType: teethPositionAdjustType.value,
 	};
+	console.log('option', option);
 	if (moveType.includes("ANTI") || moveType.includes("ALONG")) {
 		// 旋转
 		option.moveStep = teethPositionAdjustAngle.value;
@@ -977,8 +996,8 @@ watch(generateRootRecord,(newValue, oldValue) => {
 			renderWindow.render()
 		}
 	}
-  },
-  { deep: true }
+},
+{ deep: true }
 );
 
 const { proxy } = getCurrentInstance();
@@ -1039,6 +1058,8 @@ const {
 	updateDbClickSelectedActor,
 	exitSelection,
 	actorShowStateUpdateFusion,
+	actorShowStateUpdateSlicing,
+	actorShowStateUpdateSlicingReset,
 	axisActorShowStateUpdate,
 	adjustActorWhenSwitchSimulationMode,
 } = actorControl(allActorList);
@@ -1049,6 +1070,13 @@ const {
 	generateRoot,
     clearRoot,
 } = rootFunc(allActorList,toothPolyDatas,bracketData);
+const {
+	SurroundingBoxs,
+    generateBox,
+	resetSurroundingBoxsPoints,
+    resetSurroundingBoxs,
+	fineTuneBoxPosition,
+} = Slicing(toothPolyDatas, bracketData, currentSelectBracket, allActorList);
 const {
 	preFineTuneRecord, // 记录上次[模拟排牙]时托槽的微调位置, 用于[模拟排牙]模式的微调中
 	currentArrangeStep,
@@ -1221,6 +1249,40 @@ function closeBracketSelection() {
 // 用于用户鼠标在某actor上移动时有绿色高亮
 const throttleMouseHandler = throttle(pickOnMouseEvent, 100);
 
+function generateBoxTool(vtkContext, actors){
+	if (vtkContext.renderer && vtkContext.renderWindow) {
+        vtkContext.renderer.addActor(actors); // 以新的actor移入屏幕触发mapper重新根据输入数据计算
+		vtkContext.renderWindow.render();
+	}
+}
+function resetgenerateBoxTool(vtkContext, actors){
+	for (let i = 0; i < actors.length; i++) {
+  		vtkContext.renderer.removeActor(actors[i]); // 假设 renderer 是你的渲染器对象
+	}
+}
+function resetgenerateBoxToolTune(vtkContext, Tuneactors){
+	// for (let i = 0; i < Tuneactors.length; i++) {
+  	// 	vtkContext.renderer.removeActor(Tuneactors[i]); // 假设 renderer 是你的渲染器对象
+	// }
+	// 设置透明度（0 到 1 之间的值，0 表示完全透明，1 表示完全不透明）
+	// 遍历所有的 actors 并设置透明度
+	for (let i = 0; i < Tuneactors.length; i++) {
+		const actor = Tuneactors[i];
+    	// 设置透明度
+		actor.getProperty().setOpacity(0);
+}
+}
+const boxPositionAdjustStep = computed(() => store.state.actorHandleState.BoxSlicing.boxPositionAdjust.step);
+
+const boxPositionAdjustType = computed(() => store.state.actorHandleState.BoxSlicing.boxPositionAdjust.teethType);
+watch(boxPositionAdjustType, (newVal, oldVal) => {
+	adjustTeethAxisSphereActorInScene("switch", newVal, oldVal);
+});
+
+function setavailableToothSides(value){
+	store.dispatch("actorHandleState/updataSelectedTooth", value);
+}
+
 /**
  * @description 当对网页进行缩放时,其实质为调整分辨率,
  * 如对于一个缩放比例为200%的网页来说,其实是把网页里面的每个像素(pixel/px)尺寸调整为原来的2*2,
@@ -1356,6 +1418,9 @@ watch(isInFineTuneMode, (newVal) => {
 });
 
 // 用于监听当前选中托槽的改变(需要旧值和新值), 用于对应坐标轴actor的添加和移除
+let actors = [];
+let boxpoints = [];
+let Tuneactor = [];
 watch(
 	() => currentSelectBracket.name,
 	(newVal, oldVal) => {
@@ -1363,16 +1428,240 @@ watch(
 		// 空->托槽, 需要add
 		// 托槽->空, 需要remove
 		// 托槽->另一托槽, 需要add和remove
-		const { addActorsList, delActorsList } = axisActorShowStateUpdate(oldVal, newVal, props.actorInScene.axis);
-		actorInSceneAdjust(addActorsList, delActorsList);
-		// 托槽->空时需要清除距离文字
-		if (newVal === "") {
-			const dims = vtkTextContainer.value.getBoundingClientRect();
-			const textCtx = vtkTextContainer.value.getContext("2d");
-			textCtx.clearRect(0, 0, dims.width, dims.height);
+		if (currentShowPanel.value !== 3){
+			setavailableToothSides('false');
+			resetSurroundingBoxsPoints();
+			const { addActorsList, delActorsList } = axisActorShowStateUpdate(oldVal, newVal, props.actorInScene.axis);
+			actorInSceneAdjust(addActorsList, delActorsList);
+			// 托槽->空时需要清除距离文字
+			if (newVal === "") {
+				const dims = vtkTextContainer.value.getBoundingClientRect();
+				const textCtx = vtkTextContainer.value.getContext("2d");
+				textCtx.clearRect(0, 0, dims.width, dims.height);
+		}}
+		else{
+			if (oldVal === "" && newVal !== "") {
+				if (actors.length !== 0){
+					resetgenerateBoxTool(vtkContext, actors);
+				}
+				if (Tuneactor.length !== 0){
+					resetgenerateBoxToolTune(vtkContext, Tuneactor);
+				}
+				// vtkContext.renderWindow.render();
+				boxpoints = SurroundingBoxs(toothPolyDatas, bracketData, currentSelectBracket, allActorList);
+				setavailableToothSides('true');
+				actors = generateBox(boxpoints);
+				generateBoxTool(vtkContext, actors);
+				}
+			if (oldVal !== "" && newVal !== ""){
+				if (Tuneactor.length !== 0){
+					resetgenerateBoxToolTune(vtkContext, Tuneactor);
+				}
+				resetgenerateBoxTool(vtkContext, actors);
+				// vtkContext.renderWindow.render();
+				boxpoints = SurroundingBoxs(toothPolyDatas, bracketData, currentSelectBracket, allActorList);
+				setavailableToothSides('true');
+				actors = generateBox(boxpoints);
+				generateBoxTool(vtkContext, actors);
+				}
+			if (oldVal !== "" && newVal === ""){
+				if (Tuneactor.length !== 0){
+					resetgenerateBoxToolTune(vtkContext, Tuneactor);
+				}
+				setavailableToothSides('false');
+				resetSurroundingBoxsPoints();
+				resetgenerateBoxTool(vtkContext, actors);
+				vtkContext.renderWindow.render();
+				}
+			}
 		}
-	}
 );
+
+const boxPositionAdjustPositionAdjustStep = computed(() => store.state.actorHandleState.BoxSlicing.boxPositionAdjust.step);
+const boxPositionAdjustMoveType = computed(() => store.state.actorHandleState.BoxSlicing.boxPositionAdjustMoveType);
+// 牙齿咬合位置执行完毕时重置为空可接受下一次调整
+function releaseBoxPositionAdjustMoveType() {
+	// 0314更改
+	if (boxPositionAdjustMoveType !== "TEMPRESET"){
+		store.dispatch("actorHandleState/updateBoxPositionAdjustMoveType", "");
+	}
+	
+}
+
+let boxpointsAdjust = [];
+
+function boxPositionAdjust(moveType) {
+	// if (moveType == 'Generate'){
+	// 	const SurroundingBoxsPoints = store.state.actorHandleState.BoxSlicing.boxPositionAdjust.BoxPoints;
+		
+	// 	// const { pointValues, cellValues, copiedtoothPolyDatas, validpointValues, validcellValues} = FineTunePiece(toothPolyDatas, currentSelectBracket, SurroundingBoxsPoints);
+	// 	const { pointValues, cellValues} = FineTunePiece(toothPolyDatas, currentSelectBracket, SurroundingBoxsPoints);
+	// 	// 得到一个修改后的单个牙齿面片组成数据，生成切割后的牙齿
+	// 	Tuneactor = reshowTune(pointValues, cellValues);
+	// 	generateBoxTool(vtkContext, Tuneactor);
+	// 	releaseBoxPositionAdjustMoveType();
+	// 	return;
+	// }
+	// if (
+	// 	!uploadType.value.includes("upper") &&
+	// 	toRaw(loadedBracketNameList.upper).includes(currentSelectBracket.name.value)
+	// 	// currentSelectBracket.name.value.startsWith("U")
+	// ) {
+	// 	proxy.$message({
+	// 		message: "上颌牙数据已递交, 无法继续修改",
+	// 		type: "error",
+	// 	});
+	// 	releaseTeethPositionAdjustMoveType();
+	// 	return;
+	// }
+	// if (
+	// 	!uploadType.value.includes("lower") &&
+	// 	toRaw(loadedBracketNameList.lower).includes(currentSelectBracket.name.value)
+	// 	// currentSelectBracket.name.value.startsWith("L")
+	// ) {
+	// 	proxy.$message({
+	// 		message: "下颌牙数据已递交, 无法继续修改",
+	// 		type: "error",
+	// 	});
+	// 	releaseTeethPositionAdjustMoveType();
+	// 	return;
+	// }
+	// 细调操作
+	if (store.state.actorHandleState.BoxSlicing.BoxPoints.length != 0){
+		let boxpoint = store.state.actorHandleState.BoxSlicing.BoxPoints; //有值
+		let boxpointsAdjust = [boxpoint.Point0, boxpoint.Point1, boxpoint.Point2, boxpoint.Point3, boxpoint.Point4, boxpoint.Point5, boxpoint.Point6, boxpoint.Point7];
+		boxpointsAdjust = fineTuneBoxPosition(moveType, boxpointsAdjust);
+		store.dispatch("actorHandleState/updateSurroudingBoxs", boxpointsAdjust);
+		actors = generateBox(boxpointsAdjust);
+		generateBoxTool(vtkContext, actors);
+	}
+}
+
+watch(boxPositionAdjustMoveType, (newValue) => {
+	if (newValue !== "" & newValue !== 'Generate' & newValue !== "TEMPRESET" & newValue !== "RESET") {
+		resetgenerateBoxTool(vtkContext, actors);
+		boxPositionAdjust(newValue);
+		releaseBoxPositionAdjustMoveType();
+	}
+	if (newValue == 'Generate'){
+		//删除形成的包围框
+		resetgenerateBoxTool(vtkContext, actors);
+
+		const SurroundingBoxsPoints = store.state.actorHandleState.BoxSlicing.boxPositionAdjust.BoxPoints;
+		const toothPosition = store.state.actorHandleState.BoxSlicing.SelectedPosition;
+		// //版本2
+		// const { validpointValues, validcellValues } = FineTunePiece(toothPolyDatas, currentSelectBracket, toothPosition, SurroundingBoxsPoints);
+		// const { actor, mapper, polyData } = generateActorByData({ validpointValues, validcellValues});
+		// //需要生成的单颗牙齿名称
+		// const ToothSlicingName = currentSelectBracket.name;
+		// allActorList[ToothSlicingName].tooth = {
+		// 	actor: actor,
+		// 	mapper: mapper,
+		// };
+		// const { pointValues, cellValues, copiedtoothPolyDatas, validpointValues, validcellValues} = FineTunePiece(toothPolyDatas, currentSelectBracket, toothPosition, SurroundingBoxsPoints);
+		const { pointValues, cellValues, truncatedValidcellValues} = FineTunePiece(toothPolyDatas, currentSelectBracket, toothPosition, SurroundingBoxsPoints);
+		// truncatedValidcellValues = FineTunePiece(toothPolyDatas, currentSelectBracket, toothPosition, SurroundingBoxsPoints);
+		
+		//得到一个修改后的单个牙齿面片组成数据，生成切割后的牙齿
+		const FineTuneactor = reshowTune(pointValues, truncatedValidcellValues);
+		// generateBoxTool(vtkContext, Tuneactor);
+		const { addActorsList, delActorsList } = actorShowStateUpdateSlicing(props.actorInScene, FineTuneactor);
+		actorInSceneAdjust(addActorsList, delActorsList);
+		releaseBoxPositionAdjustMoveType();
+	}
+	if (newValue == 'TEMPRESET'){
+		// const FineTuneactor = generateSlicingBoxReset();
+		// const { addActorsList, delActorsList } = actorShowStateUpdateSlicing(props.actorInScene, FineTuneactor);
+		const { addActorsList, delActorsList } = actorShowStateUpdateSlicingReset(props.actorInScene, toothPolyDatas, store, 'TEMPReset');
+		actorInSceneAdjust(addActorsList, delActorsList);
+		releaseBoxPositionAdjustMoveType();
+	}
+	if (newValue == 'RESET'){
+		const { addActorsList, delActorsList } = actorShowStateUpdateSlicingReset(props.actorInScene, toothPolyDatas, store, 'Reset');
+		actorInSceneAdjust(addActorsList, delActorsList);
+		releaseBoxPositionAdjustMoveType();
+	}
+});
+
+function generateSlicingBoxReset(){
+	const toothName = currentSelectBracket.name;
+	const pointValues = toothPolyDatas[toothName].getPoints().getData();
+	const cellValues = toothPolyDatas[toothName].getPolys().getData();
+	const FineTuneactor = reshowTune(pointValues, cellValues);
+	return {FineTuneactor}
+}
+
+function actorShowStateUpdateSlicingTEMPReset(){
+	const toothName = currentSelectBracket.name;
+	const pointValues = toothPolyDatas[toothName].getPoints().getData();
+	const cellValues = toothPolyDatas[toothName].getPolys().getData();
+	const FineTuneactor = reshowTune(pointValues, cellValues);
+}
+
+function generateActorByData({ pointValues, cellValues }) {
+        const polyData = vtkPolyData.newInstance();
+        polyData.getPoints().setData(pointValues);
+        polyData.getPolys().setData(cellValues);
+
+        const mapper = vtkMapper.newInstance();
+        mapper.setInputData(polyData);
+        const actor = vtkActor.newInstance();
+        actor.setMapper(mapper);
+        return { actor, mapper, polyData };
+    }
+
+// function reshowTune(copiedtoothPolyDatas){
+// 	const polydata = vtkPolyData.newInstance();
+// 	const points = vtkPoints.newInstance();
+
+// 	const cellArray = vtkCellArray.newInstance();
+	
+// 	const mapper = vtkMapper.newInstance();
+
+// 	const Tuneactor = vtkActor.newInstance();
+
+// 	for (let name in copiedtoothPolyDatas){
+// 		const pointValues = copiedtoothPolyDatas[name];
+// 		const cellValues = copiedtoothPolyDatas[name];
+// 		points.setData(Float32Array.from(pointValues));
+// 		polydata.setPoints(points);
+
+// 		const cellData = new Uint32Array(cellValues);
+// 		cellArray.setData(cellData);
+// 		polydata.setPolys(cellArray);
+
+// 		mapper.setInputData(polydata);
+
+// 		Tuneactor.setMapper(mapper);
+// 		Tuneactor.getProperty().setColor(1, 0, 0);
+// 		break;
+// 	}
+// 	return Tuneactor;
+// }
+function reshowTune(pointValues, cellValues){
+	const polydata = vtkPolyData.newInstance();
+	const points = vtkPoints.newInstance();
+	points.setData(Float32Array.from(pointValues));
+	polydata.setPoints(points);
+
+	const cellArray = vtkCellArray.newInstance();
+	const cellData = new Uint32Array(cellValues);
+    cellArray.setData(cellData);
+
+    polydata.setPolys(cellArray);
+
+	const mapper = vtkMapper.newInstance();
+	mapper.setInputData(polydata);
+
+	const Tuneactor = vtkActor.newInstance();
+	Tuneactor.setMapper(mapper);
+	Tuneactor.getProperty().setColor(1, 1, 1);
+	// Tuneactor.getProperty().setColor(colorConfig.teeth);
+    Tuneactor.getProperty().setOpacity(store.state.actorHandleState.toothOpacity);
+	// Tuneactor.getProperty().setOpacity(toothOpacity/100);
+
+	return Tuneactor;
+}
 
 // 用于监听显示/隐藏状态改变
 watch(props.actorInScene, (newVal) => {

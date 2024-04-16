@@ -182,6 +182,10 @@ $btn-height: 30px;
 						.unit-text {
 							color: #909399;
 						}
+						.unit-text.special {
+							color: black;
+							font-family: "Microsoft YaHei";
+						}
 					}
 					.adjust-button {
 						width: $btn-width;

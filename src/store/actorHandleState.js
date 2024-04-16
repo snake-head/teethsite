@@ -115,6 +115,9 @@ export default {
         },        setInitRootParams(context, value){
             context.commit("SetInitRootParams", value);
         },
+        setInitRootParams(context, value){
+            context.commit("SetInitRootParams", value);
+        },
         setInitRootFlag(context, value) {
             context.commit("SetInitRootFlag", value);
         },

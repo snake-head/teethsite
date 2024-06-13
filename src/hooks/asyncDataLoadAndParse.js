@@ -36,6 +36,8 @@ import {
 } from "../utils/tokenRequest";
 // import vtkRootHandleRepresentation from "../reDesignVtk/rootHandleWidget/RootHandleRepresentation";
 // import rootHandleWidget from "../reDesignVtk/rootHandleWidget";
+import vtkBracketWidget from '../reDesignVtk/Widgets/Widgets3D/BracketWidget'
+
 
 export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
     const {
@@ -1098,7 +1100,6 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
         }
     }
 
-    let postCenter = [];//变换后托槽的center（根据bbox计算），在step9中传入子线程
     /**
      * @description 根据给出数据构造对应actor并保存
      * @param teethType upper | lower
@@ -1139,22 +1140,21 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
         });
         // bracket
         Object.keys(bracket).forEach((name) => {
-            const { actor, mapper, polyData } = generateActorByData(
-                bracket[name]
+            const { widget, polyData } = generateBracketWidgetByData(
+                bracket[name],
+                name,
             );
 
             bracketPolyDatas[name] = polyData;
-            actor.getProperty().setColor(actorColorConfig.bracket.default);
+            // actor.getProperty().setColor(actorColorConfig.bracket.default);
             // 初始为normal模式,设置为[mat1,mat3], mat3是单位矩阵, 因此就是mat1
-            actor.setUserMatrix(userMatrixList.mat1[name]);
-            
-            let center=[0,0,0]
-            const bounds = actor.getBounds()
-            for (let i = 0; i < 3; i++) {
-                center[i] = (bounds[2 * i + 1] + bounds[2 * i]) / 2.0;
-            }
-            postCenter[name] = center;
-            allActorList[teethType].bracket.push({ name, actor, mapper });
+            // actor.setUserMatrix(userMatrixList.mat1[name]);
+            allActorList[teethType].bracket.push({ 
+                name, 
+                widget, 
+                color: actorColorConfig.bracket.default,
+                userMatrix: userMatrixList.mat1[name],
+            });
         });
         // originBracket
         Object.keys(bracket).forEach((name) => {
@@ -1179,6 +1179,24 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
         const actor = vtkActor.newInstance();
         actor.setMapper(mapper);
         return { actor, mapper, polyData };
+    }
+    function generateBracketWidgetByData({ pointValues, cellValues }, name) {
+        const polyData = vtkPolyData.newInstance();
+        polyData.getPoints().setData(pointValues);
+        polyData.getPolys().setData(cellValues);
+        const widget = vtkBracketWidget.newInstance({
+            pointValues,
+            cellValues,
+            pointType: 'Float32Array',
+            generate3DTextureCoordinates: false,
+            generateFaces: true,
+            generateLines: false,
+            activeColor: [25, 204, 25],
+            activeScaleFactor: 1,
+            store,
+            name,
+        });
+        return { widget, polyData };
     }
 
     /**
@@ -1607,7 +1625,6 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                             currentStep[teethType]++;
                             worker.postMessage({
                                 step: 9,
-                                postCenter,
                             });
                         }
                         break;

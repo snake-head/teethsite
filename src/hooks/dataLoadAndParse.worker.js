@@ -1718,7 +1718,7 @@ function generateTeethActor() {
 }
 
 // step9
-function generateTeethAxisActor(postCenter) {
+function generateTeethAxisActor() {
     const retData = {
         step: 9, // 当前正在执行第9步
         toNext: false, // 是否继续执行下一步
@@ -1791,7 +1791,6 @@ function generateTeethAxisActor(postCenter) {
                 1
             );
             const lineActor = initDistanceLine(
-                // postCenter[name],
                 center,
                 startPoint,
                 endPoint,
@@ -2025,8 +2024,7 @@ self.onmessage = function(event) {
             break;
         }
         case 9: {
-            const {postCenter} = event.data;
-            generateTeethAxisActor(postCenter);
+            generateTeethAxisActor();
             break;
         }
         case 10: {

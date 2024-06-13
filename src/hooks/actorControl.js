@@ -58,17 +58,17 @@ export default function(allActorList) {
     function resetActorsColor() {
         const { actor: currentSelectBracketActor } = currentSelectBracket;
         for (let teethType of ["upper", "lower"]) {
-            allActorList[teethType].bracket.forEach((item) => {
-                const { actor } = item;
-                if (currentSelectBracketActor !== actor) {
-                    actor.getProperty().setColor(colorConfig.bracket.default);
-                }
-            });
+            // allActorList[teethType].bracket.forEach((item) => {
+            //     const { actor } = item;
+            //     if (currentSelectBracketActor !== actor) {
+            //         actor.getProperty().setColor(colorConfig.bracket.default);
+            //     }
+            // });
             // 长轴点球体颜色重置
-            allActorList[teethType].distanceLine.forEach((item) => {
+            // allActorList[teethType].distanceLine.forEach((item) => {
                 // item.startPointRep.highlight(0);
                 // item.endPointRep.highlight(0);
-            });
+            // });
         }
     }
 
@@ -95,22 +95,22 @@ export default function(allActorList) {
         for (let teethType of ["upper", "lower"]) {
             // 如果鼠标下不是当前操作托槽, 则找到对应托槽actor并高亮
             // 遍历托槽actor找对应, 如果无对应则说明鼠标下是牙龈或者单牙齿actor, 则没有变更
-            allActorList[teethType].bracket.forEach((item) => {
-                const { actor } = item;
-                if (actor === prop) {
-                    prop.getProperty().setColor(colorConfig.bracket.hover);
-                }
-            });
+            // allActorList[teethType].bracket.forEach((item) => {
+            //     const { actor } = item;
+            //     if (actor === prop) {
+            //         prop.getProperty().setColor(colorConfig.bracket.hover);
+            //     }
+            // });
             // 如果是长轴点球体也要变更
-            allActorList[teethType].distanceLine.forEach((item) => {
-                const { startPointRep, endPointRep } = item;
+            // allActorList[teethType].distanceLine.forEach((item) => {
+            //     const { startPointRep, endPointRep } = item;
                 // if (startPointRep.getActor() === prop) {
                 //     startPointRep.highlight(1);
                 // }
                 // if (endPointRep.getActor() === prop) {
                 //     endPointRep.highlight(1);
                 // }
-            });
+            // });
         }
     }
 
@@ -154,18 +154,18 @@ export default function(allActorList) {
         // 遍历托槽actor找对应, 如果无对应则说明鼠标双击下是牙龈或者单牙齿actor, 此时更新为null
         for (let teethType of ["upper", "lower"]) {
             allActorList[teethType].bracket.forEach((item) => {
-                if (item[propKey] === selection) {
-                    // 更新 currentSelectBracket
-                    currentSelectBracket.actor = item.actor;
-                    currentSelectBracket.name = item.name;
-                    // 重置颜色
-                    resetActorsColor();
-                    item.actor
-                        .getProperty()
-                        .setColor(colorConfig.bracket.active);
-                    // 选择新托槽
-                    findMatch = true;
-                }
+                // if (item[propKey] === selection) {
+                //     // 更新 currentSelectBracket
+                //     currentSelectBracket.actor = item.actor;
+                //     currentSelectBracket.name = item.name;
+                //     // 重置颜色
+                //     resetActorsColor();
+                //     item.actor
+                //         .getProperty()
+                //         .setColor(colorConfig.bracket.active);
+                //     // 选择新托槽
+                //     findMatch = true;
+                // }
             });
         }
         // 如果上述未找到托槽, 则当前选中置空并重置颜色
@@ -353,6 +353,8 @@ export default function(allActorList) {
         };
         const addActorsList = []; // 根据状态对比(false->true),生成应该加入屏幕的actor列表
         const delActorsList = []; // 根据状态对比(true->false),生成应该移出屏幕的actor列表
+        const addWidgetsList = [];
+        const delWidgetsList = [];
 
         for (let teethType of ["upper", "lower"]) {
             if (!isInSimulationMode) {
@@ -412,7 +414,7 @@ export default function(allActorList) {
                 !preActorInScene[teethType].bracket
             ) {
                 allActorList[teethType].bracket.forEach((item) => {
-                    addActorsList.push(item.actor);
+                    addWidgetsList.push(item);
                 });
             }
             if (
@@ -420,7 +422,7 @@ export default function(allActorList) {
                 preActorInScene[teethType].bracket
             ) {
                 allActorList[teethType].bracket.forEach((item) => {
-                    delActorsList.push(item.actor);
+                    delWidgetsList.push(item);
                 });
             }
 
@@ -553,7 +555,7 @@ export default function(allActorList) {
         // 更新pre状态为cur状态
         preActorInScene = curActorInScene;
         // 返回
-        return { addActorsList, delActorsList };
+        return { addActorsList, delActorsList, addWidgetsList, delWidgetsList };
     }
 
     /**
@@ -864,9 +866,9 @@ export default function(allActorList) {
                     break;
                 }
                 case "bracket": {
-                    allActorList[teethType].bracket.forEach((item) => {
-                        item.actor.getProperty().setOpacity(opacity);
-                    });
+                    // allActorList[teethType].bracket.forEach((item) => {
+                    //     item.actor.getProperty().setOpacity(opacity);
+                    // });
                     break;
                 }
                 case "arch": {

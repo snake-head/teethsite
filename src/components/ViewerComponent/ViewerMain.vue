@@ -922,6 +922,39 @@ const dentalArchSettings = store.state.actorHandleState.teethArrange.dentalArchS
 function updateSelectBracket(bracketName) {
 	store.dispatch("actorHandleState/updateCurrentSelectBracketName", bracketName);
 }
+const currentSelectBracketName = computed(() => store.state.actorHandleState.currentSelectBracketName);
+watch(currentSelectBracketName, (newValue)=>{
+	// 托槽使用widget管理后，通过监视vuex状态传递信息
+	if (newValue !== "") {
+		focusOnSelectedBracket(); // 聚焦
+	}
+	lockSelectedBracket(); // 选中的托槽不再有悬浮高亮
+})
+function lockSelectedBracket(){
+	let name = currentSelectBracketName.value
+	// 查找选中的 bracket
+	let allBracket = [...allActorList['upper'].bracket, ...allActorList['lower'].bracket]
+	let selectedBracket = allBracket.filter(({ name: bracketName }) => bracketName === name)[0];
+	// 如果找到了选中的 bracket，则进行处理
+	if (selectedBracket) {
+		let { widgetHandle } = selectedBracket;
+
+		// 将选中的 widgetHandle 设置为 false
+		widgetHandle.setPickable(false);
+
+		// 将所有其他 widgetHandles 设置为 true
+		allBracket.forEach(({ widgetHandle: otherWidgetHandle }) => {
+			if (otherWidgetHandle !== widgetHandle) {
+				otherWidgetHandle.setPickable(true);
+			}
+		});
+	} else {
+		// 如果没有找到选中的 bracket，则将所有 widgetHandles 设置为 true
+		allBracket.forEach(({ widgetHandle }) => {
+			widgetHandle.setPickable(true);
+		});
+	}
+}
 const teethPositionAdjustStep = computed(() => store.state.actorHandleState.teethPositionAdjust.step);
 const teethPositionAdjustAngle = computed(() => store.state.actorHandleState.teethPositionAdjust.angle);
 const teethPositionAdjustMoveType = computed(() => store.state.actorHandleState.teethPositionAdjustMoveType);
@@ -1464,7 +1497,7 @@ function updateSelectedBracketActor(selections) {
 
 	updateDbClickSelectedActor(selections);
 	segToothWindowFlush();
-	updateSelectBracket(currentSelectBracket.name);
+	// updateSelectBracket(currentSelectBracket.name);
 	if (currentSelectBracket.actor !== null) {
 		focusOnSelectedBracket();
 	}
@@ -1733,8 +1766,9 @@ function reshowTune(pointValues, cellValues){
 
 // 用于监听显示/隐藏状态改变
 watch(props.actorInScene, (newVal) => {
-	const { addActorsList, delActorsList } = actorShowStateUpdateFusion(newVal, fineTuneMode.value !== "normal");
+	const { addActorsList, delActorsList, addWidgetsList, delWidgetsList } = actorShowStateUpdateFusion(newVal, fineTuneMode.value !== "normal");
 	actorInSceneAdjust(addActorsList, delActorsList);
+	widgetInSceneAdjust(addWidgetsList, delWidgetsList);
 	if (vtkContext && !initRenderCamera) {
 		const { renderWindow, renderer } = vtkContext;
 		// 初始加载需要调整一次镜头
@@ -1933,6 +1967,37 @@ function actorInSceneAdjust(addActorsList, delActorsList) {
 }
 
 /**
+ * @description 根据添加列表和移除列表调整屏幕中的widget
+ */
+ function widgetInSceneAdjust(addWidgetsList, delWidgetsList) {
+	if (vtkContext) {
+		const { renderWindow, renderer, widgetManager } = vtkContext;
+		// 添加actor
+		addWidgetsList.forEach((item) => {
+			if (item.widget) {
+				const widgetHandle = widgetManager.addWidget(item.widget);
+				widgetHandle.setScaleInPixels(false)
+				// widgetHandle.setPickable(false)
+                // console.log(widgetHandle.getRadius())
+				const actor = widgetHandle.getRepresentations()[0].getActor()
+				actor.setUserMatrix(item.userMatrix)
+				actor.getProperty().setColor(0,0,1);
+                widgetHandle.setCenter([0,0,0])
+				item.widgetHandle = widgetHandle
+				item.actor = actor // 存到allActorList里面
+			}
+		});
+		delWidgetsList.forEach(({widget}) => {
+			if (widget) {
+				widgetManager.removeWidget(widget);
+			}
+		});
+		renderWindow.render();
+	}
+}
+
+
+/**
  * @description 当更新currentSelectedBracket时调用, 在子窗口中显示对应牙齿+托槽
  * camera distance: 焦点的屏幕深度
  * removeAllActors->addActor*2->镜头设置
@@ -1955,7 +2020,8 @@ function segToothWindowFlush() {
 		}
 
 		// 托槽初始读入的各项配置(所有托槽统一)
-		let { name } = currentSelectBracket;
+		// let { name } = currentSelectBracket;
+		let name = currentSelectBracketName.value
 		let curTeethType = toRaw(loadedBracketNameList.upper).includes(name) ? "upper" : "lower";
 		let focalPoint = [0, 0, 0]; // 镜头中心对准托槽中心
 		let viewUp = [curTeethType === "upper" ? -1 : 1, 0, 0]; // 镜头向上打的角度向量
@@ -2208,7 +2274,8 @@ function focusOnSelectedBracket() {
 	const { renderWindow, renderer } = vtkContext;
 
 	// 托槽初始读入的各项配置(所有托槽统一)
-	let { name } = currentSelectBracket;
+	// let { name } = currentSelectBracket;
+	let name = currentSelectBracketName.value
 	let curTeethType = toRaw(loadedBracketNameList.upper).includes(name) ? "upper" : "lower";
 	let focalPoint = [0, 0, 0]; // 镜头中心对准托槽中心
 	let viewUp = [curTeethType === "upper" ? -1 : 1, 0, 0]; // 镜头向上打的角度向量

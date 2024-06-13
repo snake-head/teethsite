@@ -4,7 +4,7 @@
  * @Autor: ZhuYichen
  * @Date: 2022-09-27 11:03:07
  * @LastEditors: ZhuYichen
- * @LastEditTime: 2024-01-26 21:14:11
+ * @LastEditTime: 2024-06-12 20:23:27
  */
 module.exports = {
     lintOnSave: false, // 关闭语法检查
@@ -58,6 +58,13 @@ module.exports = {
             .end();
         config.module.rule("js").exclude.add(/\.worker\.js$/);
     },
+    configureWebpack: {
+        resolve: {
+          fallback: {
+            timers: false
+          }
+        }
+      },
     // chainWebpack: config => {
     //     // 配置
     //     config.module

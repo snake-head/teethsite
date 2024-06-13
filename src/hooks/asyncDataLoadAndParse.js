@@ -15,8 +15,8 @@ import { normalize, cross, subtract, multiplyScalar, add } from "@kitware/vtk.js
 import vtkImageMapper from "@kitware/vtk.js/Rendering/Core/ImageMapper";
 import vtkImageSlice from "@kitware/vtk.js/Rendering/Core/ImageSlice";
 import vtkImageHelper from "@kitware/vtk.js/Common/Core/ImageHelper";
-import vtkHandleWidget from "../reDesignVtk/reDesignHandleWidget";
-import vtkSphereHandleRepresentation from "../reDesignVtk/reDesignSphereHandleRepresentation";
+// import vtkHandleWidget from "../reDesignVtk/reDesignHandleWidget";
+// import vtkSphereHandleRepresentation from "../reDesignVtk/reDesignSphereHandleRepresentation";
 import Constants from "@kitware/vtk.js/Rendering/Core/ImageMapper/Constants";
 import distanceLineControl from "./distanceLineControl";
 import {
@@ -34,8 +34,8 @@ import {
     getRequestWithToken,
     sendRequestWithToken,
 } from "../utils/tokenRequest";
-import vtkRootHandleRepresentation from "../reDesignVtk/rootHandleWidget/RootHandleRepresentation";
-import rootHandleWidget from "../reDesignVtk/rootHandleWidget";
+// import vtkRootHandleRepresentation from "../reDesignVtk/rootHandleWidget/RootHandleRepresentation";
+// import rootHandleWidget from "../reDesignVtk/rootHandleWidget";
 
 export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
     const {
@@ -512,7 +512,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
             ),
         }).then((resp) => {
             if(resp.data.data[0].webtheme==1){
-                store.dispatch("userHandleState/updateThemeType", "new");
+                store.dispatch("userHandleState/updateThemeType", "origin");
                 const currentBaseUrl = process.env.BASE_URL;
                 const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
                 link.type = 'image/x-icon';
@@ -1283,59 +1283,59 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
             const dependingPoints = new Float32Array(
                 toothPolyDatas[name].getPoints().getData()
             );
-            const startPointRep = vtkSphereHandleRepresentation.newInstance({
-                sphereInitValue: {
-                    radius: 0.25,
-                    center: startPoint,
-                },
-                defaultColor: [0.25, 0.25, 0.8],
-                activeColor: [0.8, 0.25, 0.25],
-                dependingPoints,
-                updatePosFunc: (updatedPoint, renderer, renderWindow) =>
-                    updateLongAxisPoint(
-                        teethType,
-                        name,
-                        "start",
-                        updatedPoint,
-                        renderer,
-                        renderWindow
-                    ),
-            });
-            const startPointWidget = vtkHandleWidget.newInstance({
-                allowHandleResize: 0,
-                widgetRep: startPointRep,
-            });
+            // const startPointRep = vtkSphereHandleRepresentation.newInstance({
+            //     sphereInitValue: {
+            //         radius: 0.25,
+            //         center: startPoint,
+            //     },
+            //     defaultColor: [0.25, 0.25, 0.8],
+            //     activeColor: [0.8, 0.25, 0.25],
+            //     dependingPoints,
+            //     updatePosFunc: (updatedPoint, renderer, renderWindow) =>
+            //         updateLongAxisPoint(
+            //             teethType,
+            //             name,
+            //             "start",
+            //             updatedPoint,
+            //             renderer,
+            //             renderWindow
+            //         ),
+            // });
+            // const startPointWidget = vtkHandleWidget.newInstance({
+            //     allowHandleResize: 0,
+            //     widgetRep: startPointRep,
+            // });
 
-            const endPointRep = vtkSphereHandleRepresentation.newInstance({
-                sphereInitValue: {
-                    radius: 0.25,
-                    center: endPoint,
-                },
-                defaultColor: [0.25, 0.8, 0.25],
-                activeColor: [0.8, 0.25, 0.25],
-                dependingPoints,
-                updatePosFunc: (updatedPoint, renderer, renderWindow) =>
-                    updateLongAxisPoint(
-                        teethType,
-                        name,
-                        "end",
-                        updatedPoint,
-                        renderer,
-                        renderWindow
-                    ),
-            });
-            const endPointWidget = vtkHandleWidget.newInstance({
-                allowHandleResize: 0,
-                widgetRep: endPointRep,
-            });
+            // const endPointRep = vtkSphereHandleRepresentation.newInstance({
+            //     sphereInitValue: {
+            //         radius: 0.25,
+            //         center: endPoint,
+            //     },
+            //     defaultColor: [0.25, 0.8, 0.25],
+            //     activeColor: [0.8, 0.25, 0.25],
+            //     dependingPoints,
+            //     updatePosFunc: (updatedPoint, renderer, renderWindow) =>
+            //         updateLongAxisPoint(
+            //             teethType,
+            //             name,
+            //             "end",
+            //             updatedPoint,
+            //             renderer,
+            //             renderWindow
+            //         ),
+            // });
+            // const endPointWidget = vtkHandleWidget.newInstance({
+            //     allowHandleResize: 0,
+            //     widgetRep: endPointRep,
+            // });
 
             allActorList[teethType].distanceLine.push({
                 name,
                 lineActorItem,
-                startPointRep,
-                startPointWidget,
-                endPointRep,
-                endPointWidget,
+                // startPointRep,
+                // startPointWidget,
+                // endPointRep,
+                // endPointWidget,
             });
             // 写入距离列表
             distanceMessageList.forEach((itemList) => {
@@ -1388,6 +1388,8 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                         }
                         const { toNext } = event.data;
                         if (toNext) {
+                            console.log(event.data)
+                            console.log(4, teethType, currentStep[teethType])
                             currentStep[teethType]++;
                             worker.postMessage({ step: 4 });
                         }
@@ -1471,7 +1473,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                                     }
                                 );
                             }
-
+                            console.log(6, teethType, currentStep[teethType])
                             currentStep[teethType]++;
                             worker.postMessage({
                                 step: 6,
@@ -1516,6 +1518,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                         }
                         const { toNext } = event.data;
                         if (toNext) {
+                            console.log(7, teethType, currentStep[teethType])
                             currentStep[teethType]++;
                             worker.postMessage({ step: 7 });
                         }
@@ -1531,6 +1534,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                         }
                         const { toNext } = event.data;
                         if (toNext) {
+                            console.log(8, teethType, currentStep[teethType])
                             currentStep[teethType]++;
                             worker.postMessage({ step: 8 });
                         }
@@ -1565,7 +1569,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                             // //------------------------------------------------
 
                             for (let name in event.data.bracketData) {
-                                const {
+                                let {
                                     direction,
                                     position,
                                     fineTuneRecord,
@@ -1599,6 +1603,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                                 teethType,
                                 event.data.allActorList
                             );
+                            console.log(9, teethType, currentStep[teethType])
                             currentStep[teethType]++;
                             worker.postMessage({
                                 step: 9,
@@ -1637,6 +1642,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                             );
                             // worker.terminate();
                             currentStep[teethType]++;
+                            
                             worker.postMessage({
                                 step: 10,
                             });
@@ -1656,21 +1662,21 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                             const { root, rootGenerate, originRoot } = event.data.allActorList
                             root.forEach(({toothName, bottomSphereCenter, topSphereCenter, radiusSphereCenter})=>{
                                 //制造牙根底部、牙根顶部、牙根半径三个小球
-                                const rootRep = vtkRootHandleRepresentation.newInstance({
-                                    rootInitValue: {
-                                        bottomSphereCenter,
-                                        topSphereCenter,
-                                        radiusSphereCenter,
-                                    },
-                                });
-                                const rootWidget = rootHandleWidget.newInstance({
-                                    allowHandleResize: 1,
-                                    widgetRep: rootRep,
-                                });
+                                // const rootRep = vtkRootHandleRepresentation.newInstance({
+                                //     rootInitValue: {
+                                //         bottomSphereCenter,
+                                //         topSphereCenter,
+                                //         radiusSphereCenter,
+                                //     },
+                                // });
+                                // const rootWidget = rootHandleWidget.newInstance({
+                                //     allowHandleResize: 1,
+                                //     widgetRep: rootRep,
+                                // });
                                 allActorList[teethType].root.push({
                                     toothName,
-                                    rootRep,
-                                    rootWidget,
+                                    // rootRep,
+                                    // rootWidget,
                                 })
                             })
                             store.dispatch(

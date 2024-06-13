@@ -5,8 +5,8 @@ import {
     normalize,
     subtract,
 } from "@kitware/vtk.js/Common/Core/Math";
-import vtkRootHandleRepresentation from "../reDesignVtk/rootHandleWidget/RootHandleRepresentation";
-import rootHandleWidget from "../reDesignVtk/rootHandleWidget";
+// import vtkRootHandleRepresentation from "../reDesignVtk/rootHandleWidget/RootHandleRepresentation";
+// import rootHandleWidget from "../reDesignVtk/rootHandleWidget";
 import { reactive, computed, watch, inject } from "vue";
 import { useStore } from "vuex";
 import {
@@ -77,22 +77,22 @@ export default function(allActorList,toothPolyDatas,bracketData) {
                 }
                 
                 //制造牙根底部、牙根顶部、牙根半径三个小球
-                const rootRep = vtkRootHandleRepresentation.newInstance({
-                    rootInitValue: {
-                        bottomSphereCenter: rootBottomPoint,
-                        topSphereCenter: rootTopPoint,
-                        radiusSphereCenter: rootRadiusPoint
-                    },
-                });
-                const rootWidget = rootHandleWidget.newInstance({
-                    allowHandleResize: 1,
-                    widgetRep: rootRep,
-                });
-                allActorList[teethType].root.push({
-                    toothName,
-                    rootRep,
-                    rootWidget,
-                })
+                // const rootRep = vtkRootHandleRepresentation.newInstance({
+                //     rootInitValue: {
+                //         bottomSphereCenter: rootBottomPoint,
+                //         topSphereCenter: rootTopPoint,
+                //         radiusSphereCenter: rootRadiusPoint
+                //     },
+                // });
+                // const rootWidget = rootHandleWidget.newInstance({
+                //     allowHandleResize: 1,
+                //     widgetRep: rootRep,
+                // });
+                // allActorList[teethType].root.push({
+                //     toothName,
+                //     rootRep,
+                //     rootWidget,
+                // })
             }
         }
     }

@@ -34,8 +34,8 @@ import {
     setUserIdHeader,
     sendRequestWithToken,
 } from "../utils/tokenRequest";
-import vtkRootHandleRepresentation from "../reDesignVtk/rootHandleWidget/RootHandleRepresentation";
-import rootHandleWidget from "../reDesignVtk/rootHandleWidget";
+// import vtkRootHandleRepresentation from "../reDesignVtk/rootHandleWidget/RootHandleRepresentation";
+// import rootHandleWidget from "../reDesignVtk/rootHandleWidget";
 // import XML from '@kitware/vtk.js/IO/XML';
 
 let token = "";
@@ -1101,6 +1101,7 @@ function downloadModel() {
         onDownloadProgress: (e) => {
             stepConfig.state.progress =
                 Math.ceil((e.loaded / e.total) * 100) + "%";
+            retData.toNext = false;
             self.postMessage({ ...retData, ...stepConfig.state }); // 返回下载进度
         },
         headers: {
@@ -1376,6 +1377,7 @@ function downloadBracketData(browser) {
         responseType: "arraybuffer",
         onDownloadProgress: (e) => {
             stepConfig.state.progress = "(已下载:" + e.loaded + ")";
+            retData.toNext = false;
             self.postMessage({ ...retData, ...stepConfig.state });
         },
     };

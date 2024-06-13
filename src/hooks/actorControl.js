@@ -66,8 +66,8 @@ export default function(allActorList) {
             });
             // 长轴点球体颜色重置
             allActorList[teethType].distanceLine.forEach((item) => {
-                item.startPointRep.highlight(0);
-                item.endPointRep.highlight(0);
+                // item.startPointRep.highlight(0);
+                // item.endPointRep.highlight(0);
             });
         }
     }
@@ -104,12 +104,12 @@ export default function(allActorList) {
             // 如果是长轴点球体也要变更
             allActorList[teethType].distanceLine.forEach((item) => {
                 const { startPointRep, endPointRep } = item;
-                if (startPointRep.getActor() === prop) {
-                    startPointRep.highlight(1);
-                }
-                if (endPointRep.getActor() === prop) {
-                    endPointRep.highlight(1);
-                }
+                // if (startPointRep.getActor() === prop) {
+                //     startPointRep.highlight(1);
+                // }
+                // if (endPointRep.getActor() === prop) {
+                //     endPointRep.highlight(1);
+                // }
             });
         }
     }
@@ -217,9 +217,9 @@ export default function(allActorList) {
                 addActorsList.push(actor);
             });
             // 长轴点显示
-            distWidgets.forEach((widget) => {
-                widget.setEnabled(1);
-            });
+            // distWidgets.forEach((widget) => {
+            //     widget.setEnabled(1);
+            // });
         }
 
         // 如果之前有选中托槽则可能需要移除(如果上颌牙隐藏,之前选中上颌牙托槽, 则没有actor需要移除)
@@ -254,9 +254,9 @@ export default function(allActorList) {
                 delActorsList.push(actor);
             });
             // 长轴点隐藏
-            distWidgets.forEach((widget) => {
-                widget.setEnabled(0);
-            });
+            // distWidgets.forEach((widget) => {
+            //     widget.setEnabled(0);
+            // });
         }
         return { addActorsList, delActorsList };
     }

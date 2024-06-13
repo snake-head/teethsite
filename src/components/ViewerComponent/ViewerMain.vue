@@ -1,6 +1,7 @@
 <template>
 	<div :class="themeType">
 		<div class="right-side-menu" :class="showRightSidemenu ? 'show' : 'hide'">
+			<button @click="addSphere">Add SphereWidget</button>
 			<el-tabs class="demo-tabs" v-model="activeTable" type="card">
 				<el-tab-pane class="demo-tab-pane" label="垂直向高度(mm)" name="distance">
 					<div class="distance-table">
@@ -92,8 +93,8 @@ import vtkAxesActor from "@kitware/vtk.js/Rendering/Core/AxesActor";
 import vtkInteractorStyleImage from "../../reDesignVtk/reDesignInteractorStyleImage";
 import vtkInteractorStyleTrackballCameraNew from "../../reDesignVtk/reDesignInteractorStyleTrackballCamera";
 
-import vtkSphereLinkHandleRepresentation from "../../reDesignVtk/dentalArchHandleWidget/SphereLinkHandleRepresentation";
-import dentalArchHandleWidget from "../../reDesignVtk/dentalArchHandleWidget";
+// import vtkSphereLinkHandleRepresentation from "../../reDesignVtk/dentalArchHandleWidget/SphereLinkHandleRepresentation";
+// import dentalArchHandleWidget from "../../reDesignVtk/dentalArchHandleWidget";
 
 import actorControl, { colorConfig } from "../../hooks/actorControl";
 import rootFunc from "../../hooks/rootFunc";
@@ -126,6 +127,8 @@ import vtkCellArray from "@kitware/vtk.js/Common/Core/CellArray";
 import vtkPoints from "@kitware/vtk.js/Common/Core/Points";
 import vtkActor from "@kitware/vtk.js/Rendering/Core/Actor";
 import vtkMapper from "@kitware/vtk.js/Rendering/Core/Mapper";
+import vtkWidgetManager from '@kitware/vtk.js/Widgets/Core/WidgetManager';
+import vtkSphereWidget from '@kitware/vtk.js/Widgets/Widgets3D/SphereWidget';
 
 
 const props = defineProps({
@@ -329,6 +332,17 @@ watch(currentShowPanel, (newVal, oldVal) => {
 		resetSurroundingBoxsPoints();
 	}
 });
+let widget = null;
+let widgetHandle = null;
+function addSphere(){
+	const {widgetManager} = vtkContext;
+
+	widgetManager.releaseFocus(widget);
+	widget = vtkSphereWidget.newInstance();
+	// widget.placeWidget(cube.getOutputData().getBounds());
+	widgetHandle = widgetManager.addWidget(widget);
+	widgetManager.grabFocus(widget);
+}
 let dentalArchWidgets = {}; // 每次调整后再排牙后需要重新设置
 let initFittingCenters = {};
 /**
@@ -399,12 +413,12 @@ function regenerateDentalArchWidget(specTeethType = [], firstGenerate = false) {
 		
 
 		// 构造widget
-		const sphereLinkRep = vtkSphereLinkHandleRepresentation.newInstance({
-			sphereLinkInitValue: {
-				leftSphereCenter: aheadCenterCoordsOfStandardTeethAxis,
-				rightSphereCenter: behindCenterCoordsOfStandardTeethAxis,
-			},
-		});
+		// const sphereLinkRep = vtkSphereLinkHandleRepresentation.newInstance({
+		// 	sphereLinkInitValue: {
+		// 		leftSphereCenter: aheadCenterCoordsOfStandardTeethAxis,
+		// 		rightSphereCenter: behindCenterCoordsOfStandardTeethAxis,
+		// 	},
+		// });
 		const afterModifyLinkLength = (pos) => {
 			let leftCenter = [...pos[0]],
 				rightCenter = [...pos[1]];
@@ -422,25 +436,25 @@ function regenerateDentalArchWidget(specTeethType = [], firstGenerate = false) {
 				},
 			});
 		};
-		const sphereLinkWidget = dentalArchHandleWidget.newInstance({
-			allowHandleResize: 0,
-			widgetRep: sphereLinkRep,
-			afterModifyLinkLength,
-		});
-		sphereLinkWidget.setInteractor(vtkContext.interactor);
-		dentalArchWidgets[teethType].push({
-			name: { left: "D0", right: "D1" },
-			invMatrix: {
-				left: invMatrix,
-				right: invMatrix,
-			},
-			sphereLinkRep,
-			sphereLinkWidget,
-			resetCenter: {
-				left: [...aheadCenterCoordsOfStandardTeethAxis],
-				right: [...behindCenterCoordsOfStandardTeethAxis],
-			}, // 初始位置(重置用)
-		});
+		// const sphereLinkWidget = dentalArchHandleWidget.newInstance({
+		// 	allowHandleResize: 0,
+		// 	widgetRep: sphereLinkRep,
+		// 	afterModifyLinkLength,
+		// });
+		// sphereLinkWidget.setInteractor(vtkContext.interactor);
+		// dentalArchWidgets[teethType].push({
+		// 	name: { left: "D0", right: "D1" },
+		// 	invMatrix: {
+		// 		left: invMatrix,
+		// 		right: invMatrix,
+		// 	},
+		// 	sphereLinkRep,
+		// 	sphereLinkWidget,
+		// 	resetCenter: {
+		// 		left: [...aheadCenterCoordsOfStandardTeethAxis],
+		// 		right: [...behindCenterCoordsOfStandardTeethAxis],
+		// 	}, // 初始位置(重置用)
+		// });
 		for (let i = lrBracketNames[lessBracketSide].length - 1; i >= 1; i -= 2) {
 			// fineTuneRecord.actorMatrix.center: 托槽在牙齿上的最新位置
 			// 即托槽读入后(在原点位)经过mat1和mat3转换后的位置
@@ -496,13 +510,13 @@ function regenerateDentalArchWidget(specTeethType = [], firstGenerate = false) {
 			// 调整时需要反变换回去
 			// 2023.5.31更新：使左右小球对称分布
 			var symmetricPoint = calculateSymmetric(aheadCenterCoordsOfStandardTeethAxis,behindCenterCoordsOfStandardTeethAxis,leftSphereCenter)
-			const sphereLinkRep = vtkSphereLinkHandleRepresentation.newInstance({
-				sphereLinkInitValue: {
-					leftSphereCenter,
-					// rightSphereCenter
-					rightSphereCenter:symmetricPoint,
-				},
-			});
+			// const sphereLinkRep = vtkSphereLinkHandleRepresentation.newInstance({
+			// 	sphereLinkInitValue: {
+			// 		leftSphereCenter,
+			// 		// rightSphereCenter
+			// 		rightSphereCenter:symmetricPoint,
+			// 	},
+			// });
 			const afterModifyLinkLength = (pos) => {
 				// 得到当前小球显示的中心点
 				let leftCenter = [...pos[0]];
@@ -528,28 +542,28 @@ function regenerateDentalArchWidget(specTeethType = [], firstGenerate = false) {
 					},
 				});
 			};
-			const sphereLinkWidget = dentalArchHandleWidget.newInstance({
-				allowHandleResize: 0,
-				widgetRep: sphereLinkRep,
-				afterModifyLinkLength,
-			});
-			sphereLinkWidget.setInteractor(vtkContext.interactor);
-			dentalArchWidgets[teethType].push({
-				name: {
-					left: lrBracketNames.left[i],
-					right: lrBracketNames.right[i],
-				},
-				invMatrix: {
-					left: invLeftTransMatrix,
-					right: invRightTransMatrix,
-				},
-				sphereLinkRep,
-				sphereLinkWidget,
-				resetCenter: {
-					left: [...leftSphereCenter],
-					right: [...symmetricPoint],
-				}, // 初始位置(重置用)
-			});
+			// const sphereLinkWidget = dentalArchHandleWidget.newInstance({
+			// 	allowHandleResize: 0,
+			// 	widgetRep: sphereLinkRep,
+			// 	afterModifyLinkLength,
+			// });
+			// sphereLinkWidget.setInteractor(vtkContext.interactor);
+			// dentalArchWidgets[teethType].push({
+			// 	name: {
+			// 		left: lrBracketNames.left[i],
+			// 		right: lrBracketNames.right[i],
+			// 	},
+			// 	invMatrix: {
+			// 		left: invLeftTransMatrix,
+			// 		right: invRightTransMatrix,
+			// 	},
+			// 	sphereLinkRep,
+			// 	sphereLinkWidget,
+			// 	resetCenter: {
+			// 		left: [...leftSphereCenter],
+			// 		right: [...symmetricPoint],
+			// 	}, // 初始位置(重置用)
+			// });
 		}
 	}
 	store.dispatch("actorHandleState/updateDentalArchAdjustRecord", initFittingCenters);
@@ -1173,30 +1187,33 @@ onMounted(() => {
 		hardwareSelector.setFieldAssociation(FieldAssociations.FIELD_ASSOCIATION_POINTS);
 
 		//#region 在左下角显示xyz坐标系方向
-		const axes = vtkAxesActor.newInstance();
-		axes.setXAxisColor(205, 50, 50);
-		axes.setYAxisColor(50, 205, 50);
-		axes.setZAxisColor(50, 50, 205);
-		axes.setConfig({
-			invert: false,
-			shaftRadius: 0.01,
-			shaftResolution: 30,
-			tipLength: 0.2,
-			tipRadius: 0.06,
-			tipResolution: 30,
-		});
-		axes.update();
-		const orientationWidget = vtkOrientationMarkerWidget.newInstance({
-			actor: axes,
-			interactor: renderWindow.getInteractor(),
-		});
+		// const axes = vtkAxesActor.newInstance();
+		// axes.setXAxisColor(205, 50, 50);
+		// axes.setYAxisColor(50, 205, 50);
+		// axes.setZAxisColor(50, 50, 205);
+		// axes.setConfig({
+		// 	invert: false,
+		// 	shaftRadius: 0.01,
+		// 	shaftResolution: 30,
+		// 	tipLength: 0.2,
+		// 	tipRadius: 0.06,
+		// 	tipResolution: 30,
+		// });
+		// axes.update();
+		// const orientationWidget = vtkOrientationMarkerWidget.newInstance({
+		// 	actor: axes,
+		// 	interactor: renderWindow.getInteractor(),
+		// });s
 
-		orientationWidget.setEnabled(true);
-		orientationWidget.setViewportCorner(vtkOrientationMarkerWidget.Corners.BOTTOM_LEFT);
-		orientationWidget.setViewportSize(0.15); // 尺寸
-		orientationWidget.setMinPixelSize(15); // 最小尺寸
-		orientationWidget.setMinPixelSize(100); // 最大尺寸
+		// orientationWidget.setEnabled(true);
+		// orientationWidget.setViewportCorner(vtkOrientationMarkerWidget.Corners.BOTTOM_LEFT);
+		// orientationWidget.setViewportSize(0.15); // 尺寸
+		// orientationWidget.setMinPixelSize(15); // 最小尺寸
+		// orientationWidget.setMinPixelSize(100); // 最大尺寸
 		//#endregion
+
+		const widgetManager = vtkWidgetManager.newInstance();
+		widgetManager.setRenderer(renderer);
 
 		// 保存绘制窗口的renderer和rendererWindow
 		vtkContext = {
@@ -1205,8 +1222,9 @@ onMounted(() => {
 			renderer,
 			interactor,
 			hardwareSelector,
-			orientationWidget,
-			axes,
+			// orientationWidget,
+			// axes,
+			widgetManager,
 		};
 	}
 
@@ -1771,14 +1789,14 @@ watch(props.actorInScene, (newVal) => {
 		// 加入widget
 		for (let teethType of ["upper", "lower"]) {
 			allActorList[teethType].distanceLine.forEach((item) => {
-				item.startPointRep.setFuncRenderer(renderer);
-				item.startPointRep.setFuncRenderWindow(renderWindow);
-				item.startPointWidget.setInteractor(renderWindow.getInteractor());
-				item.startPointWidget.setEnabled(0);
-				item.endPointRep.setFuncRenderer(renderer);
-				item.endPointRep.setFuncRenderWindow(renderWindow);
-				item.endPointWidget.setInteractor(renderWindow.getInteractor());
-				item.endPointWidget.setEnabled(0);
+				// item.startPointRep.setFuncRenderer(renderer);
+				// item.startPointRep.setFuncRenderWindow(renderWindow);
+				// item.startPointWidget.setInteractor(renderWindow.getInteractor());
+				// item.startPointWidget.setEnabled(0);
+				// item.endPointRep.setFuncRenderer(renderer);
+				// item.endPointRep.setFuncRenderWindow(renderWindow);
+				// item.endPointWidget.setInteractor(renderWindow.getInteractor());
+				// item.endPointWidget.setEnabled(0);
 			});
 		}
 
@@ -1800,7 +1818,7 @@ watch(props.actorInScene, (newVal) => {
 		//         viewUp,
 		//         viewFront
 		//     ))
-		vtkContext.axes.setUserMatrix(calculateRigidBodyTransMatrix([0, 0, 0], viewFront, viewRight, viewUp));
+		// vtkContext.axes.setUserMatrix(calculateRigidBodyTransMatrix([0, 0, 0], viewFront, viewRight, viewUp));
 		// 坐标轴需要转换角度调整, 否则尺寸对不上
 		resetView("LEFT", teethType);
 		resetView("FRONT", teethType);
@@ -2084,7 +2102,8 @@ function getMainCameraTeethType(targetTeethType) {
  * @description 重置视角, 可设置是否保持镜头焦点距离不变
  */
 function resetView(orientationType, teethType, keepFocalDis = false) {
-	const { renderer, renderWindow, orientationWidget } = vtkContext;
+	// const { renderer, renderWindow, orientationWidget } = vtkContext;
+	const { renderer, renderWindow } = vtkContext;
 	// 读取镜头方向
 	let { base, viewUp, viewFront, viewLeft, viewRight } = mainCameraConfigs[getMainCameraTeethType(teethType)];
 	let focalDis;
@@ -2135,7 +2154,7 @@ function resetView(orientationType, teethType, keepFocalDis = false) {
 	}
 	camera.setPosition(...finalPos);
 
-	orientationWidget.updateMarkerOrientation();
+	// orientationWidget.updateMarkerOrientation();
 
 	// render the scene
 	renderWindow.render();
@@ -2185,7 +2204,8 @@ function getTransformCoord(pointCoord, matrix, type = "normal") {
  * @description 选中某个托槽时调用, 镜头对准该托槽
  */
 function focusOnSelectedBracket() {
-	const { renderWindow, renderer, orientationWidget } = vtkContext;
+	// const { renderWindow, renderer, orientationWidget } = vtkContext;
+	const { renderWindow, renderer } = vtkContext;
 
 	// 托槽初始读入的各项配置(所有托槽统一)
 	let { name } = currentSelectBracket;
@@ -2227,9 +2247,9 @@ function focusOnSelectedBracket() {
 	// 相机可显示距离
 	camera.setClippingRange(1, 1000);
 
-	if (orientationWidget) {
-		orientationWidget.updateMarkerOrientation();
-	}
+	// if (orientationWidget) {
+	// 	orientationWidget.updateMarkerOrientation();
+	// }
 
 	// 渲染
 	renderWindow.render();
@@ -3425,6 +3445,7 @@ defineExpose({
 	rollbackCheckedData,
 	setDataCheckable,
 	suyaDoctorAudit,
+	addSphere,
 });
 </script>
 

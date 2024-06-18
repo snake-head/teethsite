@@ -18,9 +18,18 @@ export default function(allActorList) {
     const store = useStore();
     const isArchUpdated = computed(() => store.state.actorHandleState.isArchUpdated);
     const toothOpacity = computed(() => store.state.actorHandleState.toothOpacity);
-    let currentSelectBracket = reactive({
-        actor: null, // 当前操作托槽actor
-        name: "", // 当前操作托槽名
+    const currentSelectBracketName = computed(() => store.state.actorHandleState.currentSelectBracketName);
+    let currentSelectBracket = computed(() => {
+        let name = currentSelectBracketName.value;
+        // 查找选中的 bracket
+        let allBracket = [...allActorList['upper'].bracket, ...allActorList['lower'].bracket];
+        let selectedBracket = allBracket.find(({ name: bracketName }) => bracketName === name);
+        let actor = selectedBracket ? selectedBracket.actor : null;
+    
+        return {
+            actor,
+            name,
+        };
     });
 
     let preActorInScene = {
@@ -56,19 +65,19 @@ export default function(allActorList) {
      * @description 重置除当前双击选中托槽外的其它所有actor颜色
      */
     function resetActorsColor() {
-        const { actor: currentSelectBracketActor } = currentSelectBracket;
+        const { actor: currentSelectBracketActor } = currentSelectBracket.value;
         for (let teethType of ["upper", "lower"]) {
-            // allActorList[teethType].bracket.forEach((item) => {
-            //     const { actor } = item;
-            //     if (currentSelectBracketActor !== actor) {
-            //         actor.getProperty().setColor(colorConfig.bracket.default);
-            //     }
+            allActorList[teethType].bracket.forEach((item) => {
+                const { actor, widgetHandle } = item;
+                if (currentSelectBracketActor !== actor) {
+                    widgetHandle.getWidgetState().getCenterHandle().setColor3([234, 230, 140])
+                }
             // });
             // 长轴点球体颜色重置
             // allActorList[teethType].distanceLine.forEach((item) => {
                 // item.startPointRep.highlight(0);
                 // item.endPointRep.highlight(0);
-            // });
+            });
         }
     }
 
@@ -136,7 +145,7 @@ export default function(allActorList) {
         }
         // 如果鼠标下有actor
         const { prop } = selections[0].getProperties();
-        updateSelectActorBySpecProps(prop, "actor");
+        // updateSelectActorBySpecProps(prop, "actor");
     }
 
     /**
@@ -147,25 +156,22 @@ export default function(allActorList) {
      */
     function updateSelectActorBySpecProps(selection, propKey) {
         // 如果鼠标下为当前操作托槽, 则不予变更
-        if (currentSelectBracket[propKey] === selection) {
+        if (currentSelectBracket.value[propKey] === selection) {
             return;
         }
         let findMatch = false;
         // 遍历托槽actor找对应, 如果无对应则说明鼠标双击下是牙龈或者单牙齿actor, 此时更新为null
         for (let teethType of ["upper", "lower"]) {
             allActorList[teethType].bracket.forEach((item) => {
-                // if (item[propKey] === selection) {
-                //     // 更新 currentSelectBracket
-                //     currentSelectBracket.actor = item.actor;
-                //     currentSelectBracket.name = item.name;
-                //     // 重置颜色
-                //     resetActorsColor();
-                //     item.actor
-                //         .getProperty()
-                //         .setColor(colorConfig.bracket.active);
-                //     // 选择新托槽
-                //     findMatch = true;
-                // }
+                if (item[propKey] === selection) {
+                    console.log(item.name)
+                    // 更新 currentSelectBracket
+                    store.dispatch("actorHandleState/updateCurrentSelectBracketName", item.name);
+                    // 重置颜色
+                    resetActorsColor();
+                    item.widgetHandle.getWidgetState().getCenterHandle().setColor3([204, 25, 25])
+                    findMatch = true;
+                }
             });
         }
         // 如果上述未找到托槽, 则当前选中置空并重置颜色
@@ -193,10 +199,14 @@ export default function(allActorList) {
     function axisActorShowStateUpdate(
         preSelectBracketName,
         currentSelectBracketName,
-        isAxisShow
+        isAxisShow,
+        widgetManager,
+        tad
     ) {
         const addActorsList = []; // 根据状态对比(false->true),生成应该加入屏幕的actor列表
         const delActorsList = []; // 根据状态对比(true->false),生成应该移出屏幕的actor列表
+        //20240617更新：为了在每次switchMode(进出排牙)时调整小球的变换矩阵，这里选择将handle返回给ViewerMain
+        const handleInfo = {};
         // 如果当前有选中托槽(此时必定有对应的上/下颌牙显示)则需要添加
         if (currentSelectBracketName !== "") {
             // 坐标轴actor
@@ -216,10 +226,22 @@ export default function(allActorList) {
             distActors.forEach((actor) => {
                 addActorsList.push(actor);
             });
-            // 长轴点显示
-            // distWidgets.forEach((widget) => {
-            //     widget.setEnabled(1);
-            // });
+            // 20240617更新：由于版本变动，小球widget全部重写
+            for (let teethType of ["upper", "lower"]) {
+            	allActorList[teethType].distanceLine.forEach((item) => {
+                    if (item.name == currentSelectBracketName){
+                        handleInfo.toothName = currentSelectBracketName;
+                        handleInfo.startPointWidgetHandle = widgetManager.addWidget(item.startPointWidget);
+                        handleInfo.startPointWidgetHandle.setScaleInPixels(false)
+                        handleInfo.startPointWidgetHandle.getRepresentations()[0].getActor().setUserMatrix(tad[currentSelectBracketName]);
+                        handleInfo.startPointWidgetHandle.setCenterAndRadius(item.startPoint, 0)
+                        handleInfo.endPointWidgetHandle = widgetManager.addWidget(item.endPointWidget);
+                        handleInfo.endPointWidgetHandle.setScaleInPixels(false)
+                        handleInfo.endPointWidgetHandle.getRepresentations()[0].getActor().setUserMatrix(tad[currentSelectBracketName]);
+                        handleInfo.endPointWidgetHandle.setCenterAndRadius(item.endPoint, 0)
+                    }
+            	})
+            }
         }
 
         // 如果之前有选中托槽则可能需要移除(如果上颌牙隐藏,之前选中上颌牙托槽, 则没有actor需要移除)
@@ -253,12 +275,17 @@ export default function(allActorList) {
                 // 如果存在actor需要移除, 其中包括textActor, 则需要清理canvas
                 delActorsList.push(actor);
             });
-            // 长轴点隐藏
-            // distWidgets.forEach((widget) => {
-            //     widget.setEnabled(0);
-            // });
+            // 20240617更新：由于版本变动，小球widget全部重写
+            for (let teethType of ["upper", "lower"]) {
+            	allActorList[teethType].distanceLine.forEach((item) => {
+                    if (item.name == preSelectBracketName){
+                        widgetManager.removeWidget(item.startPointWidget)
+                        widgetManager.removeWidget(item.endPointWidget)
+                    }
+            	})
+            }
         }
-        return { addActorsList, delActorsList };
+        return { addActorsList, delActorsList, handleInfo };
     }
     function findAxisMatchActors(toothName, teethType) {
         if (teethType) {

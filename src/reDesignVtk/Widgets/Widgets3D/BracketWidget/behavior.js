@@ -9,7 +9,8 @@
 import { m as macro } from '@kitware/vtk.js/macros2.js';
 import { vec3 } from 'gl-matrix';
 
-function widgetBehavior(publicAPI, model, {store, name}) {
+function widgetBehavior(publicAPI, model) {
+    const {store, name} = model.behaviorParams
     const state = model.widgetState;
     const centerHandle = state.getCenterHandle();
   

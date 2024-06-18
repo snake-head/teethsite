@@ -37,6 +37,7 @@ import {
 // import vtkRootHandleRepresentation from "../reDesignVtk/rootHandleWidget/RootHandleRepresentation";
 // import rootHandleWidget from "../reDesignVtk/rootHandleWidget";
 import vtkBracketWidget from '../reDesignVtk/Widgets/Widgets3D/BracketWidget'
+import vtkSphereWidget from '../reDesignVtk/Widgets/Widgets3D/SphereWidget';
 
 
 export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
@@ -1193,8 +1194,10 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
             generateLines: false,
             activeColor: [25, 204, 25],
             activeScaleFactor: 1,
-            store,
-            name,
+            behaviorParams: {
+                store,
+                name,
+            }
         });
         return { widget, polyData };
     }
@@ -1301,59 +1304,51 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
             const dependingPoints = new Float32Array(
                 toothPolyDatas[name].getPoints().getData()
             );
-            // const startPointRep = vtkSphereHandleRepresentation.newInstance({
-            //     sphereInitValue: {
-            //         radius: 0.25,
-            //         center: startPoint,
-            //     },
-            //     defaultColor: [0.25, 0.25, 0.8],
-            //     activeColor: [0.8, 0.25, 0.25],
-            //     dependingPoints,
-            //     updatePosFunc: (updatedPoint, renderer, renderWindow) =>
-            //         updateLongAxisPoint(
-            //             teethType,
-            //             name,
-            //             "start",
-            //             updatedPoint,
-            //             renderer,
-            //             renderWindow
-            //         ),
-            // });
-            // const startPointWidget = vtkHandleWidget.newInstance({
-            //     allowHandleResize: 0,
-            //     widgetRep: startPointRep,
-            // });
-
-            // const endPointRep = vtkSphereHandleRepresentation.newInstance({
-            //     sphereInitValue: {
-            //         radius: 0.25,
-            //         center: endPoint,
-            //     },
-            //     defaultColor: [0.25, 0.8, 0.25],
-            //     activeColor: [0.8, 0.25, 0.25],
-            //     dependingPoints,
-            //     updatePosFunc: (updatedPoint, renderer, renderWindow) =>
-            //         updateLongAxisPoint(
-            //             teethType,
-            //             name,
-            //             "end",
-            //             updatedPoint,
-            //             renderer,
-            //             renderWindow
-            //         ),
-            // });
-            // const endPointWidget = vtkHandleWidget.newInstance({
-            //     allowHandleResize: 0,
-            //     widgetRep: endPointRep,
-            // });
-
+            // 20240617更新：widgetManager管理小球
+            const startPointWidget = vtkSphereWidget.newInstance({
+                activeColor: [204, 64, 64],
+                activeScaleFactor: 1,
+                behaviorParams: {
+                    dependingPoints,
+                    updatePosFunc: (updatedPoint, renderer, renderWindow) =>
+                    updateLongAxisPoint(
+                        teethType,
+                        name,
+                        "start",
+                        updatedPoint,
+                        renderer,
+                        renderWindow
+                    ),
+                    renderer: null,
+                    renderWindow: null,
+                },
+            });
+            const endPointWidget = vtkSphereWidget.newInstance({
+                activeColor: [204, 64, 64],
+                activeScaleFactor: 1,
+                behaviorParams: {
+                    dependingPoints,
+                    updatePosFunc: (updatedPoint, renderer, renderWindow) =>
+                    updateLongAxisPoint(
+                        teethType,
+                        name,
+                        "end",
+                        updatedPoint,
+                        renderer,
+                        renderWindow
+                    ),
+                    renderer: null,
+                    renderWindow: null,
+                },
+            });
             allActorList[teethType].distanceLine.push({
                 name,
                 lineActorItem,
-                // startPointRep,
-                // startPointWidget,
-                // endPointRep,
-                // endPointWidget,
+                // 20240617更新：由于版本变动，小球widget全部重写
+                startPoint,
+                startPointWidget,
+                endPoint,
+                endPointWidget,
             });
             // 写入距离列表
             distanceMessageList.forEach((itemList) => {

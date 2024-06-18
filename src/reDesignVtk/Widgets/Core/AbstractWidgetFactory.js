@@ -74,13 +74,10 @@ function vtkAbstractWidgetFactory(publicAPI, model) {
           widgetModel.actorToRepresentationMap.set(actor, r);
         });
       });
+      widgetModel.behaviorParams = model.behaviorParams
       model.behavior(
         widgetPublicAPI, 
         widgetModel, 
-        {
-          store: model.store,
-          name: model.name,
-        }
       );
       // Forward representation methods
       ['coincidentTopologyParameters', ...(model.methodsToLink || [])].forEach(methodName => {

@@ -1401,8 +1401,6 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                         }
                         const { toNext } = event.data;
                         if (toNext) {
-                            console.log(event.data)
-                            console.log(4, teethType, currentStep[teethType])
                             currentStep[teethType]++;
                             worker.postMessage({ step: 4 });
                         }
@@ -1486,7 +1484,6 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                                     }
                                 );
                             }
-                            console.log(6, teethType, currentStep[teethType])
                             currentStep[teethType]++;
                             worker.postMessage({
                                 step: 6,
@@ -1531,7 +1528,6 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                         }
                         const { toNext } = event.data;
                         if (toNext) {
-                            console.log(7, teethType, currentStep[teethType])
                             currentStep[teethType]++;
                             worker.postMessage({ step: 7 });
                         }
@@ -1547,7 +1543,6 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                         }
                         const { toNext } = event.data;
                         if (toNext) {
-                            console.log(8, teethType, currentStep[teethType])
                             currentStep[teethType]++;
                             worker.postMessage({ step: 8 });
                         }
@@ -1616,7 +1611,6 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                                 teethType,
                                 event.data.allActorList
                             );
-                            console.log(9, teethType, currentStep[teethType])
                             currentStep[teethType]++;
                             worker.postMessage({
                                 step: 9,

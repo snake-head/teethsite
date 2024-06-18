@@ -70,7 +70,9 @@ export default function(allActorList) {
             allActorList[teethType].bracket.forEach((item) => {
                 const { actor, widgetHandle } = item;
                 if (currentSelectBracketActor !== actor) {
-                    widgetHandle.getWidgetState().getCenterHandle().setColor3([234, 230, 140])
+                    if(widgetHandle.getWidgetState()){
+                        widgetHandle.getWidgetState().getCenterHandle().setColor3([234, 230, 140])
+                    }
                 }
             // });
             // 长轴点球体颜色重置
@@ -731,6 +733,8 @@ export default function(allActorList) {
         isClickEnter=clickEnter&&!isArchUpdated.value;
         const addActorsList = [];
         const delActorsList = [];
+        const addWidgetsList = [];
+        const delWidgetsList = [];
         // 读取当前state牙龈、牙弓线状态
         let { upper, lower, teethWithGingiva, arch } = state;
         let curActorInScene = {
@@ -816,8 +820,8 @@ export default function(allActorList) {
                 // }
                 if (allActorList[teethType].bracket.length!=0){
                     allActorList[teethType].bracket.forEach(item=>{
-                        (switchType === "exit" ? addActorsList : delActorsList).push(
-                            item.actor
+                        (switchType === "exit" ? addWidgetsList : delWidgetsList).push(
+                            item
                         );
                     })
                 }
@@ -871,7 +875,7 @@ export default function(allActorList) {
                 );
             }
         }
-        return { addActorsList, delActorsList };
+        return { addActorsList, delActorsList, addWidgetsList, delWidgetsList };
     }
 
     function adjustActorOpacity(actorType, opacity) {

@@ -1,7 +1,6 @@
 <template>
 	<div :class="themeType">
 		<div class="right-side-menu" :class="showRightSidemenu ? 'show' : 'hide'">
-			<button @click="addSphere">Add SphereWidget</button>
 			<el-tabs class="demo-tabs" v-model="activeTable" type="card">
 				<el-tab-pane class="demo-tab-pane" label="垂直向高度(mm)" name="distance">
 					<div class="distance-table">
@@ -695,6 +694,7 @@ const isRegenerateAdjustDentalArch = computed(
 	() => store.state.actorHandleState.teethArrange.dentalArchAdjustRecord.regenerate
 );
 watch(isRegenerateAdjustDentalArch, (newValue) => {
+	console.log(regen)
 	if (newValue) {
 		reCalculateDentalArchCoefficients(dentalArchAdjustType.value, null, false, true);
 		store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
@@ -738,6 +738,7 @@ const isReArrangeTeethByAdjustedDentalArch = computed(
 	() => store.getters["actorHandleState/isReArrangeTeethByAdjustedDentalArch"]
 );
 watch(isReArrangeTeethByAdjustedDentalArch, (newValue) => {
+	console.log('reaaa')
 	for (let teethType of ["upper", "lower"]) {
 		if (newValue[teethType]) {
 			reArrangeOneTypeTeethByAdjustedDentalArch(teethType);
@@ -892,6 +893,7 @@ watch(overwriteByDentalArchAdjustRecord, (newValue) => {
 
 const reArrangeToInitState = computed(() => store.getters["actorHandleState/isResetDentalArchToInitState"]);
 watch(reArrangeToInitState, (newValue, oldValue) => {
+	console.log('init')
 	for (let teethType of ["upper", "lower"]) {
 		if (newValue[teethType] && !oldValue[teethType]) {
 			// false -> true
@@ -968,6 +970,7 @@ watch(teethPositionAdjustMoveType, (newValue) => {
 	}
 });
 function teethPositionAdjust(moveType) {
+	console.log(currentSelectBracket.value.name)
 	if (
 		!uploadType.value.includes("upper") &&
 		toRaw(loadedBracketNameList.upper).includes(currentSelectBracket.value.name)
@@ -1766,6 +1769,7 @@ function reshowTune(pointValues, cellValues){
 
 // 用于监听显示/隐藏状态改变
 watch(props.actorInScene, (newVal) => {
+	console.log(newVal)
 	const { addActorsList, delActorsList, addWidgetsList, delWidgetsList } = actorShowStateUpdateFusion(newVal, fineTuneMode.value !== "normal");
 	actorInSceneAdjust(addActorsList, delActorsList);
 	widgetInSceneAdjust(addWidgetsList, delWidgetsList);
@@ -2922,6 +2926,7 @@ function applyUserMatrixWhenSwitchMode(fromMode, toMode, render = false) {
 		// 托槽
 		bracket.forEach((item) => {
 			const { name, actor } = item;
+			item.userMatrix = applyCalMatrix.bracket[name]
 			actor.setUserMatrix(applyCalMatrix.bracket[name]);
 		});
 		// 坐标轴
@@ -3335,6 +3340,7 @@ function updateMat4(teethType) {
 	// 托槽
 	bracket.forEach((item) => {
 		const { name, actor } = item;
+		item.userMatrix = applyCalMatrix.bracket[name]
 		actor.setUserMatrix(applyCalMatrix.bracket[name]);
 	});
 	// 坐标轴
@@ -3491,11 +3497,13 @@ function exitSimulationMode() {
 	applyUserMatrixWhenSwitchMode(simMode.value, "normal", true);
 }
 function adjustActorWhenSwitchSimMode(switchType, clickEnter=false) {
-	const { addActorsList, delActorsList } = adjustActorWhenSwitchSimulationMode(switchType, props.actorInScene, userType.value, clickEnter);
+	const { addActorsList, delActorsList, addWidgetsList, delWidgetsList } = adjustActorWhenSwitchSimulationMode(switchType, props.actorInScene, userType.value, clickEnter);
 	actorInSceneAdjust(addActorsList, delActorsList);
+	widgetInSceneAdjust(addWidgetsList, delWidgetsList);
 }
 // 强制更新模拟排牙
 function forceUpdateArrange(reCalculateDentalArch = false, teethType = []) {
+	console.log('force')
 	let reArrangeTeethType = teethType.length > 0 ? teethType : arrangeTeethType.value;
 	if (reArrangeTeethType.length > 0) {
 		forceUpdateAtMode = fineTuneMode.value;

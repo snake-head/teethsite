@@ -111,32 +111,49 @@ export default function(allActorList,toothPolyDatas,bracketData) {
         let selectedTeethType = dentalArchAdjustType.value;
         switch (mode) {
             case "enter": {
-                allActorList[selectedTeethType].root.forEach(({ rootWidget }) => {
-                    rootWidget.setInteractor(vtkContext.renderWindow.getInteractor());
+                allActorList[selectedTeethType].root.forEach((obj) => {
+                    // rootWidget.setInteractor(vtkContext.renderWindow.getInteractor());
+                    const { 
+                        toothName,
+                        rootWidget,
+                        bottomSphereCenter,
+                        topSphereCenter,
+                        radiusSphereCenter,  
+                    } = obj
                     if(!generateRootRecord.value[selectedTeethType]){
-                        rootWidget.setEnabled(true);
+                        const widgetHandle = vtkContext.widgetManager.addWidget(rootWidget)
+                        widgetHandle.setCenter(bottomSphereCenter, topSphereCenter, radiusSphereCenter)
+                        widgetHandle.setScaleInPixels(false)
                     }
                 });
                 break;
             }
             case "exit": {
                 allActorList[selectedTeethType].root.forEach(({ rootWidget }) => {
-                    rootWidget.setEnabled(false);
+                    vtkContext.widgetManager.removeWidget(rootWidget)
                 });
                 break;
             }
             case "switch": {
                 for(let teethType of ['upper','lower']){
                     if (teethType === selectedTeethType) {
-                        allActorList[teethType].root.forEach(({ rootWidget }) => {
-                            rootWidget.setInteractor(vtkContext.renderWindow.getInteractor());
+                        allActorList[teethType].root.forEach((obj) => {
+                            const { 
+                                toothName,
+                                rootWidget,
+                                bottomSphereCenter,
+                                topSphereCenter,
+                                radiusSphereCenter,  
+                            } = obj
                             if(!generateRootRecord.value[teethType]){
-                                rootWidget.setEnabled(true);
+                                const widgetHandle = vtkContext.widgetManager.addWidget(rootWidget)
+                                widgetHandle.setCenter(bottomSphereCenter, topSphereCenter, radiusSphereCenter)
+                                widgetHandle.setScaleInPixels(false)
                             }
                         });
                     } else {
                         allActorList[teethType].root.forEach(({ rootWidget }) => {
-                            rootWidget.setEnabled(false);
+                            vtkContext.widgetManager.removeWidget(rootWidget)
                         });
                     }
                 }

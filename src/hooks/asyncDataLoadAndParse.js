@@ -36,8 +36,10 @@ import {
 } from "../utils/tokenRequest";
 // import vtkRootHandleRepresentation from "../reDesignVtk/rootHandleWidget/RootHandleRepresentation";
 // import rootHandleWidget from "../reDesignVtk/rootHandleWidget";
+
 import vtkBracketWidget from '../reDesignVtk/Widgets/Widgets3D/BracketWidget'
 import vtkSphereWidget from '../reDesignVtk/Widgets/Widgets3D/SphereWidget';
+import vtkRootWidget from '../reDesignVtk/Widgets/Widgets3D/RootWidget';
 
 
 export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
@@ -1693,21 +1695,18 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                             const { root, rootGenerate, originRoot } = event.data.allActorList
                             root.forEach(({toothName, bottomSphereCenter, topSphereCenter, radiusSphereCenter})=>{
                                 //制造牙根底部、牙根顶部、牙根半径三个小球
-                                // const rootRep = vtkRootHandleRepresentation.newInstance({
-                                //     rootInitValue: {
-                                //         bottomSphereCenter,
-                                //         topSphereCenter,
-                                //         radiusSphereCenter,
-                                //     },
-                                // });
-                                // const rootWidget = rootHandleWidget.newInstance({
-                                //     allowHandleResize: 1,
-                                //     widgetRep: rootRep,
-                                // });
+                                const rootWidget = vtkRootWidget.newInstance({
+                                    activeColor: [204, 64, 64],
+                                    activeScaleFactor: 1,
+                                    behaviorParams: {
+                                    }
+                                });
                                 allActorList[teethType].root.push({
                                     toothName,
-                                    // rootRep,
-                                    // rootWidget,
+                                    rootWidget,
+                                    bottomSphereCenter,
+                                    topSphereCenter,
+                                    radiusSphereCenter,
                                 })
                             })
                             store.dispatch(

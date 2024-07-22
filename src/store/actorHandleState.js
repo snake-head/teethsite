@@ -50,6 +50,9 @@ export default {
         updateArrangeMatrix(context, value) {
             context.commit("UpdateArrangeMatrix", value);
         },
+        updateToothBoxPoints(context, value) {
+            context.commit("UpdateToothBoxPoints", value);
+        },
         updateStandardAxisActor(context, value) {
             context.commit("UpdateStandardAxisActor", value);
         },
@@ -174,6 +177,9 @@ export default {
         },
         UpdateStandardAxisActor(state, value) {
             Object.assign(state.teethActors.standardAxisActor, value);
+        },
+        UpdateToothBoxPoints(state, value) {
+            Object.assign(state.toothBoxPoints, value);
         },
         UpdateDentalArchAdjustRecord(state, value) {
             let valueProps = Object.keys(value);
@@ -521,6 +527,7 @@ export default {
             upper: false,
             lower: false,
         }, // 用于触发圆锥方向的重置
+        toothBoxPoints: {},
         BoxSlicing:{
             SelectedPosition: "",
             SelectedToothBox: "",
@@ -529,6 +536,7 @@ export default {
                 left: false,
                 right: false,
             }, // 记录单颗牙齿的包围盒左右面选中情况
+            // 对每颗牙齿创建一个BoxPoints
             BoxPoints:{
                 Point0: [0, 0, 0],
                 Point1: [0, 0, 0],

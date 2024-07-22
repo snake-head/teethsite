@@ -1360,6 +1360,10 @@ function parseArrangeData(xmlObj) {
             }
         }
     }
+    if (xmlObj.toothBoxPoints){
+        ret.toothBoxPoints = xmlData.toothBoxPoints;
+    }
+
     return ret;
 }
 

@@ -10,7 +10,8 @@ import { sendRequestWithToken } from "./tokenRequest";
  * teethAxisFinetuneRecord: 咬合位置调整的转换矩阵, 上下颌牙各一份
  * dentalArchAdjustRecord: 牙弓线调整小球的记录, 替换用于牙弓线计算的拟合点, 本来是各托槽中心(最多14个点),
  * 现在把其中最多3对/6个替换成可供用户自由调整的小球, 再加上1个控制y轴交点的小球, 一共最多15个拟合点(8托槽+7小球)
- *
+ * toothBoxPoints：牙齿切片包围框位置（每一个牙有八个点）
+ * 
  * 请对应修改dataLoadAndParse.worker.js中的parseArrangeData()
  * 和asyncDataLoadAndParse.js中的worker.onmessage的case 5
  */
@@ -24,6 +25,7 @@ function parseAndMountToData(xmlData, dataToMount) {
 		teethAxisFinetuneRecord,
 		dentalArchAdjustRecord,
 		teethRootData,
+		teethBoxPoints,
 	} = dataToMount;
 	// 根据新托槽信息更新xml数据
 	xmlData.ProcessState[0].$.collisionState = 1 //只要上传就已经是经过碰撞检测，collisionState置1
@@ -187,6 +189,22 @@ function parseAndMountToData(xmlData, dataToMount) {
 		})
 	});
 	// }
+
+	// 存牙齿包围盒数据
+	xmlData.teethBoxPoints = [];
+	teethBoxPoints.forEach(({ toothName, Point0, Point1, Point2, Point3, Point4, Point5, Point6, Point7}, index) => {
+		xmlData.teethBoxPoints.push({
+			toothName,
+			Point0: Point0.toString(),
+			Point1: Point1.toString(),
+			Point2: Point2.toString(),
+			Point3: Point3.toString(),
+			Point4: Point4.toString(),
+			Point5: Point5.toString(),
+			Point6: Point6.toString(),
+			Point7: Point7.toString(),
+		})
+	});
 
 	// 什么都没有, 则不需要存
 	if (Object.keys(xmlData.dentalArch[0]).length === 1) {

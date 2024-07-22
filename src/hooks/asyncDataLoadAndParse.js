@@ -339,6 +339,11 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
 
     let bracketPolyDatas = {}; // 存放托槽的polyData
     let toothPolyDatas = {}; // 存放单牙齿的polyData,用于后续每个牙齿上坐标轴的建立源
+    let toothBoxPoints = {}; //存放单牙齿的牙齿Box点
+    let toothBoxPoints0 = {
+        upper: [],
+        lower: [],
+    }
 
     let mainCameraConfigs = {
         upper: null,
@@ -1168,7 +1173,20 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
             actor.setUserMatrix(userMatrixList.mat1[name]);
             allActorList[teethType].originBracket.push({ name, actor, mapper });
         });
-        
+
+        // toothBox
+        Object.keys(tooth).forEach((name) => {
+            toothBoxPoints[name] = {
+                Point0: [0, 0, 0],
+                Point1: [0, 0, 0],
+                Point2: [0, 0, 0],
+                Point3: [0, 0, 0],
+                Point4: [0, 0, 0],
+                Point5: [0, 0, 0],
+                Point6: [0, 0, 0],
+                Point7: [0, 0, 0]
+            };
+        })
     }
     function generateActorByData({ pointValues, cellValues }) {
         const polyData = vtkPolyData.newInstance();
@@ -1440,6 +1458,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                                 teethStandardAxis,
                                 teethAxisFinetuneRecord,
                                 dentalArchAdjustRecord,
+                                toothBoxPoints,
                             } = event.data.arrangeData;
                             if (teethStandardAxis) {
                                 // 保存
@@ -1483,6 +1502,12 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                                         [teethType]: dentalArchAdjustRecord,
                                     }
                                 );
+                            }
+                            if (toothBoxPoints) {
+                                store.dispatch(
+                                    "actorHandleState/updateToothBoxPoints",
+                                    toothBoxPoints
+                                )
                             }
                             currentStep[teethType]++;
                             worker.postMessage({
@@ -1744,5 +1769,6 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
         distanceMessageList,
         rotateMessageList,
         longAxisData,
+        toothBoxPoints,
     };
 }

@@ -591,6 +591,7 @@ export default function(allActorList) {
      * Function:牙齿切片时切换切片前和切片后的牙齿全景
      */
     function actorShowStateUpdateSlicing(state, Tuneactor){
+        const currentSelectBracketName = computed(() => store.state.actorHandleState.currentSelectBracketName);
         let { upper, upperOrigin, upperOriginBracket, upperOriginGingiva, lower, lowerOrigin, lowerOriginBracket, lowerOriginGingiva,teethWithGingiva, axis, arch } = state;
             let curActorInScene = {
                 upper: {
@@ -621,10 +622,12 @@ export default function(allActorList) {
                 },
             };
             //需要生成的单颗牙齿名称
-            const ToothSlicingName = currentSelectBracket.name;
+            // const ToothSlicingName = currentSelectBracket.name;
+            const ToothSlicingName = currentSelectBracketName.value
 
             const addActorsList = []; // 根据状态对比(false->true),生成应该加入屏幕的actor列表
             const delActorsList = []; // 根据状态对比(true->false),生成应该移出屏幕的actor列表
+            
             for (let teethType of ["upper", "lower"]){
                 allActorList[teethType].tooth.forEach((item) => {
                     if (item.name == ToothSlicingName){
@@ -635,9 +638,23 @@ export default function(allActorList) {
                 });
                 allActorList[teethType].rootGenerate.forEach((item) => {
                     if (item.name == ToothSlicingName){
-                        delActorsList.push(item.actor);
+                        // delActorsList.push(item.actor);
+                        addActorsList.push(item.actor);
                     }
                 });
+
+                // allActorList[teethType].tooth.forEach((item) => {
+                //     if (item.name == ToothSlicingName){
+                //         delActorsList.push(item.actor);
+                //         item.actor = Tuneactor;
+                //         addActorsList.push(item.actor);
+                //     }
+                // });
+                // allActorList[teethType].rootGenerate.forEach((item) => {
+                //     if (item.name == ToothSlicingName){
+                //         delActorsList.push(item.actor);
+                //     }
+                // });
                 // allActorList[teethType].bracket.forEach((item) => {
                 //     if (item.name == ToothSlicingName){
                 //         delActorsList.push(item.actor);
@@ -650,6 +667,7 @@ export default function(allActorList) {
     }
 
     function actorShowStateUpdateSlicingReset(state, toothPolyDatas, store, values){
+        const currentSelectBracketName = computed(() => store.state.actorHandleState.currentSelectBracketName);
         let { upper, upperOrigin, upperOriginBracket, upperOriginGingiva, lower, lowerOrigin, lowerOriginBracket, lowerOriginGingiva,teethWithGingiva, axis, arch } = state;
             let curActorInScene = {
                 upper: {
@@ -680,11 +698,13 @@ export default function(allActorList) {
                 },
             };
             //生成的单颗牙齿名称
-            const ToothSlicingName = currentSelectBracket.name;
+            // const ToothSlicingName = currentSelectBracket.name;
+            const ToothSlicingName = currentSelectBracketName.value;
 
             const addActorsList = []; // 根据状态对比(false->true),生成应该加入屏幕的actor列表
             const delActorsList = []; // 根据状态对比(true->false),生成应该移出屏幕的actor列表
-
+            
+            
             if (values == 'Reset'){
                 for (let teethType of ["upper", "lower"]){
                     allActorList[teethType].tooth.forEach((item) => {
@@ -693,9 +713,9 @@ export default function(allActorList) {
                         item.actor = actor;
                         addActorsList.push(item.actor);
                     });
-                    // allActorList[teethType].rootGenerate.forEach((item) => {
-                    //     delActorsList.push(item.actor);
-                    // });
+                    allActorList[teethType].rootGenerate.forEach((item) => {
+                        addActorsList.push(item.actor);
+                    });
                     
                 }
             }
@@ -710,11 +730,11 @@ export default function(allActorList) {
                             addActorsList.push(item.actor);
                         }
                     });
-                    // allActorList[teethType].rootGenerate.forEach((item) => {
-                    //     if (item.name == ToothSlicingName){
-                    //         delActorsList.push(item.actor);
-                    //     }
-                    // });
+                    allActorList[teethType].rootGenerate.forEach((item) => {
+                        if (item.name == ToothSlicingName){
+                            addActorsList.push(item.actor);
+                        }
+                    });
                 }
             }
             

@@ -487,6 +487,7 @@ function generateEveryTooth(toothName, toothPolyDatas, store){
     const actor = vtkActor.newInstance();
     actor.setMapper(mapper);
     actor.getProperty().setColor(1, 1, 1);
+    // actor.getProperty().setColor(0, 0, 0);
     // Tuneactor.getProperty().setColor(colorConfig.teeth);
     actor.getProperty().setOpacity(store.state.actorHandleState.toothOpacity);
     // Tuneactor.getProperty().setOpacity(toothOpacity/100);

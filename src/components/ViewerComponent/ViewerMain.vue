@@ -322,6 +322,24 @@ watch(currentShowPanel, (newVal, oldVal) => {
 	// 从[工具菜单]进入[牙齿切片]
 	if (oldVal === -1 && newVal === 3) {
 		// console.log('管理员模式', store.state.userHandleState.userType)
+		console.log('##测试', toothBoxPoints);
+		// for(let name in toothBoxPoints){
+		// 	const point = toothBoxPoints[name]['Point${i}']
+		// 	for (let i = 0; i <= 7; i++){
+		// 		if (point[0] !== 0 || point[1] !== 0 || point[2] !== 0){
+		// 			const toothBoxAvail = true;
+		// 			break
+		// 		}
+		// 	}
+		// 	const toothBoxAvail = toothBoxPoints[name].every(point =>
+				
+		// 	)
+		// 	if (toothBoxAvail == true){
+		// 		break
+		// 	}
+		// }
+		// console.log('##判断', toothBoxAvail);
+		// console.log('##测试', allActorList[teethType].rootGenerate)
 	}
 	// 从[牙齿切片]退出到[工具菜单]
 	if (oldVal === 3 && newVal === -1) {
@@ -1149,6 +1167,7 @@ const {
 	distanceMessageList,
 	rotateMessageList,
 	longAxisData,
+	toothBoxPoints,
 } = asyncDataLoadAndParse(vtkTextContainer, userMatrixList, applyCalMatrix);
 // applyCalMatrix用于对更新长轴点时生成的新坐标轴设置userMatrix
 const {
@@ -1354,10 +1373,20 @@ function closeBracketSelection() {
 const throttleMouseHandler = throttle(pickOnMouseEvent, 100);
 
 function generateBoxTool(vtkContext, actors){
-	if (vtkContext.renderer && vtkContext.renderWindow) {
-        vtkContext.renderer.addActor(actors); // 以新的actor移入屏幕触发mapper重新根据输入数据计算
-		vtkContext.renderWindow.render();
+	if (vtkContext) {
+		const { renderWindow, renderer } = vtkContext;
+		// 添加actor
+		actors.forEach((actor) => {
+			if (actor) {
+				renderer.addActor(actor);
+			}
+		});
+		renderWindow.render();
 	}
+	// if (vtkContext.renderer && vtkContext.renderWindow) {
+    //     vtkContext.renderer.addActor(actors); // 以新的actor移入屏幕触发mapper重新根据输入数据计算
+	// 	vtkContext.renderWindow.render();
+	// }
 }
 function resetgenerateBoxTool(vtkContext, actors){
 	for (let i = 0; i < actors.length; i++) {
@@ -1522,6 +1551,7 @@ watch(isInFineTuneMode, (newVal) => {
 let actors = [];
 let boxpoints = [];
 let Tuneactor = [];
+let Newactor = [];
 var handleInfoGet={};
 watch(
 	() => currentSelectBracket.value.name,
@@ -1545,36 +1575,40 @@ watch(
 		}}
 		else{
 			if (oldVal === "" && newVal !== "") {
-				if (actors.length !== 0){
-					resetgenerateBoxTool(vtkContext, actors);
-				}
+				// if (actors.length !== 0){
+				// 	resetgenerateBoxTool(vtkContext, actors);
+				// }
+				// if (Tuneactor.length !== 0){
+				// 	resetgenerateBoxToolTune(vtkContext, Tuneactor);
+				// }
 				if (Tuneactor.length !== 0){
-					resetgenerateBoxToolTune(vtkContext, Tuneactor);
+					resetgenerateBoxTool(vtkContext, Tuneactor);
 				}
 				// vtkContext.renderWindow.render();
 				boxpoints = SurroundingBoxs(toothPolyDatas, bracketData, currentSelectBracket.value, allActorList);
 				setavailableToothSides('true');
-				actors = generateBox(boxpoints);
-				generateBoxTool(vtkContext, actors);
+				Tuneactor = generateBox(boxpoints);
+				generateBoxTool(vtkContext, Tuneactor);
 				}
 			if (oldVal !== "" && newVal !== ""){
 				if (Tuneactor.length !== 0){
-					resetgenerateBoxToolTune(vtkContext, Tuneactor);
+					// resetgenerateBoxToolTune(vtkContext, Tuneactor);
+					resetgenerateBoxTool(vtkContext, Tuneactor);
 				}
-				resetgenerateBoxTool(vtkContext, actors);
+				// resetgenerateBoxTool(vtkContext, actors);
 				// vtkContext.renderWindow.render();
 				boxpoints = SurroundingBoxs(toothPolyDatas, bracketData, currentSelectBracket.value, allActorList);
 				setavailableToothSides('true');
-				actors = generateBox(boxpoints);
-				generateBoxTool(vtkContext, actors);
+				Tuneactor = generateBox(boxpoints);
+				generateBoxTool(vtkContext, Tuneactor);
 				}
 			if (oldVal !== "" && newVal === ""){
 				if (Tuneactor.length !== 0){
-					resetgenerateBoxToolTune(vtkContext, Tuneactor);
+					resetgenerateBoxTool(vtkContext, Tuneactor);
 				}
 				setavailableToothSides('false');
 				resetSurroundingBoxsPoints();
-				resetgenerateBoxTool(vtkContext, actors);
+				resetgenerateBoxTool(vtkContext, Tuneactor);
 				vtkContext.renderWindow.render();
 				}
 			}
@@ -1595,63 +1629,32 @@ function releaseBoxPositionAdjustMoveType() {
 let boxpointsAdjust = [];
 
 function boxPositionAdjust(moveType) {
-	// if (moveType == 'Generate'){
-	// 	const SurroundingBoxsPoints = store.state.actorHandleState.BoxSlicing.boxPositionAdjust.BoxPoints;
-		
-	// 	// const { pointValues, cellValues, copiedtoothPolyDatas, validpointValues, validcellValues} = FineTunePiece(toothPolyDatas, currentSelectBracket, SurroundingBoxsPoints);
-	// 	const { pointValues, cellValues} = FineTunePiece(toothPolyDatas, currentSelectBracket, SurroundingBoxsPoints);
-	// 	// 得到一个修改后的单个牙齿面片组成数据，生成切割后的牙齿
-	// 	Tuneactor = reshowTune(pointValues, cellValues);
-	// 	generateBoxTool(vtkContext, Tuneactor);
-	// 	releaseBoxPositionAdjustMoveType();
-	// 	return;
-	// }
-	// if (
-	// 	!uploadType.value.includes("upper") &&
-	// 	toRaw(loadedBracketNameList.upper).includes(currentSelectBracket.name.value)
-	// 	// currentSelectBracket.name.value.startsWith("U")
-	// ) {
-	// 	proxy.$message({
-	// 		message: "上颌牙数据已递交, 无法继续修改",
-	// 		type: "error",
-	// 	});
-	// 	releaseTeethPositionAdjustMoveType();
-	// 	return;
-	// }
-	// if (
-	// 	!uploadType.value.includes("lower") &&
-	// 	toRaw(loadedBracketNameList.lower).includes(currentSelectBracket.name.value)
-	// 	// currentSelectBracket.name.value.startsWith("L")
-	// ) {
-	// 	proxy.$message({
-	// 		message: "下颌牙数据已递交, 无法继续修改",
-	// 		type: "error",
-	// 	});
-	// 	releaseTeethPositionAdjustMoveType();
-	// 	return;
-	// }
 	// 细调操作
 	if (store.state.actorHandleState.BoxSlicing.BoxPoints.length != 0){
 		let boxpoint = store.state.actorHandleState.BoxSlicing.BoxPoints; //有值
 		let boxpointsAdjust = [boxpoint.Point0, boxpoint.Point1, boxpoint.Point2, boxpoint.Point3, boxpoint.Point4, boxpoint.Point5, boxpoint.Point6, boxpoint.Point7];
 		boxpointsAdjust = fineTuneBoxPosition(moveType, boxpointsAdjust);
 		store.dispatch("actorHandleState/updateSurroudingBoxs", boxpointsAdjust);
-		actors = generateBox(boxpointsAdjust);
-		generateBoxTool(vtkContext, actors);
+		Tuneactor = generateBox(boxpointsAdjust);
+		generateBoxTool(vtkContext, Tuneactor);
 	}
 }
 
+// 键盘移动<=or=>
 watch(boxPositionAdjustMoveType, (newValue) => {
 	if (newValue !== "" & newValue !== 'Generate' & newValue !== "TEMPRESET" & newValue !== "RESET") {
-		resetgenerateBoxTool(vtkContext, actors);
+		resetgenerateBoxTool(vtkContext, Tuneactor);
 		boxPositionAdjust(newValue);
 		releaseBoxPositionAdjustMoveType();
 	}
 	if (newValue == 'Generate'){
 		//删除形成的包围框
-		resetgenerateBoxTool(vtkContext, actors);
+		resetgenerateBoxTool(vtkContext, Tuneactor);
 
 		const SurroundingBoxsPoints = store.state.actorHandleState.BoxSlicing.boxPositionAdjust.BoxPoints;
+		TransPoint(SurroundingBoxsPoints, toothBoxPoints[currentSelectBracket.value.name]);
+
+		// 判断是上牙还是下牙
 		const toothPosition = store.state.actorHandleState.BoxSlicing.SelectedPosition;
 		// //版本2
 		// const { validpointValues, validcellValues } = FineTunePiece(toothPolyDatas, currentSelectBracket, toothPosition, SurroundingBoxsPoints);
@@ -1672,8 +1675,19 @@ watch(boxPositionAdjustMoveType, (newValue) => {
 		const { addActorsList, delActorsList } = actorShowStateUpdateSlicing(props.actorInScene, FineTuneactor);
 		actorInSceneAdjust(addActorsList, delActorsList);
 		releaseBoxPositionAdjustMoveType();
+		// for(let name in toothBoxPoints){
+		// 	const toothBoxAvail = toothBoxPoints[name].every(point =>
+		// 		point[0] !== 0 || point[1] !== 0 || point[2] !== 0
+		// 	)
+		// 	if (toothBoxAvail == true){
+		// 		break
+		// 	}
+		// }
+		// console.log('##判断', toothBoxAvail);
 	}
 	if (newValue == 'TEMPRESET'){
+		resetTransPoint(toothBoxPoints[currentSelectBracket.value.name]);
+		console.log('##测试', toothBoxPoints);
 		// const FineTuneactor = generateSlicingBoxReset();
 		// const { addActorsList, delActorsList } = actorShowStateUpdateSlicing(props.actorInScene, FineTuneactor);
 		const { addActorsList, delActorsList } = actorShowStateUpdateSlicingReset(props.actorInScene, toothPolyDatas, store, 'TEMPReset');
@@ -1681,11 +1695,50 @@ watch(boxPositionAdjustMoveType, (newValue) => {
 		releaseBoxPositionAdjustMoveType();
 	}
 	if (newValue == 'RESET'){
+		for(let name in toothBoxPoints){
+			resetTransPoint(toothBoxPoints[name]);
+		}
 		const { addActorsList, delActorsList } = actorShowStateUpdateSlicingReset(props.actorInScene, toothPolyDatas, store, 'Reset');
 		actorInSceneAdjust(addActorsList, delActorsList);
 		releaseBoxPositionAdjustMoveType();
 	}
 });
+
+
+/**
+ * @param {*} srcPoint=SurroundingBoxPoints
+ * @param {*} tarPoint=toothBoxPoints[currentSelectBracket.value.name]
+ */
+function TransPoint(srcPoint, tarPoint){
+	let p0 = [srcPoint.Point0[0], srcPoint.Point0[1], srcPoint.Point0[2]];
+	let p1 = [srcPoint.Point1[0], srcPoint.Point1[1], srcPoint.Point1[2]];
+	let p2 = [srcPoint.Point2[0], srcPoint.Point2[1], srcPoint.Point2[2]];
+	let p3 = [srcPoint.Point3[0], srcPoint.Point3[1], srcPoint.Point3[2]];
+	let p4 = [srcPoint.Point4[0], srcPoint.Point4[1], srcPoint.Point4[2]];
+	let p5 = [srcPoint.Point5[0], srcPoint.Point5[1], srcPoint.Point5[2]];
+	let p6 = [srcPoint.Point6[0], srcPoint.Point6[1], srcPoint.Point6[2]];
+	let p7 = [srcPoint.Point7[0], srcPoint.Point7[1], srcPoint.Point7[2]];
+	tarPoint.Point0 = p0;
+	tarPoint.Point1 = p1;
+	tarPoint.Point2 = p2;
+	tarPoint.Point3 = p3;
+	tarPoint.Point4 = p4;
+	tarPoint.Point5 = p5;
+	tarPoint.Point6 = p6;
+	tarPoint.Point7 = p7;
+}
+
+function resetTransPoint(tarPoint){
+	let p0 = [0, 0, 0];
+	tarPoint.Point0 = p0;
+	tarPoint.Point1 = p0;
+	tarPoint.Point2 = p0;
+	tarPoint.Point3 = p0;
+	tarPoint.Point4 = p0;
+	tarPoint.Point5 = p0;
+	tarPoint.Point6 = p0;
+	tarPoint.Point7 = p0;
+}
 
 function generateSlicingBoxReset(){
 	const toothName = currentSelectBracket.value.name;
@@ -2282,7 +2335,7 @@ function focusOnSelectedBracket() {
 
 	// 托槽初始读入的各项配置(所有托槽统一)
 	// let { name } = currentSelectBracket;
-	let name = currentSelectBracketName.value
+	let name = currentSelectBracketName.value;
 	let curTeethType = toRaw(loadedBracketNameList.upper).includes(name) ? "upper" : "lower";
 	let focalPoint = [0, 0, 0]; // 镜头中心对准托槽中心
 	let viewUp = [curTeethType === "upper" ? -1 : 1, 0, 0]; // 镜头向上打的角度向量
@@ -2419,6 +2472,7 @@ function fineTuneBracket(moveOption) {
 	updateDistanceLineActor(name, transCenter, transZNormal, transXNormal, renderer, renderWindow);
 }
 const teethArrange = store.state.actorHandleState.teethArrange;
+const teethBoxPoints = store.state.actorHandleState.toothBoxPoints;
 function uploadDataOnline(uploadStateMessage, submit = false) {
 	/**
 	 * data: 全cado
@@ -2444,6 +2498,7 @@ function uploadDataOnline(uploadStateMessage, submit = false) {
 		value: 0,
 	});
 	let teethArrangeData = toRaw(teethArrange);
+	let teethBoxPointsData = toRaw(toothBoxPoints);
 	uploadType.value.forEach((teethType) => {
 		store.dispatch("userHandleState/updateUploadingState", {
 			teethType,
@@ -2526,6 +2581,7 @@ function uploadDataOnline(uploadStateMessage, submit = false) {
 					radiusSphereCenter: rootRep.getCenters()[2],
 				};
 			}):[],
+			teethBoxPoints: toothBoxPoints,
 		};
 		uploadCurrentData(
 			toRaw(stlObj.teeth[teethType]),

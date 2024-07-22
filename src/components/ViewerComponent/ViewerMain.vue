@@ -1,6 +1,7 @@
 <template>
 	<div :class="themeType">
 		<div class="right-side-menu" :class="showRightSidemenu ? 'show' : 'hide'">
+			<button @click="addSphere">add</button>
 			<el-tabs class="demo-tabs" v-model="activeTable" type="card">
 				<el-tab-pane class="demo-tab-pane" label="垂直向高度(mm)" name="distance">
 					<div class="distance-table">
@@ -334,13 +335,15 @@ watch(currentShowPanel, (newVal, oldVal) => {
 let widget = null;
 let widgetHandle = null;
 function addSphere(){
-	const {widgetManager} = vtkContext;
+	// const {widgetManager} = vtkContext;
 
-	widgetManager.releaseFocus(widget);
-	widget = vtkSphereWidget.newInstance();
-	// widget.placeWidget(cube.getOutputData().getBounds());
-	widgetHandle = widgetManager.addWidget(widget);
-	widgetManager.grabFocus(widget);
+	// widgetManager.releaseFocus(widget);
+	// widget = vtkSphereWidget.newInstance();
+	// // widget.placeWidget(cube.getOutputData().getBounds());
+	// widgetHandle = widgetManager.addWidget(widget);
+	// widgetManager.grabFocus(widget);
+	const a = vtkContext.renderer.getActiveCamera().getClippingRange();
+	console.log(a)
 }
 let dentalArchWidgets = {}; // 每次调整后再排牙后需要重新设置
 let initFittingCenters = {};
@@ -1210,6 +1213,7 @@ onMounted(() => {
 		// 获取设置好的renderer和renderWindow
 		const renderer = genericRenderer.getRenderer();
 		const renderWindow = genericRenderer.getRenderWindow();
+		
 
 		const iStyle = vtkInteractorStyleTrackballCameraNew.newInstance();
 		renderWindow.getInteractor().setInteractorStyle(iStyle);
@@ -1769,7 +1773,6 @@ function reshowTune(pointValues, cellValues){
 
 // 用于监听显示/隐藏状态改变
 watch(props.actorInScene, (newVal) => {
-	console.log(newVal)
 	const { addActorsList, delActorsList, addWidgetsList, delWidgetsList } = actorShowStateUpdateFusion(newVal, fineTuneMode.value !== "normal");
 	actorInSceneAdjust(addActorsList, delActorsList);
 	widgetInSceneAdjust(addWidgetsList, delWidgetsList);
@@ -1868,6 +1871,17 @@ watch(props.actorInScene, (newVal) => {
 		renderWindow.render();
 		initRenderCamera = true;
 	}
+	if (vtkContext) {
+		const { renderWindow, renderer } = vtkContext;
+		console.log('setclip')
+		// renderer.resetCameraClippingRange();
+		const camera = renderer.getActiveCamera();
+		renderer.getActiveCamera().setClippingRange(1, 1000);
+		const clippingRange = camera.getClippingRange();
+console.log(`Current Clipping Range: Near = ${clippingRange[0]}, Far = ${clippingRange[1]}`);
+		renderWindow.render();
+	}
+	
 });
 
 let finishLoad = computed(() => {

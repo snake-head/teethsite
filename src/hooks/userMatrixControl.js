@@ -95,23 +95,12 @@ function multiplyMatrixList4x4(...matList) {
 }
 
 function invertMatrix4x4(mat) {
+    // 在旧版本中，invertMatrix是对二维数组进行计算；新版本中是对一维数组进行计算，所以不需要处理
     const mat4x4 = [
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
+        ...mat
     ];
-    mat.forEach((val, idx) => {
-        mat4x4[Math.floor(idx / 4)][idx % 4] = val;
-    });
-    const invMat4x4 = [
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-    ];
-    invertMatrix(mat4x4, invMat4x4, 4);
-    return invMat4x4.flat(1);
+    invertMatrix(mat4x4, mat4x4, 4);
+    return mat4x4;
 }
 
 export { multiplyMatrix4x4, multiplyMatrixList4x4, invertMatrix4x4, calculateTransMatrix };

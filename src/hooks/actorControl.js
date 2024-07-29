@@ -1,6 +1,11 @@
 import { reactive, computed, watch, inject } from "vue";
 import { useStore } from "vuex";
 import { FineTunePiece, generateEveryTooth } from "../hooks/Slicing"
+import userMatrixControl, {
+	multiplyMatrix4x4,
+	multiplyMatrixList4x4,
+	invertMatrix4x4,
+} from "./userMatrixControl";
 
 const colorConfig = {
     teeth: [1.0, 1.0, 1.0],
@@ -186,6 +191,7 @@ export default function(allActorList) {
      * @description 退出选择, 重置所有颜色及选中托槽
      */
     function exitSelection() {
+        store.dispatch("actorHandleState/updateCurrentSelectBracketName", '');
         currentSelectBracket.actor = null;
         currentSelectBracket.name = "";
         resetActorsColor();
@@ -234,13 +240,27 @@ export default function(allActorList) {
                     if (item.name == currentSelectBracketName){
                         handleInfo.toothName = currentSelectBracketName;
                         handleInfo.startPointWidgetHandle = widgetManager.addWidget(item.startPointWidget);
+                        handleInfo.startPointWidget = item.startPointWidget
                         handleInfo.startPointWidgetHandle.setScaleInPixels(false)
                         handleInfo.startPointWidgetHandle.getRepresentations()[0].getActor().setUserMatrix(tad[currentSelectBracketName]);
                         handleInfo.startPointWidgetHandle.setCenterAndRadius(item.startPoint, 0)
                         handleInfo.endPointWidgetHandle = widgetManager.addWidget(item.endPointWidget);
+                        handleInfo.endPointWidget = item.endPointWidget
                         handleInfo.endPointWidgetHandle.setScaleInPixels(false)
                         handleInfo.endPointWidgetHandle.getRepresentations()[0].getActor().setUserMatrix(tad[currentSelectBracketName]);
                         handleInfo.endPointWidgetHandle.setCenterAndRadius(item.endPoint, 0)
+                        //假如仅对widget的actor做矩阵变换，拖动小球会出现落点和显示不一致的情况
+                        //这是因为显示位置发生变换，交互位置和显示位置保持一致，但鼠标拖动时，behavior中的worldcoords仍是真实世界的位置，该位置会在矩阵变换后显示
+                        //因此会观察到小球位置有一个突变，相当于做了两次矩阵变化
+                        //在这里引入逆矩阵，用于对worldcoords进行矩阵变换，抵消actor的矩阵变换
+                        const inverseMatrix = invertMatrix4x4(tad[currentSelectBracketName])
+                        const startBehaviorParams = handleInfo.startPointWidget.getBehaviorParams()
+                        startBehaviorParams.inverseMatrix = inverseMatrix
+                        item.startPointWidget.setBehaviorParams(startBehaviorParams)
+
+                        const endBehaviorParams = handleInfo.endPointWidget.getBehaviorParams()
+                        endBehaviorParams.inverseMatrix = inverseMatrix
+                        item.endPointWidget.setBehaviorParams(endBehaviorParams)
                     }
             	})
             }
@@ -749,7 +769,7 @@ export default function(allActorList) {
     /**
      * @description 进入(退出)细调模式时调用, 根据当前state决定牙弓线是否要加入(移除), 牙龈是否移除(加入)
      */
-    function adjustActorWhenSwitchSimulationMode(switchType = "enter", state, userType='NORMAL', clickEnter=false) {
+    function adjustActorWhenSwitchSimulationMode(switchType = "enter", state, userType='NORMAL', clickEnter=false, updateSelectedBracketActorByListClick=null) {
         isClickEnter=clickEnter&&!isArchUpdated.value;
         const addActorsList = [];
         const delActorsList = [];
@@ -797,6 +817,10 @@ export default function(allActorList) {
                 }
             }
             if(userType=='MANAGER'&&clickEnter&&!isArchUpdated.value){
+                // MANAGER的首次排牙，取消选中牙齿
+                if(updateSelectedBracketActorByListClick){
+                    updateSelectedBracketActorByListClick('')
+                }
                 state.upperOrigin = switchType === "enter" ? true : false
                 state.lowerOrigin = switchType === "enter" ? true : false
                 // state.upperOriginBracket = switchType === "enter" ? true : false

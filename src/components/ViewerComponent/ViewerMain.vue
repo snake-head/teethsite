@@ -3229,6 +3229,16 @@ function applyUserMatrixWhenSwitchMode(fromMode, toMode, render = false) {
 			if(handleInfoGet.startPointWidgetHandle&&name==handleInfoGet.toothName){
 				handleInfoGet.startPointWidgetHandle.getRepresentations()[0].getActor().setUserMatrix(applyCalMatrix.tad[handleInfoGet.toothName]);
 				handleInfoGet.endPointWidgetHandle.getRepresentations()[0].getActor().setUserMatrix(applyCalMatrix.tad[handleInfoGet.toothName]);
+				// 传入逆矩阵，将setOrigin的坐标变换为原位置
+				const inverseMatrix = invertMatrix4x4(applyCalMatrix.tad[handleInfoGet.toothName])
+
+				const startBehaviorParams = handleInfoGet.startPointWidget.getBehaviorParams()
+				startBehaviorParams.inverseMatrix = inverseMatrix
+				item.startPointWidget.setBehaviorParams(startBehaviorParams)
+
+				const endBehaviorParams = handleInfoGet.endPointWidget.getBehaviorParams()
+				endBehaviorParams.inverseMatrix = inverseMatrix
+				item.endPointWidget.setBehaviorParams(endBehaviorParams)
 			}
 		});
 		// 牙弓线
@@ -3335,6 +3345,16 @@ function updateAndApplySingleBracketUserMatrix(bracketName, newFineTuneRecord, c
 		if(handleInfoGet.startPointWidgetHandle&&bracketName==handleInfoGet.toothName){
 			handleInfoGet.startPointWidgetHandle.getRepresentations()[0].getActor().setUserMatrix(applyCalMatrix.tad[handleInfoGet.toothName]);
 			handleInfoGet.endPointWidgetHandle.getRepresentations()[0].getActor().setUserMatrix(applyCalMatrix.tad[handleInfoGet.toothName]);
+			// 传入逆矩阵，将setOrigin的坐标变换为原位置
+			const inverseMatrix = invertMatrix4x4(applyCalMatrix.tad[handleInfoGet.toothName])
+
+			const startBehaviorParams = handleInfoGet.startPointWidget.getBehaviorParams()
+			startBehaviorParams.inverseMatrix = inverseMatrix
+			handleInfoGet.startPointWidget.setBehaviorParams(startBehaviorParams)
+
+			const endBehaviorParams = handleInfoGet.endPointWidget.getBehaviorParams()
+			endBehaviorParams.inverseMatrix = inverseMatrix
+			handleInfoGet.endPointWidget.setBehaviorParams(endBehaviorParams)
 		}
 	}
 	// -渲染
@@ -3769,13 +3789,13 @@ function exitSimulationMode() {
 	applyUserMatrixWhenSwitchMode(simMode.value, "normal", true);
 }
 function adjustActorWhenSwitchSimMode(switchType, clickEnter=false) {
-	const { addActorsList, delActorsList, addWidgetsList, delWidgetsList } = adjustActorWhenSwitchSimulationMode(switchType, props.actorInScene, userType.value, clickEnter);
+	// 传入一个函数，用于在MANAGER首次排牙时取消选中的牙齿
+	const { addActorsList, delActorsList, addWidgetsList, delWidgetsList } = adjustActorWhenSwitchSimulationMode(switchType, props.actorInScene, userType.value, clickEnter, updateSelectedBracketActorByListClick);
 	actorInSceneAdjust(addActorsList, delActorsList);
 	widgetInSceneAdjust(addWidgetsList, delWidgetsList);
 }
 // 强制更新模拟排牙
 function forceUpdateArrange(reCalculateDentalArch = false, teethType = []) {
-	console.log('force')
 	let reArrangeTeethType = teethType.length > 0 ? teethType : arrangeTeethType.value;
 	if (reArrangeTeethType.length > 0) {
 		forceUpdateAtMode = fineTuneMode.value;

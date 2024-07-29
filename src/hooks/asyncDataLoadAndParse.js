@@ -518,7 +518,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
             ),
         }).then((resp) => {
             if(resp.data.data[0].webtheme==1){
-                store.dispatch("userHandleState/updateThemeType", "origin");
+                store.dispatch("userHandleState/updateThemeType", "new");
                 const currentBaseUrl = process.env.BASE_URL;
                 const link = document.querySelector("link[rel*='icon']") || document.createElement('link');
                 link.type = 'image/x-icon';
@@ -1337,6 +1337,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                     ),
                     renderer: null,
                     renderWindow: null,
+                    inverseMatrix: null,
                 },
             });
             const endPointWidget = vtkSphereWidget.newInstance({
@@ -1355,6 +1356,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                     ),
                     renderer: null,
                     renderWindow: null,
+                    inverseMatrix: null,
                 },
             });
             allActorList[teethType].distanceLine.push({

@@ -1,7 +1,7 @@
 <template>
 	<div :class="themeType">
 		<div class="right-side-menu" :class="showRightSidemenu ? 'show' : 'hide'">
-			<button @click="addSphere">add</button>
+			<!-- <button @click="addSphere">add</button> -->
 			<el-tabs class="demo-tabs" v-model="activeTable" type="card">
 				<el-tab-pane class="demo-tab-pane" label="垂直向高度(mm)" name="distance">
 					<div class="distance-table">
@@ -1058,8 +1058,12 @@ watch(generateRootRecord,(newValue, oldValue) => {
 					allActorList[teethType].rootGenerate.forEach(({actor})=>{
 						renderer.addActor(actor)
 					})
-					allActorList[teethType].root.forEach(({ rootWidget }) => {
-						rootWidget.setEnabled(false);
+					allActorList[teethType].root.forEach((obj) => {
+						vtkContext.widgetManager.removeWidget(obj.rootWidget)
+						const centers = obj.widgetHandle.getCenter()
+						obj.bottomSphereCenter = centers[0]
+						obj.topSphereCenter = centers[1]
+						obj.radiusSphereCenter = centers[2]
 					});
 					renderWindow.render()
 					elMessage.close()
@@ -1076,8 +1080,21 @@ watch(generateRootRecord,(newValue, oldValue) => {
 				renderer.removeActor(actor)
 			})
 			allActorList[teethType].rootGenerate = []
-			allActorList[teethType].root.forEach(({ rootWidget }) => {
-				rootWidget.setEnabled(true);
+			allActorList[teethType].root.forEach((obj) => {
+				const { 
+					toothName,
+					rootWidget,
+					bottomSphereCenter,
+					topSphereCenter,
+					radiusSphereCenter,  
+				} = obj
+				const widgetHandle = vtkContext.widgetManager.addWidget(rootWidget)
+				widgetHandle.getRepresentations()[3].getActors()[0].setPickable(false)
+				widgetHandle.getRepresentations()[4].getActors()[0].setPickable(false)
+				widgetHandle.getRepresentations()[5].getActors()[0].setPickable(false)
+				widgetHandle.setCenter(bottomSphereCenter, topSphereCenter, radiusSphereCenter)
+				widgetHandle.setScaleInPixels(false)
+				obj.widgetHandle = widgetHandle
 			});
 			renderWindow.render()
 		}
@@ -1102,10 +1119,13 @@ watch(initRootFlag, (newValue, oldValue)=>{
 					offset: -7,
 				})
 			}else{
+				console.log(initRootParams.value)
+				console.log(initRootParams.value[teethType])
+				console.log(teethType)
 				initRootParams.value[teethType].forEach(({toothName, bottomSphereCenter, topSphereCenter, radiusSphereCenter})=>{
 					allActorList[teethType].root.forEach((item)=>{
 						if(item.toothName == toothName){
-							item.rootRep.setCenters(
+							item.widgetHandle.setCenter(
 								bottomSphereCenter,
 								topSphereCenter,
 								radiusSphereCenter,
@@ -2566,11 +2586,11 @@ function uploadDataOnline(uploadStateMessage, submit = false) {
 				};
 			}),
 			longAxisData: allActorList[teethType].distanceLine.map((item) => {
-				const { name, startPointRep, endPointRep } = item;
+				const { name, startPointWidget, endPointWidget } = item;
 				return {
 					name,
-					startCoor: startPointRep.getSphere().getCenter(),
-					endCoor: endPointRep.getSphere().getCenter(),
+					startCoor: startPointWidget.getBehaviorParams().center,
+					endCoor: endPointWidget.getBehaviorParams().center,
 				};
 			}),
 			teethArrangeData: {
@@ -2587,13 +2607,23 @@ function uploadDataOnline(uploadStateMessage, submit = false) {
 			teethAxisFinetuneRecord: teethAxisFinetuneRecord[teethType], // 初始的牙齿坐标系 + 后续的咬合调整构成最终矩阵
 			dentalArchAdjustRecord: dentalArchAdjustRecord[teethType].resetCenters,
 			teethRootData: allActorList[teethType].rootGenerate.length>0 ? allActorList[teethType].root.map((item) => {
-				const { toothName, rootRep } = item;
-				return {
-					toothName,
-					bottomSphereCenter: rootRep.getCenters()[0],
-					topSphereCenter: rootRep.getCenters()[1],
-					radiusSphereCenter: rootRep.getCenters()[2],
-				};
+				const { toothName, widgetHandle, bottomSphereCenter, topSphereCenter, radiusSphereCenter } = item;
+				if (widgetHandle){
+					const centers = widgetHandle.getCenter()
+					return {
+						toothName,
+						bottomSphereCenter: centers[0],
+						topSphereCenter: centers[1],
+						radiusSphereCenter: centers[2],
+					};
+				}else{
+					return {
+						toothName,
+						bottomSphereCenter,
+						topSphereCenter,
+						radiusSphereCenter,
+					};
+				}
 			}):[],
 			teethBoxPoints: toothBoxPoints,
 		};
@@ -3037,6 +3067,9 @@ function applyUserMatrixWhenSwitchMode(fromMode, toMode, render = false) {
 				const endBehaviorParams = handleInfoGet.endPointWidget.getBehaviorParams()
 				endBehaviorParams.inverseMatrix = inverseMatrix
 				item.endPointWidget.setBehaviorParams(endBehaviorParams)
+
+				item.startPointWidgetHandle = handleInfoGet.startPointWidgetHandle
+				item.endPointWidgetHandle = handleInfoGet.endPointWidgetHandle
 			}
 		});
 		// 牙弓线

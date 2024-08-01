@@ -27,6 +27,7 @@ function parseAndMountToData(xmlData, dataToMount) {
 		teethRootData,
 		teethBoxPoints,
 	} = dataToMount;
+	console.log(dataToMount)
 	// 根据新托槽信息更新xml数据
 	xmlData.ProcessState[0].$.collisionState = 1 //只要上传就已经是经过碰撞检测，collisionState置1
 	xmlData.PositionResult[0].Position.forEach((item) => {
@@ -192,19 +193,22 @@ function parseAndMountToData(xmlData, dataToMount) {
 
 	// 存牙齿包围盒数据
 	xmlData.teethBoxPoints = [];
-	teethBoxPoints.forEach(({ toothName, Point0, Point1, Point2, Point3, Point4, Point5, Point6, Point7}, index) => {
-		xmlData.teethBoxPoints.push({
-			toothName,
-			Point0: Point0.toString(),
-			Point1: Point1.toString(),
-			Point2: Point2.toString(),
-			Point3: Point3.toString(),
-			Point4: Point4.toString(),
-			Point5: Point5.toString(),
-			Point6: Point6.toString(),
-			Point7: Point7.toString(),
-		})
-	});
+	console.log(teethBoxPoints)
+	for (const toothName in teethBoxPoints) {
+		if (teethBoxPoints.hasOwnProperty(toothName)) {
+			const { Point0, Point1, Point2, Point3, Point4, Point5, Point6, Point7 } = teethBoxPoints[toothName];
+			xmlData.teethBoxPoints[toothName] = {
+				Point0: Point0.toString(),
+				Point1: Point1.toString(),
+				Point2: Point2.toString(),
+				Point3: Point3.toString(),
+				Point4: Point4.toString(),
+				Point5: Point5.toString(),
+				Point6: Point6.toString(),
+				Point7: Point7.toString(),
+			};
+		}
+	}
 
 	// 什么都没有, 则不需要存
 	if (Object.keys(xmlData.dentalArch[0]).length === 1) {

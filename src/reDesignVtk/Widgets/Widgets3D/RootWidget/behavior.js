@@ -4,7 +4,7 @@
  * @Autor: ZhuYichen
  * @Date: 2024-06-14 12:20:56
  * @LastEditors: ZhuYichen
- * @LastEditTime: 2024-07-04 15:20:36
+ * @LastEditTime: 2024-08-01 15:45:53
  */
 import { m as macro } from '@kitware/vtk.js/macros2.js';
 import { vec3 } from 'gl-matrix';
@@ -74,6 +74,13 @@ function widgetBehavior(publicAPI, model) {
     ];
     updateSphere();
     model._widgetManager.enablePicking();
+  }
+  publicAPI.getCenter = ()=>{
+    return [
+      bottomSphereCenterHandle.getOrigin(),
+      topSphereCenterHandle.getOrigin(),
+      radiusSphereCenterHandle.getOrigin(),
+    ]
   }
   publicAPI.handleLeftButtonPress = e => {
     if (!isValidHandle(model.activeState)) {

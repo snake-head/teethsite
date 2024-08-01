@@ -122,15 +122,23 @@ export default function(allActorList,toothPolyDatas,bracketData) {
                     } = obj
                     if(!generateRootRecord.value[selectedTeethType]){
                         const widgetHandle = vtkContext.widgetManager.addWidget(rootWidget)
+                        widgetHandle.getRepresentations()[3].getActors()[0].setPickable(false)
+                        widgetHandle.getRepresentations()[4].getActors()[0].setPickable(false)
+                        widgetHandle.getRepresentations()[5].getActors()[0].setPickable(false)
                         widgetHandle.setCenter(bottomSphereCenter, topSphereCenter, radiusSphereCenter)
                         widgetHandle.setScaleInPixels(false)
+                        obj.widgetHandle = widgetHandle
                     }
                 });
                 break;
             }
             case "exit": {
-                allActorList[selectedTeethType].root.forEach(({ rootWidget }) => {
-                    vtkContext.widgetManager.removeWidget(rootWidget)
+                allActorList[selectedTeethType].root.forEach((obj) => {
+                    vtkContext.widgetManager.removeWidget(obj.rootWidget)
+                    const centers = obj.widgetHandle.getCenter()
+                    obj.bottomSphereCenter = centers[0]
+                    obj.topSphereCenter = centers[1]
+                    obj.radiusSphereCenter = centers[2]
                 });
                 break;
             }
@@ -147,13 +155,24 @@ export default function(allActorList,toothPolyDatas,bracketData) {
                             } = obj
                             if(!generateRootRecord.value[teethType]){
                                 const widgetHandle = vtkContext.widgetManager.addWidget(rootWidget)
+                                widgetHandle.getRepresentations()[3].getActors()[0].setPickable(false)
+                                widgetHandle.getRepresentations()[4].getActors()[0].setPickable(false)
+                                widgetHandle.getRepresentations()[5].getActors()[0].setPickable(false)
                                 widgetHandle.setCenter(bottomSphereCenter, topSphereCenter, radiusSphereCenter)
                                 widgetHandle.setScaleInPixels(false)
+                                obj.widgetHandle = widgetHandle
                             }
                         });
                     } else {
-                        allActorList[teethType].root.forEach(({ rootWidget }) => {
-                            vtkContext.widgetManager.removeWidget(rootWidget)
+                        allActorList[teethType].root.forEach((obj) => {
+                            vtkContext.widgetManager.removeWidget(obj.rootWidget)
+                            // 如果是初始化时直接加载了牙根，那么圆锥还从来没有addwidget过
+                            if(obj.widgetHandle){
+                                const centers = obj.widgetHandle.getCenter()
+                                obj.bottomSphereCenter = centers[0]
+                                obj.topSphereCenter = centers[1]
+                                obj.radiusSphereCenter = centers[2]    
+                            }
                         });
                     }
                 }
@@ -182,14 +201,15 @@ export default function(allActorList,toothPolyDatas,bracketData) {
         //   if (toothName === 'LR6') {
             let writer = XML.vtkXMLPolyDataWriter.newInstance();
             let polyDataAsString = writer.write(toothPolyData);
-            const { rootRep } = allActorList[teethType].root.filter(
+            const { widgetHandle } = allActorList[teethType].root.filter(
               (obj) => obj.toothName == toothName
             )[0];
+            console.log(widgetHandle)
             const rootInfo = {
               toothName,
-              bottomSphereCenter: rootRep.getCenters()[0],
-              topSphereCenter: rootRep.getCenters()[1],
-              radiusSphereCenter: rootRep.getCenters()[2],
+              bottomSphereCenter: widgetHandle.getCenter()[0],
+              topSphereCenter: widgetHandle.getCenter()[1],
+              radiusSphereCenter: widgetHandle.getCenter()[2],
             };
             const jsonPart = JSON.stringify(rootInfo);
       

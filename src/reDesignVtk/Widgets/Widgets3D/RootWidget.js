@@ -4,7 +4,7 @@
  * @Autor: ZhuYichen
  * @Date: 2024-07-03 10:55:43
  * @LastEditors: ZhuYichen
- * @LastEditTime: 2024-07-15 16:49:50
+ * @LastEditTime: 2024-08-01 15:31:34
  */
 import { e as distance2BeSpheretweenPoints } from '@kitware/vtk.js/Common/Core/Math/index.js';
 import vtkAbstractWidgetFactory from '../Core/AbstractWidgetFactory.js';
@@ -57,7 +57,10 @@ function vtkRootWidget(publicAPI, model) {
     initialValues: {
       lineThickness: 0.02
     }
-  }, 
+  }, {
+    builder: vtkConeRepresentation,
+    labels: ['bottomSphereCenterHandle', 'topSphereCenterHandle', 'radiusSphereCenterHandle']
+  }
 ];
 
   // --- Public methods -------------------------------------------------------

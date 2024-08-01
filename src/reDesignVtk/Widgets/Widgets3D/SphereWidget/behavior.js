@@ -4,7 +4,7 @@
  * @Autor: ZhuYichen
  * @Date: 2024-06-14 12:20:56
  * @LastEditors: ZhuYichen
- * @LastEditTime: 2024-07-29 11:47:05
+ * @LastEditTime: 2024-08-01 17:06:55
  */
 import { m as macro } from '@kitware/vtk.js/macros2.js';
 import { vec3 } from 'gl-matrix';
@@ -131,6 +131,7 @@ function widgetBehavior(publicAPI, model) {
     worldCoords = calNearestPoint(worldCoords)
     model.activeState.setOrigin(worldCoords);
     model.previousPosition = worldCoords;
+    model.behaviorParams.center = worldCoords
     updateSphere();
     updatePosFunc(
       [...worldCoords],

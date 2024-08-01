@@ -1113,6 +1113,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
         const { teethWithGingiva, tooth, bracket } = actorDatas;
         // gingiva
         var { actor, mapper } = generateActorByData(teethWithGingiva);
+        actor.setPickable(false)
         actor.getProperty().setColor(actorColorConfig.teeth);
         allActorList[teethType].teethWithGingiva = {
             actor,
@@ -1120,6 +1121,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
         };
         // originGingiva
         var { actor, mapper } = generateActorByData(teethWithGingiva);
+        actor.setPickable(false)
         actor.getProperty().setColor(actorColorConfig.teeth);
         allActorList[teethType].originGingiva = {
             actor,
@@ -1130,6 +1132,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
             const { actor, mapper, polyData } = generateActorByData(
                 tooth[name]
             );
+            actor.setPickable(false)
             toothPolyDatas[name] = polyData;
             actor.getProperty().setColor(actorColorConfig.teeth);
             allActorList[teethType].tooth.push({ name, actor, mapper });
@@ -1139,6 +1142,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
             const { actor, mapper, polyData } = generateActorByData(
                 tooth[name]
             );
+            actor.setPickable(false)
             actor.getProperty().setColor(actorColorConfig.teeth);
             allActorList[teethType].originTooth.push({ name, actor, mapper });
         });
@@ -1338,6 +1342,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                     renderer: null,
                     renderWindow: null,
                     inverseMatrix: null,
+                    center: startPoint,
                 },
             });
             const endPointWidget = vtkSphereWidget.newInstance({
@@ -1357,6 +1362,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                     renderer: null,
                     renderWindow: null,
                     inverseMatrix: null,
+                    center: endPoint,
                 },
             });
             allActorList[teethType].distanceLine.push({
@@ -1719,6 +1725,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                         }
                         const { toNext } = event.data;
                         if (toNext) {
+                            console.log(teethType)
                             const { root, rootGenerate, originRoot } = event.data.allActorList
                             root.forEach(({toothName, bottomSphereCenter, topSphereCenter, radiusSphereCenter})=>{
                                 //制造牙根底部、牙根顶部、牙根半径三个小球

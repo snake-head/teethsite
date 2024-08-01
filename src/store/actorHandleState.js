@@ -346,6 +346,13 @@ export default {
         UpdateGenerateRootRecord(state, value){
             Object.assign(state.generateRootRecord,value)
         },
+        SetInitRootFlag(state, value){
+            state.initRootFlag = value;
+        },
+        SetInitRootParams(state, value){
+            Object.assign(state.initRootParams,value)
+            console.log(state.initRootParams)
+        },
         UpdateSelectedToothBox(state, value){
             state.BoxSlicing.SelectedToothBox = value;
         },

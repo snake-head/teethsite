@@ -4,7 +4,7 @@
  * @Autor: ZhuYichen
  * @Date: 2022-09-27 11:03:07
  * @LastEditors: ZhuYichen
- * @LastEditTime: 2024-06-12 20:23:27
+ * @LastEditTime: 2024-08-06 14:23:58
  */
 module.exports = {
     lintOnSave: false, // 关闭语法检查
@@ -57,6 +57,7 @@ module.exports = {
             })
             .end();
         config.module.rule("js").exclude.add(/\.worker\.js$/);
+        config.optimization.minimize(false) //vuecli去掉代码混淆和压缩
     },
     configureWebpack: {
         resolve: {

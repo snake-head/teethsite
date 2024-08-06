@@ -517,7 +517,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                 0
             ),
         }).then((resp) => {
-            if(resp.data.data[0].webtheme==1){
+            if(resp.data.data && resp.data.data[0].webtheme==1){
                 store.dispatch("userHandleState/updateThemeType", "new");
                 const currentBaseUrl = process.env.BASE_URL;
                 const link = document.querySelector("link[rel*='icon']") || document.createElement('link');

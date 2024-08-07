@@ -590,8 +590,16 @@ export default function(allActorList) {
     /**
      * Function:牙齿切片时切换切片前和切片后的牙齿全景
      */
-    function actorShowStateUpdateSlicing(state, Tuneactor){
-        const currentSelectBracketName = computed(() => store.state.actorHandleState.currentSelectBracketName);
+    function actorShowStateUpdateSlicing(state, Tuneactor, toothName){
+        let ToothSlicingName = null;
+        if (toothName) {
+            ToothSlicingName = toothName;
+        }
+        else {
+            const currentSelectBracketName = store.state.actorHandleState.currentSelectBracketName;
+            ToothSlicingName = currentSelectBracketName;
+        }
+        
         let { upper, upperOrigin, upperOriginBracket, upperOriginGingiva, lower, lowerOrigin, lowerOriginBracket, lowerOriginGingiva,teethWithGingiva, axis, arch } = state;
             let curActorInScene = {
                 upper: {
@@ -623,7 +631,6 @@ export default function(allActorList) {
             };
             //需要生成的单颗牙齿名称
             // const ToothSlicingName = currentSelectBracket.name;
-            const ToothSlicingName = currentSelectBracketName.value
 
             const addActorsList = []; // 根据状态对比(false->true),生成应该加入屏幕的actor列表
             const delActorsList = []; // 根据状态对比(true->false),生成应该移出屏幕的actor列表

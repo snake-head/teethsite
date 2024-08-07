@@ -437,7 +437,9 @@ function calculateArchFunc(teethData, symmetry = true) {
     const numberOfSamples = fittingData.length;
     const x = []; // (numberOfSamples, 5)
     const y = []; // (numberOfSamples, 1) eg: [[0],[0],[0],[0],[0]]
-    const m = [[0], [0], [0], [0], [0]]; // (5, 1)
+
+    let m = [[0], [0], [0], [0], [0]]; // (5, 1)
+    
     for (let i = 0; i < numberOfSamples; i++) {
         x.push([]);
         y.push([fittingData[i][1]]);
@@ -446,6 +448,38 @@ function calculateArchFunc(teethData, symmetry = true) {
         }
     }
     solveLeastSquares(numberOfSamples, x, 5, y, 1, m, true);
+
+    // const fittingData1 = [
+    //     [1, 2],
+    //     [2, 5],
+    //     [3, 10],
+    //     [4, 17],
+    //     [5, 26],
+    // ];
+    // console.log('##', fittingData1[0][0])
+    
+    // // 构造 x 和 y 矩阵
+    // const x1 = []; // (numberOfSamples, 3) 对应于 1, x, x^2
+    // const y1 = []; // (numberOfSamples, 1)
+    // const m1 = []; // (3, 1) 需要计算的系数
+    
+    // for (let i = 0; i < 5; i++) {
+    //     console.log(fittingData1[i][0])
+    //     x1.push([
+    //         1, // 常数项
+    //         fittingData1[i][0], // x
+    //         fittingData1[i][0] ** 2, // x^2
+    //     ]);
+    //     y1.push([fittingData1[i][1]]);
+    // }
+    
+    // // 计算拟合系数
+    // console.log(x1)
+    // console.log(y1)
+    // solveLeastSquares(5, x1, 3, y1, 1, m1, true);
+    
+    // // 输出结果
+    // console.log('拟合系数:', m1);
 
     // 如果要求对称, 则将奇数次项置0
     if (symmetry) {

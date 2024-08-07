@@ -267,6 +267,7 @@ function updateTeethArrange() {
 		Object.assign(updateObj, {clickFlag: true})
 		store.dispatch("actorHandleState/updateDentalArchAdjustRecord", updateObj);
 	}
+	console.log('##', arrangeTeethType)
 	props.checkArchUpdated();
 	if(firstUpdateFlag){
 		showAndHide();

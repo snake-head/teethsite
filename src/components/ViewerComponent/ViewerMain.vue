@@ -129,6 +129,7 @@ import vtkActor from "@kitware/vtk.js/Rendering/Core/Actor";
 import vtkMapper from "@kitware/vtk.js/Rendering/Core/Mapper";
 import vtkWidgetManager from '@kitware/vtk.js/Widgets/Core/WidgetManager';
 import vtkSphereWidget from '@kitware/vtk.js/Widgets/Widgets3D/SphereWidget';
+import vtkLineWidget from '../../reDesignVtk/Widgets/Widgets3D/LineWidget';
 
 
 const props = defineProps({
@@ -323,35 +324,30 @@ watch(currentShowPanel, (newVal, oldVal) => {
 	// 从[工具菜单]进入[牙齿切片]
 	if (oldVal === -1 && newVal === 3) {
 		// console.log('管理员模式', store.state.userHandleState.userType)
-		console.log('##测试', toothBoxPoints);
-		// for(let name in toothBoxPoints){
-		// 	const point = toothBoxPoints[name]['Point${i}']
-		// 	for (let i = 0; i <= 7; i++){
-		// 		if (point[0] !== 0 || point[1] !== 0 || point[2] !== 0){
-		// 			const toothBoxAvail = true;
-		// 			break
-		// 		}
-		// 	}
-		// 	const toothBoxAvail = toothBoxPoints[name].every(point =>
-				
-		// 	)
-		// 	if (toothBoxAvail == true){
-		// 		break
-		// 	}
-		// }
-		// console.log('##判断', toothBoxAvail);
-		// console.log('##测试', allActorList[teethType].rootGenerate)
+		console.log('##测试', store.state.actorHandleState.toothBoxPoints);
 	}
 	// 从[牙齿切片]退出到[工具菜单]
 	if (oldVal === 3 && newVal === -1) {
 		resetgenerateBoxToolTune(vtkContext, Tuneactor);
 		resetgenerateBoxTool(vtkContext, actors);
-		vtkContext.renderWindow.render();
 		resetSurroundingBoxsPoints();
+		// ResultSurrounding(toothPolyDatas);
+		vtkContext.renderWindow.render();
 	}
 });
 let widget = null;
 let widgetHandle = null;
+
+let widgetManager = null;
+let sphereLineWidget1 = null;
+let sphereLineWidgetHandle1 = null;
+let sphereLineWidget2 = null;
+let sphereLineWidgetHandle2 = null;
+let sphereLineWidget3 = null;
+let sphereLineWidgetHandle3 = null;
+let sphereLineWidget4 = null;
+let sphereLineWidgetHandle4 = null;
+
 function addSphere(){
 	// const {widgetManager} = vtkContext;
 
@@ -364,6 +360,7 @@ function addSphere(){
 	console.log(a)
 }
 let dentalArchWidgets = {}; // 每次调整后再排牙后需要重新设置
+let teethArchWidgets = {};
 let initFittingCenters = {};
 /**
  * @description 进入牙弓线调整面板时调用, 生成调整小球
@@ -404,7 +401,19 @@ function regenerateDentalArchWidget(specTeethType = [], firstGenerate = false) {
 			coEfficients= toRaw(dentalArchSettings[teethType]).coEfficients;
 		}else{
 			// 其他情况下从dentalArchAdjustRecord中读取系数，也就是只更新不保存
-			coEfficients = toRaw(dentalArchAdjustRecord[teethType].coEfficients)
+			// coEfficients = toRaw(dentalArchAdjustRecord[teethType].coEfficients)
+			if (teethType == "upper") {
+				coEfficients = toRaw(dentalArchAdjustRecord["upper"]).coEfficients;
+				if (coEfficients == null) {
+					coEfficients= toRaw(dentalArchSettings[teethType]).coEfficients;
+				}
+			}
+			else if (teethType == "lower") {
+				coEfficients = toRaw(dentalArchAdjustRecord["lower"]).coEfficients;
+				if (coEfficients == null) {
+					coEfficients= toRaw(dentalArchSettings[teethType]).coEfficients;
+				}
+			}
 		}
 		// 前面的小球
 		aheadCenterCoordsOfStandardTeethAxis = [0, coEfficients[0][0], zLevelOfArch];
@@ -812,18 +821,24 @@ function adjustDentalArchWidgetInScene(mode) {
 	let selectedTeethType = dentalArchAdjustType.value;
 	switch (mode) {
 		case "enter": {
+			LineWidgetExpress(vtkContext, selectedTeethType);
 			dentalArchWidgets[selectedTeethType].forEach(({ sphereLinkWidget }) => {
 				sphereLinkWidget.setEnabled(1);
 			});
 			break;
 		}
 		case "exit": {
+			// 清除
+			removeLineWidgetExpress(vtkContext, selectedTeethType);
 			dentalArchWidgets[selectedTeethType].forEach(({ sphereLinkWidget }) => {
 				sphereLinkWidget.setEnabled(0);
 			});
 			break;
 		}
 		case "switch": {
+			// 清除
+			removeLineWidgetExpress(vtkContext, selectedTeethType);
+			LineWidgetExpress(vtkContext, selectedTeethType);
 			Object.keys(dentalArchWidgets).forEach((teethType) => {
 				if (teethType === selectedTeethType) {
 					dentalArchWidgets[teethType].forEach(({ sphereLinkWidget }) => sphereLinkWidget.setEnabled(1));
@@ -839,6 +854,157 @@ function adjustDentalArchWidgetInScene(mode) {
 	vtkContext.renderer.getActiveCamera().setClippingRange(1, 1000);
 	vtkContext.renderWindow.render();
 }
+
+function removeLineWidgetExpress(vtkContext, selectedTeethType) {
+	const { widgetManager } = vtkContext;
+	if(widgetManager.getWidgets()[0]){
+		widgetManager.removeWidget(sphereLineWidgetHandle1);
+		widgetManager.removeWidget(sphereLineWidgetHandle2);
+		widgetManager.removeWidget(sphereLineWidgetHandle3);
+		widgetManager.removeWidget(sphereLineWidgetHandle4);
+	}
+}
+
+
+function LineWidgetExpress(vtkContext, selectedTeethType) {
+	const { widgetManager } = vtkContext;
+
+	if (selectedTeethType == "upper") {
+		// const name1='D0', name2='D1', name3='UL2', name4='UR2', name5='UL5', name6='UR5', name7='UL7', name8='UR7';
+		let name1='D0', name2='D1';
+		sphereLineWidget1 = vtkLineWidget.newInstance({
+			activeColor: [204, 64, 64],
+			activeScaleFactor: 1,
+			behaviorParams: {
+				store,
+				selectedTeethType,
+				name1,
+				name2,
+			}
+		})
+		sphereLineWidgetHandle1 = widgetManager.addWidget(sphereLineWidget1);
+		sphereLineWidgetHandle1.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.D0, dentalArchAdjustRecord[selectedTeethType].centers.D1);
+		sphereLineWidgetHandle1.getWidgetState().modified();
+		sphereLineWidgetHandle1.setScaleInPixels(false);
+
+		name1='UL2', name2='UR2';
+		sphereLineWidget2 = vtkLineWidget.newInstance({
+			activeColor: [204, 64, 64],
+			activeScaleFactor: 1,
+			behaviorParams: {
+				store,
+				selectedTeethType,
+				name1,
+				name2,
+			}
+		})
+		sphereLineWidgetHandle2 = widgetManager.addWidget(sphereLineWidget2);
+		//initFittingCenters
+		sphereLineWidgetHandle2.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.UL2, dentalArchAdjustRecord[selectedTeethType].centers.UR2);
+		sphereLineWidgetHandle2.getWidgetState().modified();
+		sphereLineWidgetHandle2.setScaleInPixels(false);
+
+		name1='UL5', name2='UR5'
+		sphereLineWidget3 = vtkLineWidget.newInstance({
+			activeColor: [204, 64, 64],
+			activeScaleFactor: 1,
+			behaviorParams: {
+				store,
+				selectedTeethType,
+				name1,
+				name2,
+			}
+		})
+		sphereLineWidgetHandle3 = widgetManager.addWidget(sphereLineWidget3);
+		sphereLineWidgetHandle3.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.UL5, dentalArchAdjustRecord[selectedTeethType].centers.UR5);
+		sphereLineWidgetHandle3.getWidgetState().modified();
+		sphereLineWidgetHandle3.setScaleInPixels(false);
+
+		name1='UL7', name2='UR7'
+		sphereLineWidget4 = vtkLineWidget.newInstance({
+			activeColor: [204, 64, 64],
+			activeScaleFactor: 1,
+			behaviorParams: {
+				store,
+				selectedTeethType,
+				name1,
+				name2,
+			}
+		})
+		sphereLineWidgetHandle4 = widgetManager.addWidget(sphereLineWidget4);
+		sphereLineWidgetHandle4.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.UL7, dentalArchAdjustRecord[selectedTeethType].centers.UR7);
+		sphereLineWidgetHandle4.getWidgetState().modified();
+		sphereLineWidgetHandle4.setScaleInPixels(false);
+	}
+	if (selectedTeethType == "lower") {
+		// const name1='D0', name2='D1', name3='LL2', name4='LR2', name5='LL4', name6='LR4', name7='LL7', name8='LR7';
+		let name1='D0', name2='D1';
+		sphereLineWidget1 = vtkLineWidget.newInstance({
+			activeColor: [204, 64, 64],
+			activeScaleFactor: 1,
+			behaviorParams: {
+				store,
+				selectedTeethType,
+				name1,
+				name2,
+			}
+		})
+		sphereLineWidgetHandle1 = widgetManager.addWidget(sphereLineWidget1);
+		sphereLineWidgetHandle1.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.D0, dentalArchAdjustRecord[selectedTeethType].centers.D1);
+		sphereLineWidgetHandle1.getWidgetState().modified();
+		sphereLineWidgetHandle1.setScaleInPixels(false);
+
+		name1='LL2', name2='LR2';
+		sphereLineWidget2 = vtkLineWidget.newInstance({
+			activeColor: [204, 64, 64],
+			activeScaleFactor: 1,
+			behaviorParams: {
+				store,
+				selectedTeethType,
+				name1,
+				name2,
+			}
+		})
+		sphereLineWidgetHandle2 = widgetManager.addWidget(sphereLineWidget2);
+		sphereLineWidgetHandle2.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.LL2, dentalArchAdjustRecord[selectedTeethType].centers.LR2);
+		sphereLineWidgetHandle2.getWidgetState().modified();
+		sphereLineWidgetHandle2.setScaleInPixels(false);
+
+		name1='LL4', name2='LR4';
+		sphereLineWidget3 = vtkLineWidget.newInstance({
+			activeColor: [204, 64, 64],
+			activeScaleFactor: 1,
+			behaviorParams: {
+				store,
+				selectedTeethType,
+				name1,
+				name2,
+			}
+		})
+		sphereLineWidgetHandle3 = widgetManager.addWidget(sphereLineWidget3);
+		sphereLineWidgetHandle3.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.LL4, dentalArchAdjustRecord[selectedTeethType].centers.LR4);
+		sphereLineWidgetHandle3.getWidgetState().modified();
+		sphereLineWidgetHandle3.setScaleInPixels(false);
+
+		name1='LL7', name2='LR7'
+		sphereLineWidget4 = vtkLineWidget.newInstance({
+			activeColor: [204, 64, 64],
+			activeScaleFactor: 1,
+			behaviorParams: {
+				store,
+				selectedTeethType,
+				name1,
+				name2,
+			}
+		})
+		sphereLineWidgetHandle4 = widgetManager.addWidget(sphereLineWidget4);
+		sphereLineWidgetHandle4.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.LL7, dentalArchAdjustRecord[selectedTeethType].centers.LR7);
+		sphereLineWidgetHandle4.getWidgetState().modified();
+		sphereLineWidgetHandle4.setScaleInPixels(false);
+	}
+}
+
+
 // 保存调整结果之后, 需要更新userMatrix, 然后重新生成小球
 const overwriteByDentalArchAdjustRecord = computed(
 	() => store.state.actorHandleState.teethArrange.dentalArchAdjustRecord.overwriteByDentalArchAdjustRecord
@@ -856,18 +1022,23 @@ watch(overwriteByDentalArchAdjustRecord, (newValue) => {
 				resetCenter,
 			} of dentalArchWidgets[teethType]) {
 				// 得到小球当前的显示中心(如果经过invMatrix逆变换则能得到用于牙弓线计算的拟合点坐标)
-				let center = sphereLinkRep.getCenters();
+				let center = initFittingCenters[teethType]['centers'];
+				// let center = sphereLinkRep.getCenters();
+				// centers[teethType][leftName] = {
+				// 	center: [...center[0]],
+				// 	invMatrix: [...leftMat],
+				// };
 				centers[teethType][leftName] = {
-					center: [...center[0]],
+					center: [...center[leftName]],
 					invMatrix: [...leftMat],
 				};
 				centers[teethType][rightName] = {
-					center: [...center[1]],
+					center: [...center[rightName]],
 					invMatrix: [...rightMat],
 				};
 				// 重置点覆盖
-				resetCenter.left = [...center[0]];
-				resetCenter.right = [...center[1]];
+				resetCenter.left = [...center[leftName]];
+				resetCenter.right = [...center[rightName]];
 			}
 		}
 		// 将小球的显示中心和invMatrix全部存入, 下次生成小球时可以直接调用,
@@ -1655,43 +1826,28 @@ watch(boxPositionAdjustMoveType, (newValue) => {
 		//删除形成的包围框
 		resetgenerateBoxTool(vtkContext, Tuneactor);
 
-		const SurroundingBoxsPoints = store.state.actorHandleState.BoxSlicing.boxPositionAdjust.BoxPoints;
-		TransPoint(SurroundingBoxsPoints, toothBoxPoints[currentSelectBracket.value.name]);
+		const ToothBoxPoints = store.state.actorHandleState.toothBoxPoints;
+		// const SurroundingBoxsPoints = store.state.actorHandleState.BoxSlicing.boxPositionAdjust.BoxPoints;
+		const SurroundingBoxsPoints = ToothBoxPoints[currentSelectBracket.value.name];
+
+		// TransPoint(SurroundingBoxsPoints, toothBoxPoints[currentSelectBracket.value.name]);
 
 		// 判断是上牙还是下牙
 		const toothPosition = store.state.actorHandleState.BoxSlicing.SelectedPosition;
-		// //版本2
-		// const { validpointValues, validcellValues } = FineTunePiece(toothPolyDatas, currentSelectBracket, toothPosition, SurroundingBoxsPoints);
-		// const { actor, mapper, polyData } = generateActorByData({ validpointValues, validcellValues});
-		// //需要生成的单颗牙齿名称
-		// const ToothSlicingName = currentSelectBracket.name;
-		// allActorList[ToothSlicingName].tooth = {
-		// 	actor: actor,
-		// 	mapper: mapper,
-		// };
-		// const { pointValues, cellValues, copiedtoothPolyDatas, validpointValues, validcellValues} = FineTunePiece(toothPolyDatas, currentSelectBracket, toothPosition, SurroundingBoxsPoints);
+
 		const { pointValues, cellValues, truncatedValidcellValues} = FineTunePiece(toothPolyDatas, currentSelectBracket.value, toothPosition, SurroundingBoxsPoints);
 		// truncatedValidcellValues = FineTunePiece(toothPolyDatas, currentSelectBracket, toothPosition, SurroundingBoxsPoints);
 		
 		//得到一个修改后的单个牙齿面片组成数据，生成切割后的牙齿
 		const FineTuneactor = reshowTune(pointValues, truncatedValidcellValues);
 		// generateBoxTool(vtkContext, Tuneactor);
-		const { addActorsList, delActorsList } = actorShowStateUpdateSlicing(props.actorInScene, FineTuneactor);
+		const { addActorsList, delActorsList } = actorShowStateUpdateSlicing(props.actorInScene, FineTuneactor, false);
 		actorInSceneAdjust(addActorsList, delActorsList);
 		releaseBoxPositionAdjustMoveType();
-		// for(let name in toothBoxPoints){
-		// 	const toothBoxAvail = toothBoxPoints[name].every(point =>
-		// 		point[0] !== 0 || point[1] !== 0 || point[2] !== 0
-		// 	)
-		// 	if (toothBoxAvail == true){
-		// 		break
-		// 	}
-		// }
-		// console.log('##判断', toothBoxAvail);
 	}
 	if (newValue == 'TEMPRESET'){
-		resetTransPoint(toothBoxPoints[currentSelectBracket.value.name]);
-		console.log('##测试', toothBoxPoints);
+		const ToothBoxPoints = store.state.actorHandleState.toothBoxPoints;
+		resetTransPoint(ToothBoxPoints[currentSelectBracket.value.name]);
 		// const FineTuneactor = generateSlicingBoxReset();
 		// const { addActorsList, delActorsList } = actorShowStateUpdateSlicing(props.actorInScene, FineTuneactor);
 		const { addActorsList, delActorsList } = actorShowStateUpdateSlicingReset(props.actorInScene, toothPolyDatas, store, 'TEMPReset');
@@ -1699,8 +1855,9 @@ watch(boxPositionAdjustMoveType, (newValue) => {
 		releaseBoxPositionAdjustMoveType();
 	}
 	if (newValue == 'RESET'){
-		for(let name in toothBoxPoints){
-			resetTransPoint(toothBoxPoints[name]);
+		const ToothBoxPoints = store.state.actorHandleState.toothBoxPoints;
+		for(let name in ToothBoxPoints){
+			resetTransPoint(ToothBoxPoints[name]);
 		}
 		const { addActorsList, delActorsList } = actorShowStateUpdateSlicingReset(props.actorInScene, toothPolyDatas, store, 'Reset');
 		actorInSceneAdjust(addActorsList, delActorsList);
@@ -1771,34 +1928,75 @@ function generateActorByData({ pointValues, cellValues }) {
         return { actor, mapper, polyData };
     }
 
-// function reshowTune(copiedtoothPolyDatas){
-// 	const polydata = vtkPolyData.newInstance();
-// 	const points = vtkPoints.newInstance();
+function ResultSurrounding(toothPolyDatas){
+	const ToothBoxPoints = store.state.actorHandleState.toothBoxPoints;
+	const addActorsList = []; // 根据状态对比(false->true),生成应该加入屏幕的actor列表
+    const delActorsList = []; // 根据状态对比(true->false),生成应该移出屏幕的actor列表
 
-// 	const cellArray = vtkCellArray.newInstance();
+	const pointsToCheck = ['Point0', 'Point1', 'Point2', 'Point3', 'Point4', 'Point5', 'Point6', 'Point7'];
 	
-// 	const mapper = vtkMapper.newInstance();
+	for (let i = 0; i < Object.keys(ToothBoxPoints).length; i++) {
+		const toothName = Object.keys(ToothBoxPoints)[i];
+		const isAnyPointNonZero = pointsToCheck.some(point => {
+			const pointValue = ToothBoxPoints[toothName][point];
+			return pointValue[0] !== 0 || pointValue[1] !== 0 || pointValue[2] !== 0;
+		});
+		if (isAnyPointNonZero) {
+			const SurroundingBoxsPoints0 = ToothBoxPoints[toothName];
+			let SurroundingBoxPoints = {};
+			SurroundingBoxPoints.Point0 = [SurroundingBoxsPoints0.Point0[0], SurroundingBoxsPoints0.Point0[1], SurroundingBoxsPoints0.Point0[2]]
+			SurroundingBoxPoints.Point1 = [SurroundingBoxsPoints0.Point1[0], SurroundingBoxsPoints0.Point1[1], SurroundingBoxsPoints0.Point1[2]]
+			SurroundingBoxPoints.Point2 = [SurroundingBoxsPoints0.Point2[0], SurroundingBoxsPoints0.Point2[1], SurroundingBoxsPoints0.Point2[2]]
+			SurroundingBoxPoints.Point3 = [SurroundingBoxsPoints0.Point3[0], SurroundingBoxsPoints0.Point3[1], SurroundingBoxsPoints0.Point3[2]]
+			SurroundingBoxPoints.Point4 = [SurroundingBoxsPoints0.Point4[0], SurroundingBoxsPoints0.Point4[1], SurroundingBoxsPoints0.Point4[2]]
+			SurroundingBoxPoints.Point5 = [SurroundingBoxsPoints0.Point5[0], SurroundingBoxsPoints0.Point5[1], SurroundingBoxsPoints0.Point5[2]]
+			SurroundingBoxPoints.Point6 = [SurroundingBoxsPoints0.Point6[0], SurroundingBoxsPoints0.Point6[1], SurroundingBoxsPoints0.Point6[2]]
+			SurroundingBoxPoints.Point7 = [SurroundingBoxsPoints0.Point7[0], SurroundingBoxsPoints0.Point7[1], SurroundingBoxsPoints0.Point7[2]]
+			let toothPosition;
+			if (toothName.charAt(0).toUpperCase() === 'U') {
+				toothPosition = "upper";
+			}
+			else if (toothName.charAt(0).toUpperCase() === 'L') {
+				toothPosition = "lower";
+			}
+			const { pointValues, cellValues, truncatedValidcellValues} = FineTunePiece(toothPolyDatas, toothName, toothPosition, SurroundingBoxPoints);
+			const FineTuneactor = reshowTune(pointValues, truncatedValidcellValues);
+			if (toothPosition == "upper") {
+				allActorList["upper"].tooth.forEach((item) => {
+                	if (item.name == toothName) {
+                    	delActorsList.push(item.actor);
+                    	item.actor = FineTuneactor;
+                    	addActorsList.push(item.actor);
+                	}
+				});
+				allActorList["upper"].rootGenerate.forEach((item) => {
+                	if (item.name == toothName) {
+                    	// delActorsList.push(item.actor);
+                    	addActorsList.push(item.actor);
+                	}
+            	});
+			}
+			if (toothPosition == "lower") {
+				allActorList["lower"].tooth.forEach((item) => {
+                	if (item.name == toothName) {
+                    	delActorsList.push(item.actor);
+                    	item.actor = FineTuneactor;
+                    	addActorsList.push(item.actor);
+                	}
+            	});
+            	allActorList["lower"].rootGenerate.forEach((item) => {
+                	if (item.name == toothName) {
+                    	// delActorsList.push(item.actor);
+                    	addActorsList.push(item.actor);
+                	}
+            	});
+			}
+			}
+	}
+	actorInSceneAdjust(addActorsList, delActorsList);
+	releaseBoxPositionAdjustMoveType();
+}
 
-// 	const Tuneactor = vtkActor.newInstance();
-
-// 	for (let name in copiedtoothPolyDatas){
-// 		const pointValues = copiedtoothPolyDatas[name];
-// 		const cellValues = copiedtoothPolyDatas[name];
-// 		points.setData(Float32Array.from(pointValues));
-// 		polydata.setPoints(points);
-
-// 		const cellData = new Uint32Array(cellValues);
-// 		cellArray.setData(cellData);
-// 		polydata.setPolys(cellArray);
-
-// 		mapper.setInputData(polydata);
-
-// 		Tuneactor.setMapper(mapper);
-// 		Tuneactor.getProperty().setColor(1, 0, 0);
-// 		break;
-// 	}
-// 	return Tuneactor;
-// }
 function reshowTune(pointValues, cellValues){
 	const polydata = vtkPolyData.newInstance();
 	const points = vtkPoints.newInstance();
@@ -1920,6 +2118,9 @@ watch(props.actorInScene, (newVal) => {
 		// 坐标轴需要转换角度调整, 否则尺寸对不上
 		resetView("LEFT", teethType);
 		resetView("FRONT", teethType);
+
+		// 重置box
+		ResultSurrounding(toothPolyDatas);
 
 		renderWindow.render();
 		initRenderCamera = true;
@@ -2069,7 +2270,6 @@ function actorInSceneAdjust(addActorsList, delActorsList) {
 		renderWindow.render();
 	}
 }
-
 
 /**
  * @description 当更新currentSelectedBracket时调用, 在子窗口中显示对应牙齿+托槽
@@ -2512,7 +2712,7 @@ function uploadDataOnline(uploadStateMessage, submit = false) {
 		value: 0,
 	});
 	let teethArrangeData = toRaw(teethArrange);
-	let teethBoxPointsData = toRaw(toothBoxPoints);
+	let teethBoxPointsData = toRaw(teethBoxPoints);
 	uploadType.value.forEach((teethType) => {
 		store.dispatch("userHandleState/updateUploadingState", {
 			teethType,
@@ -2566,11 +2766,13 @@ function uploadDataOnline(uploadStateMessage, submit = false) {
 				};
 			}),
 			longAxisData: allActorList[teethType].distanceLine.map((item) => {
-				const { name, startPointRep, endPointRep } = item;
+				// const { name, startPointRep, endPointRep } = item;
+				const { name, startPoint, endPoint } = item;
 				return {
 					name,
-					startCoor: startPointRep.getSphere().getCenter(),
-					endCoor: endPointRep.getSphere().getCenter(),
+					// startCoor: startPointRep.getSphere().getCenter(),
+					startCoor: startPoint,
+					endCoor: endPoint,
 				};
 			}),
 			teethArrangeData: {
@@ -2595,7 +2797,7 @@ function uploadDataOnline(uploadStateMessage, submit = false) {
 					radiusSphereCenter: rootRep.getCenters()[2],
 				};
 			}):[],
-			teethBoxPoints: toothBoxPoints,
+			teethBoxPoints: teethBoxPointsData,
 		};
 		uploadCurrentData(
 			toRaw(stlObj.teeth[teethType]),

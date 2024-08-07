@@ -384,7 +384,13 @@ function dotProduct(a, b) {
 
 function FineTunePiece(toothPolyDatas, currentSelectBracket, toothPosition, SurroundingBoxsPoints){
     // 初始面片信息
-    const toothName = currentSelectBracket.name;
+    let toothName;
+    if (currentSelectBracket.name == null) {
+        toothName = currentSelectBracket;
+    }
+    else {
+        toothName = currentSelectBracket.name;
+    }
     const pointValues = toothPolyDatas[toothName].getPoints().getData();
     const cellValues = toothPolyDatas[toothName].getPolys().getData();
     // const _ = require('lodash'); // 导入 lodash 库

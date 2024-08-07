@@ -221,8 +221,22 @@ function saveTeethBoxRecord0(){
  * Function：记录此时的包围框坐标，并生成分割后的牙齿
  */
 function saveTeethBoxRecord(){
+	const currentSelectBracketName = store.state.actorHandleState.currentSelectBracketName;
 	const SurroundingBoxPoints = store.state.actorHandleState.BoxSlicing.BoxPoints;
-	store.dispatch("actorHandleState/updateTuneBoxs", SurroundingBoxPoints);
+	const toothBoxPoints = {};
+	toothBoxPoints[currentSelectBracketName] = {
+		Point0: SurroundingBoxPoints.Point0,
+		Point1: SurroundingBoxPoints.Point1,
+		Point2: SurroundingBoxPoints.Point2,
+		Point3: SurroundingBoxPoints.Point3,
+		Point4: SurroundingBoxPoints.Point4,
+		Point5: SurroundingBoxPoints.Point5,
+		Point6: SurroundingBoxPoints.Point6,
+		Point7: SurroundingBoxPoints.Point7,
+	}
+	console.log('##', toothBoxPoints)
+	// store.dispatch("actorHandleState/updateTuneBoxs", SurroundingBoxPoints);
+	store.dispatch("actorHandleState/updateToothBoxPoints",toothBoxPoints)
 	generateTeethBoxRecord('Generate');
 }
 

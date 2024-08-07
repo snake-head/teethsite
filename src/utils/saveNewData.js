@@ -192,19 +192,20 @@ function parseAndMountToData(xmlData, dataToMount) {
 
 	// 存牙齿包围盒数据
 	xmlData.teethBoxPoints = [];
-	teethBoxPoints.forEach(({ toothName, Point0, Point1, Point2, Point3, Point4, Point5, Point6, Point7}, index) => {
+	for (let i=0; i < Object.keys(teethBoxPoints).length; i++) {
+		const toothName = Object.keys(teethBoxPoints)[i];
 		xmlData.teethBoxPoints.push({
 			toothName,
-			Point0: Point0.toString(),
-			Point1: Point1.toString(),
-			Point2: Point2.toString(),
-			Point3: Point3.toString(),
-			Point4: Point4.toString(),
-			Point5: Point5.toString(),
-			Point6: Point6.toString(),
-			Point7: Point7.toString(),
+			Point0: teethBoxPoints[toothName].Point0.toString(),
+			Point1: teethBoxPoints[toothName].Point1.toString(),
+			Point2: teethBoxPoints[toothName].Point2.toString(),
+			Point3: teethBoxPoints[toothName].Point3.toString(),
+			Point4: teethBoxPoints[toothName].Point4.toString(),
+			Point5: teethBoxPoints[toothName].Point5.toString(),
+			Point6: teethBoxPoints[toothName].Point6.toString(),
+			Point7: teethBoxPoints[toothName].Point7.toString(),
 		})
-	});
+	};
 
 	// 什么都没有, 则不需要存
 	if (Object.keys(xmlData.dentalArch[0]).length === 1) {

@@ -341,11 +341,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
 
     let bracketPolyDatas = {}; // 存放托槽的polyData
     let toothPolyDatas = {}; // 存放单牙齿的polyData,用于后续每个牙齿上坐标轴的建立源
-    let toothBoxPoints = {}; //存放单牙齿的牙齿Box点
-    let toothBoxPoints0 = {
-        upper: [],
-        lower: [],
-    }
+    let toothBoxPoints = {}; //存放牙齿的牙齿Box点
 
     let mainCameraConfigs = {
         upper: null,
@@ -1176,19 +1172,19 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
             allActorList[teethType].originBracket.push({ name, actor, mapper });
         });
 
-        // toothBox
-        Object.keys(tooth).forEach((name) => {
-            toothBoxPoints[name] = {
-                Point0: [0, 0, 0],
-                Point1: [0, 0, 0],
-                Point2: [0, 0, 0],
-                Point3: [0, 0, 0],
-                Point4: [0, 0, 0],
-                Point5: [0, 0, 0],
-                Point6: [0, 0, 0],
-                Point7: [0, 0, 0]
-            };
-        })
+        // // toothBox
+        // Object.keys(tooth).forEach((name) => {
+        //     toothBoxPoints[name] = {
+        //         Point0: [0, 0, 0],
+        //         Point1: [0, 0, 0],
+        //         Point2: [0, 0, 0],
+        //         Point3: [0, 0, 0],
+        //         Point4: [0, 0, 0],
+        //         Point5: [0, 0, 0],
+        //         Point6: [0, 0, 0],
+        //         Point7: [0, 0, 0]
+        //     };
+        // })
     }
     function generateActorByData({ pointValues, cellValues }) {
         const polyData = vtkPolyData.newInstance();
@@ -1460,7 +1456,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                                 teethStandardAxis,
                                 teethAxisFinetuneRecord,
                                 dentalArchAdjustRecord,
-                                toothBoxPoints,
+                                // toothBoxPoints,
                             } = event.data.arrangeData;
                             if (teethStandardAxis) {
                                 // 保存
@@ -1505,7 +1501,36 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                                     }
                                 );
                             }
-                            if (toothBoxPoints) {
+                            if (xmlObj[teethType]) {
+                                for (let i = 0; i < xmlObj[teethType].teethBoxPoints.length; i++) {
+                                    const toothName = xmlObj[teethType].teethBoxPoints[i].toothName[0];
+                                    const stringArray0 = xmlObj[teethType].teethBoxPoints[i].Point0[0].split(",");
+                                    const coordinateArray0 = stringArray0.map(Number);
+                                    const stringArray1 = xmlObj[teethType].teethBoxPoints[i].Point1[0].split(",");
+                                    const coordinateArray1 = stringArray1.map(Number);
+                                    const stringArray2 = xmlObj[teethType].teethBoxPoints[i].Point2[0].split(",");
+                                    const coordinateArray2 = stringArray2.map(Number);
+                                    const stringArray3 = xmlObj[teethType].teethBoxPoints[i].Point3[0].split(",");
+                                    const coordinateArray3 = stringArray3.map(Number);
+                                    const stringArray4 = xmlObj[teethType].teethBoxPoints[i].Point4[0].split(",");
+                                    const coordinateArray4 = stringArray4.map(Number);
+                                    const stringArray5 = xmlObj[teethType].teethBoxPoints[i].Point5[0].split(",");
+                                    const coordinateArray5 = stringArray5.map(Number);
+                                    const stringArray6 = xmlObj[teethType].teethBoxPoints[i].Point6[0].split(",");
+                                    const coordinateArray6 = stringArray6.map(Number);
+                                    const stringArray7 = xmlObj[teethType].teethBoxPoints[i].Point7[0].split(",");
+                                    const coordinateArray7 = stringArray7.map(Number);
+                                    toothBoxPoints[toothName] = {
+                                        Point0: coordinateArray0,
+                                        Point1: coordinateArray1,
+                                        Point2: coordinateArray2,
+                                        Point3: coordinateArray3,
+                                        Point4: coordinateArray4,
+                                        Point5: coordinateArray5,
+                                        Point6: coordinateArray6,
+                                        Point7: coordinateArray7,
+                                    }
+                                }
                                 store.dispatch(
                                     "actorHandleState/updateToothBoxPoints",
                                     toothBoxPoints

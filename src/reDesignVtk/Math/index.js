@@ -1187,136 +1187,116 @@ function singularValueDecomposition3x3(a_3x3, u_3x3, w_3, vT_3x3) {
   }
 }
 function luFactorLinearSystem(A, index, size) {
-  var i;
-  var j;
-  var k;
-  var largest;
-  var maxI = 0;
-  var sum;
-  var temp1;
-  var temp2;
-  var scale = createArray(size); //
+  let i;
+  let j;
+  let k;
+  let largest;
+  let maxI = 0;
+  let sum;
+  let temp1;
+  let temp2;
+  const scale = createArray(size);
+
+  //
   // Loop over rows to get implicit scaling information
   //
-
   for (i = 0; i < size; i++) {
     for (largest = 0.0, j = 0; j < size; j++) {
-      if ((temp2 = Math.abs(A[i][j])) > largest) {
+      if ((temp2 = Math.abs(A[i * size + j])) > largest) {
         largest = temp2;
       }
     }
-
     if (largest === 0.0) {
       vtkWarningMacro('Unable to factor linear system');
       return 0;
     }
-
     scale[i] = 1.0 / largest;
-  } //
+  }
+  //
   // Loop over all columns using Crout's method
   //
-
-
   for (j = 0; j < size; j++) {
     for (i = 0; i < j; i++) {
-      sum = A[i][j];
-
+      sum = A[i * size + j];
       for (k = 0; k < i; k++) {
-        sum -= A[i][k] * A[k][j];
+        sum -= A[i * size + k] * A[k * size + j];
       }
-
-      A[i][j] = sum;
-    } //
+      A[i * size + j] = sum;
+    }
+    //
     // Begin search for largest pivot element
     //
-
-
     for (largest = 0.0, i = j; i < size; i++) {
-      sum = A[i][j];
-
+      sum = A[i * size + j];
       for (k = 0; k < j; k++) {
-        sum -= A[i][k] * A[k][j];
+        sum -= A[i * size + k] * A[k * size + j];
       }
-
-      A[i][j] = sum;
-
+      A[i * size + j] = sum;
       if ((temp1 = scale[i] * Math.abs(sum)) >= largest) {
         largest = temp1;
         maxI = i;
       }
-    } //
+    }
+    //
     // Check for row interchange
     //
-
-
     if (j !== maxI) {
       for (k = 0; k < size; k++) {
-        temp1 = A[maxI][k];
-        A[maxI][k] = A[j][k];
-        A[j][k] = temp1;
+        temp1 = A[maxI * size + k];
+        A[maxI * size + k] = A[j * size + k];
+        A[j * size + k] = temp1;
       }
-
       scale[maxI] = scale[j];
-    } //
+    }
+    //
     // Divide by pivot element and perform elimination
     //
-
-
     index[j] = maxI;
-
-    if (Math.abs(A[j][j]) <= VTK_SMALL_NUMBER) {
+    if (Math.abs(A[j * size + j]) <= VTK_SMALL_NUMBER) {
       vtkWarningMacro('Unable to factor linear system');
       return 0;
     }
-
     if (j !== size - 1) {
-      temp1 = 1.0 / A[j][j];
-
+      temp1 = 1.0 / A[j * size + j];
       for (i = j + 1; i < size; i++) {
-        A[i][j] *= temp1;
+        A[i * size + j] *= temp1;
       }
     }
   }
-
   return 1;
 }
 function luSolveLinearSystem(A, index, x, size) {
-  var i;
-  var j;
-  var ii;
-  var idx;
-  var sum; //
+  let i;
+  let j;
+  let ii;
+  let idx;
+  let sum;
+  //
   // Proceed with forward and backsubstitution for L and U
   // matrices.  First, forward substitution.
   //
-
   for (ii = -1, i = 0; i < size; i++) {
     idx = index[i];
     sum = x[idx];
     x[idx] = x[i];
-
     if (ii >= 0) {
       for (j = ii; j <= i - 1; j++) {
-        sum -= A[i][j] * x[j];
+        sum -= A[i * size + j] * x[j];
       }
     } else if (sum !== 0.0) {
       ii = i;
     }
-
     x[i] = sum;
-  } //
+  }
+  //
   // Now, back substitution
   //
-
-
   for (i = size - 1; i >= 0; i--) {
     sum = x[i];
-
     for (j = i + 1; j < size; j++) {
-      sum -= A[i][j] * x[j];
+      sum -= A[i * size + j] * x[j];
     }
-
-    x[i] = sum / A[i][i];
+    x[i] = sum / A[i * size + i];
   }
 }
 function solveLinearSystem(A, x, size) {
@@ -1361,31 +1341,28 @@ function solveLinearSystem(A, x, size) {
   return 1;
 }
 function invertMatrix(A, AI, size) {
-  var index = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : null;
-  var column = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : null;
-  var tmp1Size = index || createArray(size);
-  var tmp2Size = column || createArray(size); // Factor matrix; then begin solving for inverse one column at a time.
+  let index = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : null;
+  let column = arguments.length > 4 && arguments[4] !== undefined ? arguments[4] : null;
+  const tmp1Size = index || createArray(size);
+  const tmp2Size = column || createArray(size);
+
+  // Factor matrix; then begin solving for inverse one column at a time.
   // Note: tmp1Size returned value is used later, tmp2Size is just working
   // memory whose values are not used in LUSolveLinearSystem
-
   if (luFactorLinearSystem(A, tmp1Size, size) === 0) {
-    return 0;
+    return null;
   }
-
-  for (var j = 0; j < size; j++) {
-    for (var i = 0; i < size; i++) {
+  for (let j = 0; j < size; j++) {
+    for (let i = 0; i < size; i++) {
       tmp2Size[i] = 0.0;
     }
-
     tmp2Size[j] = 1.0;
     luSolveLinearSystem(A, tmp1Size, tmp2Size, size);
-
-    for (var _i4 = 0; _i4 < size; _i4++) {
-      AI[_i4][j] = tmp2Size[_i4];
+    for (let i = 0; i < size; i++) {
+      AI[i * size + j] = tmp2Size[i];
     }
   }
-
-  return 1;
+  return AI;
 }
 function estimateMatrixCondition(A, size) {
   var minValue = +Number.MAX_VALUE;
@@ -1469,23 +1446,22 @@ function solveHomogeneousLeastSquares(numberOfSamples, xt, xOrder, mt) {
   return 1;
 }
 function solveLeastSquares(numberOfSamples, xt, xOrder, yt, yOrder, mt) {
-  var checkHomogeneous = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : true;
-
+  let checkHomogeneous = arguments.length > 6 && arguments[6] !== undefined ? arguments[6] : true;
   // check dimensional consistency
   if (numberOfSamples < xOrder || numberOfSamples < yOrder) {
     vtkWarningMacro('Insufficient number of samples. Underdetermined.');
     return 0;
   }
+  const homogenFlags = createArray(yOrder);
+  let allHomogeneous = 1;
+  let hmt;
+  let homogRC = 0;
+  let i;
+  let j;
+  let k;
+  let someHomogeneous = 0;
 
-  var homogenFlags = createArray(yOrder);
-  var allHomogeneous = 1;
-  var hmt;
-  var homogRC = 0;
-  var i;
-  var j;
-  var k;
-  var someHomogeneous = 0; // Ok, first init some flags check and see if all the systems are homogeneous
-
+  // Ok, first init some flags check and see if all the systems are homogeneous
   if (checkHomogeneous) {
     // If Y' is zero, it's a homogeneous system and can't be solved via
     // the pseudoinverse method. Detect this case, warn the user, and
@@ -1493,29 +1469,29 @@ function solveLeastSquares(numberOfSamples, xt, xOrder, yt, yOrder, mt) {
     // really make much sense for yOrder to be greater than one in this case,
     // since that's just yOrder occurrences of a 0 vector on the RHS, but
     // we allow it anyway. N
+
     // Initialize homogeneous flags on a per-right-hand-side basis
     for (j = 0; j < yOrder; j++) {
       homogenFlags[j] = 1;
     }
-
     for (i = 0; i < numberOfSamples; i++) {
       for (j = 0; j < yOrder; j++) {
-        if (Math.abs(yt[i][j]) > VTK_SMALL_NUMBER) {
+        if (Math.abs(yt[i * yOrder + j]) > VTK_SMALL_NUMBER) {
           allHomogeneous = 0;
           homogenFlags[j] = 0;
         }
       }
-    } // If we've got one system, and it's homogeneous, do it and bail out quickly.
+    }
 
-
+    // If we've got one system, and it's homogeneous, do it and bail out quickly.
     if (allHomogeneous && yOrder === 1) {
       vtkWarningMacro('Detected homogeneous system (Y=0), calling SolveHomogeneousLeastSquares()');
       return solveHomogeneousLeastSquares(numberOfSamples, xt, xOrder, mt);
-    } // Ok, we've got more than one system of equations.
+    }
+
+    // Ok, we've got more than one system of equations.
     // Figure out if we need to calculate the homogeneous equation solution for
     // any of them.
-
-
     if (allHomogeneous) {
       someHomogeneous = 1;
     } else {
@@ -1525,89 +1501,98 @@ function solveLeastSquares(numberOfSamples, xt, xOrder, yt, yOrder, mt) {
         }
       }
     }
-  } // If necessary, solve the homogeneous problem
+  }
 
-
+  // If necessary, solve the homogeneous problem
   if (someHomogeneous) {
     // hmt is the homogeneous equation version of mt, the general solution.
+    // hmt should be xOrder x yOrder, but since we are solving only the homogeneous part, here it is xOrder x 1
     hmt = createArray(xOrder);
 
-    for (j = 0; j < xOrder; j++) {
-      // Only allocate 1 here, not yOrder, because here we're going to solve
-      // just the one homogeneous equation subset of the entire problem
-      hmt[j] = [0];
-    } // Ok, solve the homogeneous problem
-
-
+    // Ok, solve the homogeneous problem
     homogRC = solveHomogeneousLeastSquares(numberOfSamples, xt, xOrder, hmt);
-  } // set up intermediate variables
+  }
 
-  var XXt = createArray(xOrder); // size x by x
+  // set up intermediate variables
+  // const XXt = createArray(xOrder * xOrder); // size x by x
+  const XtX = createArray(xOrder * xOrder); // size x by x
+  const XXtI = createArray(xOrder * xOrder); // size x by x
+  // const XYt = createArray(xOrder * yOrder); // size x by y
+  const XtY = createArray(xOrder * yOrder);
 
-  var XXtI = createArray(xOrder); // size x by x
+  // first find the pseudoinverse matrix
+  // for (k = 0; k < numberOfSamples; k++) {
+  //   for (i = 0; i < xOrder; i++) {
+  //     // first calculate the XXt matrix, only do the upper half (symmetrical)
+  //     for (j = i; j < xOrder; j++) {
+  //       XXt[i * xOrder + j] += xt[k * xOrder + i] * xt[k * xOrder + j];
+  //     }
 
-  var XYt = createArray(xOrder); // size x by y
-
-  for (i = 0; i < xOrder; i++) {
-    XXt[i] = createArray(xOrder);
-    XXtI[i] = createArray(xOrder);
-
-    for (j = 0; j < xOrder; j++) {
-      XXt[i][j] = 0.0;
-      XXtI[i][j] = 0.0;
-    }
-
-    XYt[i] = createArray(yOrder);
-
-    for (j = 0; j < yOrder; j++) {
-      XYt[i][j] = 0.0;
-    }
-  } // first find the pseudoinverse matrix
-
+  //     // now calculate the XYt matrix
+  //     for (j = 0; j < yOrder; j++) {
+  //       XYt[i * yOrder + j] += xt[k * xOrder + i] * yt[k * yOrder + j];
+  //     }
+  //   }
+  // }
 
   for (k = 0; k < numberOfSamples; k++) {
     for (i = 0; i < xOrder; i++) {
-      // first calculate the XXt matrix, only do the upper half (symmetrical)
       for (j = i; j < xOrder; j++) {
-        XXt[i][j] += xt[k][i] * xt[k][j];
-      } // now calculate the XYt matrix
-
-
-      for (j = 0; j < yOrder; j++) {
-        XYt[i][j] += xt[k][i] * yt[k][j];
+        XtX[i * xOrder + j] += xt[k][i] * xt[k][j];
       }
-    }
-  } // now fill in the lower half of the XXt matrix
-
-
-  for (i = 0; i < xOrder; i++) {
-    for (j = 0; j < i; j++) {
-      XXt[i][j] = XXt[j][i];
+      for (j = 0; j < yOrder; j++) {
+        XtY[i * yOrder + j] += xt[k][i] * yt[k][j];
+      }
     }
   }
 
-  var successFlag = invertMatrix(XXt, XXtI, xOrder); // next get the inverse of XXt
+  for (i = 0; i < xOrder; i++) {
+    for (j = 0; j < i; j++) {
+      XtX[i * xOrder + j] = XtX[j * xOrder + i];
+    }
+  }
+
+
+  // // now fill in the lower half of the XXt matrix
+  // for (i = 0; i < xOrder; i++) {
+  //   for (j = 0; j < i; j++) {
+  //     XXt[i * xOrder + j] = XXt[j * xOrder + i];
+  //   }
+  // }
+  // const successFlag = invertMatrix(XXt, XXtI, xOrder);
+  const successFlag = invertMatrix(XtX, XXtI, xOrder);
+
+  // next get the inverse of XXt
+  // if (successFlag) {
+  //   for (i = 0; i < xOrder; i++) {
+  //     for (j = 0; j < yOrder; j++) {
+  //       mt[i * yOrder + j] = 0.0;
+  //       for (k = 0; k < xOrder; k++) {
+  //         mt[i * yOrder + j] += XXtI[i * xOrder + k] * XYt[k * yOrder + j];
+  //       }
+  //     }
+  //   }
+  // }
 
   if (successFlag) {
     for (i = 0; i < xOrder; i++) {
       for (j = 0; j < yOrder; j++) {
-        mt[i][j] = 0.0;
-
+        mt[i * yOrder + j][0] = 0.0;
         for (k = 0; k < xOrder; k++) {
-          mt[i][j] += XXtI[i][k] * XYt[k][j];
+          mt[i * yOrder + j][0] += XXtI[i * xOrder + k] * XtY[k * yOrder + j];
         }
       }
     }
-  } // Fix up any of the solutions that correspond to the homogeneous equation
+  }
+
+  // Fix up any of the solutions that correspond to the homogeneous equation
   // problem.
-
-
   if (someHomogeneous) {
     for (j = 0; j < yOrder; j++) {
       if (homogenFlags[j]) {
         // Fix this one
         for (i = 0; i < xOrder; i++) {
-          mt[i][j] = hmt[i][0];
+          mt[i * yOrder + j][0] = hmt[i * yOrder];
         }
       }
     }
@@ -1616,9 +1601,9 @@ function solveLeastSquares(numberOfSamples, xt, xOrder, yt, yOrder, mt) {
   if (someHomogeneous) {
     return homogRC && successFlag;
   }
-
   return successFlag;
 }
+
 function hex2float(hexStr) {
   var outFloatArray = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [0, 0.5, 1];
 

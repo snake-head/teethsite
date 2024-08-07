@@ -234,7 +234,6 @@ function saveTeethBoxRecord(){
 		Point6: SurroundingBoxPoints.Point6,
 		Point7: SurroundingBoxPoints.Point7,
 	}
-	console.log('##', toothBoxPoints)
 	// store.dispatch("actorHandleState/updateTuneBoxs", SurroundingBoxPoints);
 	store.dispatch("actorHandleState/updateToothBoxPoints",toothBoxPoints)
 	generateTeethBoxRecord('Generate');

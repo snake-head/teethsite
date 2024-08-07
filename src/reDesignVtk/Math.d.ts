@@ -555,7 +555,7 @@ export function solveLinearSystem(A: number[], x: number[], size: number): numbe
  * @param {?} [index] 
  * @param {?} [column] 
  */
-export function invertMatrix(A: number[], AI: number[], size: number, index?: any, column?: any): number;
+export function invertMatrix(A: number[], AI: number[], size?: number, index?: number[], column?: number[]): number[]|null;
 
 /**
  *
@@ -591,7 +591,7 @@ export function solveHomogeneousLeastSquares(numberOfSamples: number, xt: number
  * @param {Number[]} mt 
  * @param {Boolean} checkHomogeneous 
  */
-export function solveLeastSquares(numberOfSamples: number, xt: number[], xOrder: number, yt: number[], yOrder: number, mt: number[], checkHomogeneous: boolean): number;
+export function solveLeastSquares(numberOfSamples: number, xt: number[], xOrder: number, yt: number[], yOrder: number, mt: number[], checkHomogeneous?: boolean): number;
 
 /**
  *

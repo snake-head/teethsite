@@ -1,3 +1,13 @@
+// import {
+//     add,
+//     subtract,
+//     cross,
+//     multiplyScalar,
+//     normalize,
+//     degreesFromRadians,
+//     angleBetweenVectors,
+//     solveLeastSquares,
+// } from "@kitware/vtk.js/Common/Core/Math";
 import {
     add,
     subtract,
@@ -7,7 +17,7 @@ import {
     degreesFromRadians,
     angleBetweenVectors,
     solveLeastSquares,
-} from "@kitware/vtk.js/Common/Core/Math";
+} from "../reDesignVtk/Math"
 import vtkMatrixBuilder from "@kitware/vtk.js/Common/Core/MatrixBuilder";
 import SubArrangeWorker from "./subLRArrange.worker";
 import {
@@ -461,10 +471,10 @@ function calculateArchFunc(teethData, symmetry = true) {
     // // 构造 x 和 y 矩阵
     // const x1 = []; // (numberOfSamples, 3) 对应于 1, x, x^2
     // const y1 = []; // (numberOfSamples, 1)
-    // const m1 = []; // (3, 1) 需要计算的系数
+    // const m1 = [[0], [0], [0]]; // (3, 1) 需要计算的系数
     
     // for (let i = 0; i < 5; i++) {
-    //     console.log(fittingData1[i][0])
+    //     console.log('##fitting', fittingData1[i][0])
     //     x1.push([
     //         1, // 常数项
     //         fittingData1[i][0], // x

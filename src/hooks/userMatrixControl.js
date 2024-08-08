@@ -99,8 +99,11 @@ function invertMatrix4x4(mat) {
     const mat4x4 = [
         ...mat
     ];
-    invertMatrix(mat4x4, mat4x4, 4);
-    return mat4x4;
+    const newMat = [
+        ...mat
+    ];
+    invertMatrix(mat4x4, newMat, 4);
+    return newMat;
 }
 
 export { multiplyMatrix4x4, multiplyMatrixList4x4, invertMatrix4x4, calculateTransMatrix };

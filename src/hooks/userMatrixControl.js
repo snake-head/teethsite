@@ -96,6 +96,7 @@ function multiplyMatrixList4x4(...matList) {
 
 function invertMatrix4x4(mat) {
     // 在旧版本中，invertMatrix是对二维数组进行计算；新版本中是对一维数组进行计算，所以不需要处理
+    // 在旧版本中，invertMatrix是对二维数组进行计算；新版本中是对一维数组进行计算，所以不需要处理
     const mat4x4 = [
         ...mat
     ];

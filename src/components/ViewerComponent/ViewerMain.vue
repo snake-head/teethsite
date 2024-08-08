@@ -233,9 +233,9 @@ watch(
 	() => currentMode.value.fineTune,
 	(newValue) => {
 		if (newValue) {
-			openBracketSelection();
+			// openBracketSelection();
 		} else {
-			closeBracketSelection();
+			// closeBracketSelection();
 		}
 	}
 );

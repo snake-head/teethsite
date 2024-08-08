@@ -886,6 +886,7 @@ function LineWidgetExpress(vtkContext, selectedTeethType) {
 		sphereLineWidgetHandle1.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.D0, dentalArchAdjustRecord[selectedTeethType].centers.D1);
 		sphereLineWidgetHandle1.getWidgetState().modified();
 		sphereLineWidgetHandle1.setScaleInPixels(false);
+		sphereLineWidgetHandle1.getRepresentations()[2].getActors()[0].setPickable(false)
 
 		name1='UL2', name2='UR2';
 		sphereLineWidget2 = vtkLineWidget.newInstance({
@@ -903,6 +904,7 @@ function LineWidgetExpress(vtkContext, selectedTeethType) {
 		sphereLineWidgetHandle2.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.UL2, dentalArchAdjustRecord[selectedTeethType].centers.UR2);
 		sphereLineWidgetHandle2.getWidgetState().modified();
 		sphereLineWidgetHandle2.setScaleInPixels(false);
+		sphereLineWidgetHandle2.getRepresentations()[2].getActors()[0].setPickable(false)
 
 		name1='UL5', name2='UR5'
 		sphereLineWidget3 = vtkLineWidget.newInstance({
@@ -919,6 +921,7 @@ function LineWidgetExpress(vtkContext, selectedTeethType) {
 		sphereLineWidgetHandle3.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.UL5, dentalArchAdjustRecord[selectedTeethType].centers.UR5);
 		sphereLineWidgetHandle3.getWidgetState().modified();
 		sphereLineWidgetHandle3.setScaleInPixels(false);
+		sphereLineWidgetHandle3.getRepresentations()[2].getActors()[0].setPickable(false)
 
 		name1='UL7', name2='UR7'
 		sphereLineWidget4 = vtkLineWidget.newInstance({
@@ -935,6 +938,7 @@ function LineWidgetExpress(vtkContext, selectedTeethType) {
 		sphereLineWidgetHandle4.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.UL7, dentalArchAdjustRecord[selectedTeethType].centers.UR7);
 		sphereLineWidgetHandle4.getWidgetState().modified();
 		sphereLineWidgetHandle4.setScaleInPixels(false);
+		sphereLineWidgetHandle4.getRepresentations()[2].getActors()[0].setPickable(false)
 	}
 	if (selectedTeethType == "lower") {
 		// const name1='D0', name2='D1', name3='LL2', name4='LR2', name5='LL4', name6='LR4', name7='LL7', name8='LR7';
@@ -953,6 +957,7 @@ function LineWidgetExpress(vtkContext, selectedTeethType) {
 		sphereLineWidgetHandle1.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.D0, dentalArchAdjustRecord[selectedTeethType].centers.D1);
 		sphereLineWidgetHandle1.getWidgetState().modified();
 		sphereLineWidgetHandle1.setScaleInPixels(false);
+		sphereLineWidgetHandle1.getRepresentations()[2].getActors()[0].setPickable(false)
 
 		name1='LL2', name2='LR2';
 		sphereLineWidget2 = vtkLineWidget.newInstance({
@@ -969,6 +974,7 @@ function LineWidgetExpress(vtkContext, selectedTeethType) {
 		sphereLineWidgetHandle2.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.LL2, dentalArchAdjustRecord[selectedTeethType].centers.LR2);
 		sphereLineWidgetHandle2.getWidgetState().modified();
 		sphereLineWidgetHandle2.setScaleInPixels(false);
+		sphereLineWidgetHandle2.getRepresentations()[2].getActors()[0].setPickable(false)
 
 		name1='LL4', name2='LR4';
 		sphereLineWidget3 = vtkLineWidget.newInstance({
@@ -985,6 +991,7 @@ function LineWidgetExpress(vtkContext, selectedTeethType) {
 		sphereLineWidgetHandle3.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.LL4, dentalArchAdjustRecord[selectedTeethType].centers.LR4);
 		sphereLineWidgetHandle3.getWidgetState().modified();
 		sphereLineWidgetHandle3.setScaleInPixels(false);
+		sphereLineWidgetHandle3.getRepresentations()[2].getActors()[0].setPickable(false)
 
 		name1='LL7', name2='LR7'
 		sphereLineWidget4 = vtkLineWidget.newInstance({
@@ -1001,6 +1008,7 @@ function LineWidgetExpress(vtkContext, selectedTeethType) {
 		sphereLineWidgetHandle4.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.LL7, dentalArchAdjustRecord[selectedTeethType].centers.LR7);
 		sphereLineWidgetHandle4.getWidgetState().modified();
 		sphereLineWidgetHandle4.setScaleInPixels(false);
+		sphereLineWidgetHandle4.getRepresentations()[2].getActors()[0].setPickable(false)
 	}
 }
 

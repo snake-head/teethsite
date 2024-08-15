@@ -1509,7 +1509,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                                     }
                                 );
                             }
-                            if (xmlObj[teethType]) {
+                            if (xmlObj[teethType] && xmlObj[teethType].teethBoxPoints) {
                                 for (let i = 0; i < xmlObj[teethType].teethBoxPoints.length; i++) {
                                     const toothName = xmlObj[teethType].teethBoxPoints[i].toothName[0];
                                     const stringArray0 = xmlObj[teethType].teethBoxPoints[i].Point0[0].split(",");

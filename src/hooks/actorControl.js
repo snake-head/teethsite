@@ -170,8 +170,7 @@ export default function(allActorList) {
         // 遍历托槽actor找对应, 如果无对应则说明鼠标双击下是牙龈或者单牙齿actor, 此时更新为null
         for (let teethType of ["upper", "lower"]) {
             allActorList[teethType].bracket.forEach((item) => {
-                if (item[propKey] === selection) {
-                    console.log(item.name)
+                if (item[propKey] === selection && item.widgetHandle.getWidgetState()) {
                     // 更新 currentSelectBracket
                     store.dispatch("actorHandleState/updateCurrentSelectBracketName", item.name);
                     // 重置颜色

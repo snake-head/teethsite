@@ -2063,117 +2063,124 @@ function reshowTune(pointValues, cellValues){
 
 // 用于监听显示/隐藏状态改变
 watch(props.actorInScene, (newVal) => {
-	const { addActorsList, delActorsList, addWidgetsList, delWidgetsList } = actorShowStateUpdateFusion(newVal, fineTuneMode.value !== "normal");
-	actorInSceneAdjust(addActorsList, delActorsList);
-	widgetInSceneAdjust(addWidgetsList, delWidgetsList);
-	if (vtkContext && !initRenderCamera) {
-		const { renderWindow, renderer } = vtkContext;
-		// 初始加载需要调整一次镜头
-		let teethType = newVal.upper ? "upper" : "lower";
-		// 重置镜头
-		renderer.resetCamera();
-		renderWindow.render();
+	if(!newVal.upper && currentSelectBracketName.value.startsWith('U')){
+		exitSelection()
+	}
+	if(!newVal.lower && currentSelectBracketName.value.startsWith('L')){
+		exitSelection()
+	}
+	setTimeout(() => {
+		const { addActorsList, delActorsList, addWidgetsList, delWidgetsList } = actorShowStateUpdateFusion(newVal, fineTuneMode.value !== "normal");
+		actorInSceneAdjust(addActorsList, delActorsList);
+		widgetInSceneAdjust(addWidgetsList, delWidgetsList);
+		if (vtkContext && !initRenderCamera) {
+			const { renderWindow, renderer } = vtkContext;
+			// 初始加载需要调整一次镜头
+			let teethType = newVal.upper ? "upper" : "lower";
+			// 重置镜头
+			renderer.resetCamera();
+			renderWindow.render();
 
-		// 添加复位用相机参数(参数里目前只有view上下左右)
-		let mainCamera = renderer.getActiveCamera();
-		mainCameraConfigs[teethType].position = mainCamera.getPosition();
-		mainCameraConfigs[teethType].focalPoint = mainCamera.getFocalPoint();
+			// 添加复位用相机参数(参数里目前只有view上下左右)
+			let mainCamera = renderer.getActiveCamera();
+			mainCameraConfigs[teethType].position = mainCamera.getPosition();
+			mainCameraConfigs[teethType].focalPoint = mainCamera.getFocalPoint();
 
-		// 正面朝前
-		// 注：首次重置视角时会有显示不全(切割/clip/模型截断)的问题,故此处重复2次
-		resetView("FRONT", teethType);
-		resetView("FRONT", teethType);
+			// 正面朝前
+			// 注：首次重置视角时会有显示不全(切割/clip/模型截断)的问题,故此处重复2次
+			resetView("FRONT", teethType);
+			resetView("FRONT", teethType);
 
-		// 若有全景图, 则初始加载全景图到右下窗口(后不变)
-		if (allActorList.picture) {
-			const { actor: picActor, mapper: picMapper } = allActorList.picture;
-			vtkPictureContext.renderer.addActor(picActor);
+			// 若有全景图, 则初始加载全景图到右下窗口(后不变)
+			if (allActorList.picture) {
+				const { actor: picActor, mapper: picMapper } = allActorList.picture;
+				vtkPictureContext.renderer.addActor(picActor);
 
-			const camera = vtkPictureContext.renderer.getActiveCamera();
-			const position = camera.getFocalPoint();
-			// offset along the slicing axis
-			const normal = picMapper.getSlicingModeNormal();
-			position[0] += normal[0];
-			position[1] += normal[1];
-			position[2] += normal[2];
-			camera.setPosition(...position);
-			camera.setViewUp([0, 1, 0]);
-			camera.setParallelProjection(true);
-			vtkPictureContext.renderer.resetCamera();
+				const camera = vtkPictureContext.renderer.getActiveCamera();
+				const position = camera.getFocalPoint();
+				// offset along the slicing axis
+				const normal = picMapper.getSlicingModeNormal();
+				position[0] += normal[0];
+				position[1] += normal[1];
+				position[2] += normal[2];
+				camera.setPosition(...position);
+				camera.setViewUp([0, 1, 0]);
+				camera.setParallelProjection(true);
+				vtkPictureContext.renderer.resetCamera();
 
-			vtkPictureContext.renderWindow.render();
-		} else {
-			const dims = vtkPictureTextContainer.value.getBoundingClientRect();
-			vtkPictureTextContainer.value.setAttribute("width", dims.width);
-			vtkPictureTextContainer.value.setAttribute("height", dims.height);
-			const textCtx = vtkPictureTextContainer.value.getContext("2d");
-			if (textCtx && dims) {
-				textCtx.clearRect(0, 0, dims.width, dims.height);
-				textCtx.font = "30px 微软雅黑";
-				textCtx.textAlign = "center";
-				textCtx.textBaseline = "middle";
-				textCtx.fillStyle = "#67c23a";
-				textCtx.fillText("未检测到全景图", dims.width / 2, dims.height / 2);
+				vtkPictureContext.renderWindow.render();
+			} else {
+				const dims = vtkPictureTextContainer.value.getBoundingClientRect();
+				vtkPictureTextContainer.value.setAttribute("width", dims.width);
+				vtkPictureTextContainer.value.setAttribute("height", dims.height);
+				const textCtx = vtkPictureTextContainer.value.getContext("2d");
+				if (textCtx && dims) {
+					textCtx.clearRect(0, 0, dims.width, dims.height);
+					textCtx.font = "30px 微软雅黑";
+					textCtx.textAlign = "center";
+					textCtx.textBaseline = "middle";
+					textCtx.fillStyle = "#67c23a";
+					textCtx.fillText("未检测到全景图", dims.width / 2, dims.height / 2);
+				}
 			}
+
+			// 20240617更新：使用widgetManager管理小球widget
+			const { widgetManager } = vtkContext
+			widgetManager.setRenderer(renderer);
+			widgetManager.enablePicking();
+			for (let teethType of ["upper", "lower"]) {
+				allActorList[teethType].distanceLine.forEach((item) => {
+					const startBehaviorParams = item.startPointWidget.getBehaviorParams()
+					startBehaviorParams.renderer = renderer
+					startBehaviorParams.renderWindow = renderWindow
+					item.startPointWidget.setBehaviorParams(startBehaviorParams)
+
+					const endBehaviorParams = item.endPointWidget.getBehaviorParams()
+					endBehaviorParams.renderer = renderer
+					endBehaviorParams.renderWindow = renderWindow
+					item.endPointWidget.setBehaviorParams(endBehaviorParams)
+				})
+			}
+
+			// 左下角xyz坐标轴指示设置矩阵变换
+			const { viewUp, viewRight, viewFront } = mainCameraConfigs[teethType];
+
+			// test结果: [绿向前, 蓝向右, 红向上] -> 目标: [蓝向前, 红向右, 绿向上]
+			// 已知变换[xNormal(0,0,1),yNormal(1,0,0),zNormal(0,1,0)]->[viewRight,viewUp,viewFront]
+			// 的结果是[绿向前, 蓝向右, 红向上]
+			// 则还需要一次 {绿, 蓝, 红} -> {蓝, 红, 绿} 的变换
+			// 即 [xNormal,yNormal,zNormal] -> [yNormal,zNormal,xNormal]的变换
+			// 两个变换可以交换顺序
+			// 因此总变换为 [yNormal,zNormal,xNormal] ->[viewRight,viewUp,viewFront]
+			// 等效于 [xNormal,yNormal,zNormal] -> [viewFront,viewRight,viewUp]
+			// vtkContext.axes.setUserMatrix(
+			//     calculateRigidBodyTransMatrix(
+			//         [0,0,0],
+			//         viewRight,
+			//         viewUp,
+			//         viewFront
+			//     ))
+			// vtkContext.axes.setUserMatrix(calculateRigidBodyTransMatrix([0, 0, 0], viewFront, viewRight, viewUp));
+			// 坐标轴需要转换角度调整, 否则尺寸对不上
+			resetView("LEFT", teethType);
+			resetView("FRONT", teethType);
+
+			// 重置box
+			ResultSurrounding(toothPolyDatas);
+
+			renderWindow.render();
+			initRenderCamera = true;
 		}
-
-		// 20240617更新：使用widgetManager管理小球widget
-		const { widgetManager } = vtkContext
-		widgetManager.setRenderer(renderer);
-		widgetManager.enablePicking();
-		for (let teethType of ["upper", "lower"]) {
-			allActorList[teethType].distanceLine.forEach((item) => {
-				const startBehaviorParams = item.startPointWidget.getBehaviorParams()
-				startBehaviorParams.renderer = renderer
-				startBehaviorParams.renderWindow = renderWindow
-				item.startPointWidget.setBehaviorParams(startBehaviorParams)
-
-				const endBehaviorParams = item.endPointWidget.getBehaviorParams()
-				endBehaviorParams.renderer = renderer
-				endBehaviorParams.renderWindow = renderWindow
-				item.endPointWidget.setBehaviorParams(endBehaviorParams)
-			})
+		if (vtkContext) {
+			const { renderWindow, renderer } = vtkContext;
+			// renderer.resetCameraClippingRange();
+			const camera = renderer.getActiveCamera();
+			renderer.getActiveCamera().setClippingRange(1, 1000);
+			const clippingRange = camera.getClippingRange();
+			renderWindow.render();
 		}
-
-		// 左下角xyz坐标轴指示设置矩阵变换
-		const { viewUp, viewRight, viewFront } = mainCameraConfigs[teethType];
-
-		// test结果: [绿向前, 蓝向右, 红向上] -> 目标: [蓝向前, 红向右, 绿向上]
-		// 已知变换[xNormal(0,0,1),yNormal(1,0,0),zNormal(0,1,0)]->[viewRight,viewUp,viewFront]
-		// 的结果是[绿向前, 蓝向右, 红向上]
-		// 则还需要一次 {绿, 蓝, 红} -> {蓝, 红, 绿} 的变换
-		// 即 [xNormal,yNormal,zNormal] -> [yNormal,zNormal,xNormal]的变换
-		// 两个变换可以交换顺序
-		// 因此总变换为 [yNormal,zNormal,xNormal] ->[viewRight,viewUp,viewFront]
-		// 等效于 [xNormal,yNormal,zNormal] -> [viewFront,viewRight,viewUp]
-		// vtkContext.axes.setUserMatrix(
-		//     calculateRigidBodyTransMatrix(
-		//         [0,0,0],
-		//         viewRight,
-		//         viewUp,
-		//         viewFront
-		//     ))
-		// vtkContext.axes.setUserMatrix(calculateRigidBodyTransMatrix([0, 0, 0], viewFront, viewRight, viewUp));
-		// 坐标轴需要转换角度调整, 否则尺寸对不上
-		resetView("LEFT", teethType);
-		resetView("FRONT", teethType);
-
-		// 重置box
-		ResultSurrounding(toothPolyDatas);
-
-		renderWindow.render();
-		initRenderCamera = true;
-	}
-	if (vtkContext) {
-		const { renderWindow, renderer } = vtkContext;
-		console.log('setclip')
-		// renderer.resetCameraClippingRange();
-		const camera = renderer.getActiveCamera();
-		renderer.getActiveCamera().setClippingRange(1, 1000);
-		const clippingRange = camera.getClippingRange();
-console.log(`Current Clipping Range: Near = ${clippingRange[0]}, Far = ${clippingRange[1]}`);
-		renderWindow.render();
-	}
+	}, 1);
+	
 	
 });
 

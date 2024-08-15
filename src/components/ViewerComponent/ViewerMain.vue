@@ -78,7 +78,8 @@ import {
 	toRaw,
 	defineProps,
 	inject,
-	provide
+	provide,
+	onUnmounted
 } from "vue";
 import { useStore } from "vuex";
 import { cloneDeep } from 'lodash'
@@ -171,6 +172,7 @@ const activeTable = ref('distance')
 const toothOpacity = computed(() => store.state.actorHandleState.toothOpacity);
 const archScale = computed(() => store.state.actorHandleState.archScale);
 const selectedPreset = computed(() => store.state.actorHandleState.selectedPreset);
+let intervalId; // 用于存储定时器ID
 watch(selectedPreset, ()=>{
 	usePresetDentalArchCoefficients(selectedPreset.value);
 	setTimeout(()=>{
@@ -1143,6 +1145,7 @@ function lockSelectedBracket(){
 
 		// 将选中的 widgetHandle 设置为 false
 		widgetHandle.setPickable(false);
+		widgetHandle.deactivateAllHandles();
 
 		// 将所有其他 widgetHandles 设置为 true
 		allBracket.forEach(({ widgetHandle: otherWidgetHandle }) => {
@@ -1484,6 +1487,9 @@ onMounted(() => {
 			// axes,
 			widgetManager,
 		};
+		intervalId = setInterval(() => {
+			renderWindow.render();
+		}, 100);
 	}
 
 	// 构建单牙齿窗口
@@ -1534,6 +1540,11 @@ onMounted(() => {
 			renderer,
 		};
 	}
+});
+
+onUnmounted(() => {
+	// 清除定时器
+	clearInterval(intervalId);
 });
 
 // 如果是新主题，必须监视themeType的变化来更新，因为omMounted时变量值还没发生改变

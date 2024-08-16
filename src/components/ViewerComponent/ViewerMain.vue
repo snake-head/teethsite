@@ -173,6 +173,7 @@ const toothOpacity = computed(() => store.state.actorHandleState.toothOpacity);
 const archScale = computed(() => store.state.actorHandleState.archScale);
 const selectedPreset = computed(() => store.state.actorHandleState.selectedPreset);
 let intervalId; // 用于存储定时器ID
+let widgetManager = null;
 watch(selectedPreset, ()=>{
 	usePresetDentalArchCoefficients(selectedPreset.value);
 	setTimeout(()=>{
@@ -335,6 +336,8 @@ watch(currentShowPanel, (newVal, oldVal) => {
 	}
 	// 从[工具菜单]进入[牙齿切片]
 	if (oldVal === -1 && newVal === 3) {
+		exitSelection()
+		console.log('##', currentSelectBracket.value.name)
 		// console.log('管理员模式', store.state.userHandleState.userType)
 	}
 	// 从[牙齿切片]退出到[工具菜单]
@@ -344,12 +347,13 @@ watch(currentShowPanel, (newVal, oldVal) => {
 		resetSurroundingBoxsPoints();
 		// ResultSurrounding(toothPolyDatas);
 		vtkContext.renderWindow.render();
+		exitSelection()
 	}
 });
 let widget = null;
 let widgetHandle = null;
 
-let widgetManager = null;
+
 let sphereLineWidget1 = null;
 let sphereLineWidgetHandle1 = null;
 let sphereLineWidget2 = null;
@@ -1845,6 +1849,7 @@ watch(
 				generateBoxTool(vtkContext, Tuneactor);
 				}
 			if (oldVal !== "" && newVal === ""){
+				console.log('##', "here")
 				if (Tuneactor.length !== 0){
 					resetgenerateBoxTool(vtkContext, Tuneactor);
 				}
@@ -1852,6 +1857,14 @@ watch(
 				resetSurroundingBoxsPoints();
 				resetgenerateBoxTool(vtkContext, Tuneactor);
 				vtkContext.renderWindow.render();
+
+				const { widgetManager } = vtkContext
+				const { addActorsList, delActorsList, handleInfo } = axisActorShowStateUpdate(oldVal, newVal, props.actorInScene.axis, widgetManager, applyCalMatrix.tad);
+				handleInfoGet = handleInfo;
+				actorInSceneAdjust(addActorsList, delActorsList);
+				const dims = vtkTextContainer.value.getBoundingClientRect();
+				const textCtx = vtkTextContainer.value.getContext("2d");
+				textCtx.clearRect(0, 0, dims.width, dims.height);
 				}
 			}
 		}

@@ -27,8 +27,6 @@ function parseAndMountToData(xmlData, dataToMount) {
 		teethRootData,
 		teethBoxPoints,
 	} = dataToMount;
-	console.log(dataToMount)
-	console.log(dataToMount)
 	// 根据新托槽信息更新xml数据
 	xmlData.ProcessState[0].$.collisionState = 1 //只要上传就已经是经过碰撞检测，collisionState置1
 	xmlData.PositionResult[0].Position.forEach((item) => {

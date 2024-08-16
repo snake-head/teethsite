@@ -227,7 +227,6 @@ function computeTeethAutoBiteDistanceZ(
                 .apply(toothPointValues);
             // 读取面片构造
             faceValues = toothFacesDatas[toothName];
-            console.log(faceValues)
             numOfFaces = faceValues.length / 4;
             for (let fbOffset = 0; fbOffset < numOfFaces; fbOffset++) {
                 point1Offset = faceValues[fbOffset + 1] * 3;

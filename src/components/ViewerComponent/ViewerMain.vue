@@ -326,7 +326,6 @@ watch(currentShowPanel, (newVal, oldVal) => {
 	// 从[工具菜单]进入[牙齿切片]
 	if (oldVal === -1 && newVal === 3) {
 		// console.log('管理员模式', store.state.userHandleState.userType)
-		console.log('##测试', store.state.actorHandleState.toothBoxPoints);
 	}
 	// 从[牙齿切片]退出到[工具菜单]
 	if (oldVal === 3 && newVal === -1) {
@@ -359,7 +358,6 @@ function addSphere(){
 	// widgetHandle = widgetManager.addWidget(widget);
 	// widgetManager.grabFocus(widget);
 	const a = vtkContext.renderer.getActiveCamera().getClippingRange();
-	console.log(a)
 }
 let dentalArchWidgets = {}; // 每次调整后再排牙后需要重新设置
 let teethArchWidgets = {};
@@ -726,7 +724,6 @@ const isRegenerateAdjustDentalArch = computed(
 	() => store.state.actorHandleState.teethArrange.dentalArchAdjustRecord.regenerate
 );
 watch(isRegenerateAdjustDentalArch, (newValue) => {
-	console.log(regen)
 	if (newValue) {
 		reCalculateDentalArchCoefficients(dentalArchAdjustType.value, null, false, true);
 		store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
@@ -770,7 +767,6 @@ const isReArrangeTeethByAdjustedDentalArch = computed(
 	() => store.getters["actorHandleState/isReArrangeTeethByAdjustedDentalArch"]
 );
 watch(isReArrangeTeethByAdjustedDentalArch, (newValue) => {
-	console.log('reaaa')
 	for (let teethType of ["upper", "lower"]) {
 		if (newValue[teethType]) {
 			reArrangeOneTypeTeethByAdjustedDentalArch(teethType);
@@ -1095,7 +1091,6 @@ watch(overwriteByDentalArchAdjustRecord, (newValue) => {
 
 const reArrangeToInitState = computed(() => store.getters["actorHandleState/isResetDentalArchToInitState"]);
 watch(reArrangeToInitState, (newValue, oldValue) => {
-	console.log('init')
 	for (let teethType of ["upper", "lower"]) {
 		if (newValue[teethType] && !oldValue[teethType]) {
 			// false -> true
@@ -1173,7 +1168,6 @@ watch(teethPositionAdjustMoveType, (newValue) => {
 	}
 });
 function teethPositionAdjust(moveType) {
-	console.log(currentSelectBracket.value.name)
 	if (
 		!uploadType.value.includes("upper") &&
 		toRaw(loadedBracketNameList.upper).includes(currentSelectBracket.value.name)
@@ -1204,7 +1198,6 @@ function teethPositionAdjust(moveType) {
 		moveType,
 		teethType: teethPositionAdjustType.value,
 	};
-	console.log('option', option);
 	if (moveType.includes("ANTI") || moveType.includes("ALONG")) {
 		// 旋转
 		option.moveStep = teethPositionAdjustAngle.value;
@@ -1301,9 +1294,6 @@ watch(initRootFlag, (newValue, oldValue)=>{
 					offset: -7,
 				})
 			}else{
-				console.log(initRootParams.value)
-				console.log(initRootParams.value[teethType])
-				console.log(teethType)
 				initRootParams.value[teethType].forEach(({toothName, bottomSphereCenter, topSphereCenter, radiusSphereCenter})=>{
 					allActorList[teethType].root.forEach((item)=>{
 						if(item.toothName == toothName){
@@ -2886,7 +2876,6 @@ function uploadDataOnline(uploadStateMessage, submit = false) {
 				}
 			},
 			(e) => {
-				console.log(e)
 				uploadStateMessage[teethType].failed(); // 显示失败信息弹窗
 				store.dispatch("userHandleState/updateUploadingProgress", {
 					teethType: "upper",
@@ -3085,10 +3074,8 @@ function sendPostRequest(requestType){
 			},
 		}).then(
 			(res) => {
-				console.log(res)
 			},
 			(error) => {
-				console.log(error)
 			}
 		);
 }
@@ -3110,10 +3097,8 @@ function suyaDoctorAudit(){
 			},
 		}).then(
 			(res) => {
-				console.log(res)
 			},
 			(error) => {
-				console.log(error)
 			}
 		);
 	}

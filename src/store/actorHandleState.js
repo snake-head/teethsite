@@ -223,13 +223,11 @@ export default {
                                 state.teethArrange.dentalArchAdjustRecord[
                                     teethType
                                 ].isArrangeUpdated = false;
-                                console.log(0)
                             }
                             if (recordProps === "arrangeMatrix") {
                                 state.teethArrange.dentalArchAdjustRecord[
                                     teethType
                                 ].isArrangeUpdated = true;
-                                console.log(1)
                             }
                         }
                     }
@@ -245,7 +243,6 @@ export default {
                                 arrangeMatrix: {},
                             }
                         );
-                        console.log(1)
                     }
                     if (value[teethType].reArrangeToInitState === true) {
                         Object.assign(
@@ -260,7 +257,6 @@ export default {
                                 resetCenters: {},
                             }
                         );
-                        console.log(1)
                     }
                 }
             }
@@ -304,7 +300,6 @@ export default {
                         arrangeMatrix: {},
                     }
                 );
-                console.log(1)
             }
 
             // 然后设置overwriteByDentalArchAdjustRecord为true, 引起外部监听事件
@@ -351,7 +346,6 @@ export default {
         },
         SetInitRootParams(state, value){
             Object.assign(state.initRootParams,value)
-            console.log(state.initRootParams)
         },
         UpdateSelectedToothBox(state, value){
             state.BoxSlicing.SelectedToothBox = value;

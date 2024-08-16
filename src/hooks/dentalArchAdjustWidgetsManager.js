@@ -11,6 +11,5 @@ export class DentalArchAdjustWidgetsManager {
     }
     set renderer(_interactor) {
         this.interactor = _interactor;
-        console.log('interactor', _interactor);
     }
 }

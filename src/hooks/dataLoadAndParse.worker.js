@@ -1967,7 +1967,6 @@ async function generateRoot(teethType, toothData, rootInfoList) {
                 resolve(); // 请求成功，resolve
             })
             .catch((error) => {
-              console.log("error");
               reject(error); // 请求失败，reject
             });
         });

@@ -214,7 +214,6 @@ function updateBoxPositionAdjustMoveType(value) {
 function saveTeethBoxRecord0(){
 	const SurroundingBoxPoints = store.state.actorHandleState.BoxSlicing.BoxPoints;
 	store.dispatch("actorHandleState/updateTuneBoxs", SurroundingBoxPoints);
-	console.log('存储结果', SurroundingBoxPoints);
 }
 
 /**

@@ -1725,7 +1725,6 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                         }
                         const { toNext } = event.data;
                         if (toNext) {
-                            console.log(teethType)
                             const { root, rootGenerate, originRoot } = event.data.allActorList
                             root.forEach(({toothName, bottomSphereCenter, topSphereCenter, radiusSphereCenter})=>{
                                 //制造牙根底部、牙根顶部、牙根半径三个小球

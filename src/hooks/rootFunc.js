@@ -204,7 +204,6 @@ export default function(allActorList,toothPolyDatas,bracketData) {
             const { widgetHandle } = allActorList[teethType].root.filter(
               (obj) => obj.toothName == toothName
             )[0];
-            console.log(widgetHandle)
             const rootInfo = {
               toothName,
               bottomSphereCenter: widgetHandle.getCenter()[0],
@@ -256,7 +255,6 @@ export default function(allActorList,toothPolyDatas,bracketData) {
                     resolve(); // 请求成功，resolve
                 })
                 .catch((error) => {
-                  console.log("error");
                   reject(error); // 请求失败，reject
                 });
             });

@@ -259,6 +259,16 @@ watch(teethPositionAdjustType, (newVal, oldVal) => {
 });
 const currentShowPanel = computed(() => store.state.actorHandleState.currentShowPanel);
 watch(currentShowPanel, (newVal, oldVal) => {
+	if (newVal != -1 && newVal != 3){
+		exitSelection()
+		// 需要延时之后再禁用，因为exitSelection会触发lockSelectedBracket，lock中会导致所有pickable变为true
+		setTimeout(() => {
+			disableBracketSelection()
+		}, 1);
+	}
+	if (oldVal != 3 && newVal == -1){
+		enableBracketSelection()
+	}
 	// 从[工具菜单]进入[咬合位置]
 	if (oldVal === -1 && newVal === 0) {
 		adjustTeethAxisSphereActorInScene("enter", teethPositionAdjustType.value, null);
@@ -1151,9 +1161,37 @@ function lockSelectedBracket(){
 	} else {
 		// 如果没有找到选中的 bracket，则将所有 widgetHandles 设置为 true
 		allBracket.forEach(({ widgetHandle }) => {
-			widgetHandle.setPickable(true);
+			if(widgetHandle.getEnabled()){
+				widgetHandle.setPickable(true);
+			}
 		});
 	}
+}
+/**
+ * @description: 禁用所有托槽交互
+ * @return {*}
+ * @author: ZhuYichen
+ */
+function disableBracketSelection(){
+	let allBracket = [...allActorList['upper'].bracket, ...allActorList['lower'].bracket]
+	allBracket.forEach(({ widgetHandle }) => {
+		if(widgetHandle.getEnabled()){
+			widgetHandle.setPickable(false);
+		}
+	});
+}
+/**
+ * @description: 开启所有托槽交互
+ * @return {*}
+ * @author: ZhuYichen
+ */
+ function enableBracketSelection(){
+	let allBracket = [...allActorList['upper'].bracket, ...allActorList['lower'].bracket]
+	allBracket.forEach(({ widgetHandle }) => {
+		if(widgetHandle.getEnabled()){
+			widgetHandle.setPickable(true);
+		}
+	});
 }
 const teethPositionAdjustStep = computed(() => store.state.actorHandleState.teethPositionAdjust.step);
 const teethPositionAdjustAngle = computed(() => store.state.actorHandleState.teethPositionAdjust.angle);
@@ -2292,6 +2330,9 @@ function actorInSceneAdjust(addActorsList, delActorsList) {
 				actor.setUserMatrix(item.userMatrix)
                 widgetHandle.setCenter([0,0,0])
 				widgetHandle.getWidgetState().getCenterHandle().setColor3([234, 230, 140])
+				if (currentShowPanel.value === 1){
+					widgetHandle.setPickable(false)
+				}
 				item.widgetHandle = widgetHandle
 				item.actor = actor // 存到allActorList里面
 			}

@@ -480,10 +480,10 @@ export default function(allActorList) {
                     curActorInScene[teethType].axis &&
                     !preActorInScene[teethType].axis
                 ) {
-                    if (currentSelectBracket.name !== "") {
+                    if (currentSelectBracketName.value !== "") {
                         // 开启上/下颌牙坐标轴显示,则需要看当前是否有上/下颌牙托槽被选中,只有此时才应该有对应坐标轴actor加入窗口
                         findAxisMatchActors(
-                            currentSelectBracket.name,
+                            currentSelectBracketName.value,
                             teethType
                         ).forEach((actor) => {
                             addActorsList.push(actor);
@@ -494,10 +494,10 @@ export default function(allActorList) {
                     !curActorInScene[teethType].axis &&
                     preActorInScene[teethType].axis
                 ) {
-                    if (currentSelectBracket.name !== "") {
+                    if (currentSelectBracketName.value !== "") {
                         // 隐藏上/下颌牙坐标轴显示,则需要看当前是否有上/下颌牙托槽被选中,只有此时才有坐标轴actor在屏幕中, 才需要移除
                         findAxisMatchActors(
-                            currentSelectBracket.name,
+                            currentSelectBracketName.value,
                             teethType
                         ).forEach((actor) => {
                             delActorsList.push(actor);

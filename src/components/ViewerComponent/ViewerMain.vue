@@ -121,7 +121,7 @@ import TeethBiteWorker from "../../hooks/teethBite.worker";
 import { norm } from "../../reDesignVtk/Math";
 import { presetArrangeDataList } from "../../static_config";
 import { ElMessage } from 'element-plus'
-import Slicing from "../../hooks/Slicing"
+import Slicing, { FineTunePoint } from "../../hooks/Slicing"
 import { FineTunePiece } from "../../hooks/Slicing"
 import vtkPolyData from "@kitware/vtk.js/Common/DataModel/PolyData";
 import vtkCellArray from "@kitware/vtk.js/Common/Core/CellArray";
@@ -131,7 +131,10 @@ import vtkMapper from "@kitware/vtk.js/Rendering/Core/Mapper";
 import vtkWidgetManager from '@kitware/vtk.js/Widgets/Core/WidgetManager';
 import vtkSphereWidget from '@kitware/vtk.js/Widgets/Widgets3D/SphereWidget';
 import vtkLineWidget from '../../reDesignVtk/Widgets/Widgets3D/LineWidget';
-
+import { normalize, cross } from "@kitware/vtk.js/Common/Core/Math";
+import vtkCutter from "@kitware/vtk.js/Filters/Core/Cutter";
+import vtkPlane from "@kitware/vtk.js/Common/DataModel/Plane";
+import vtkProperty from "@kitware/vtk.js/Rendering/Core/Property";
 
 const props = defineProps({
 	changeLoadingMessage: {
@@ -337,7 +340,6 @@ watch(currentShowPanel, (newVal, oldVal) => {
 	// 从[工具菜单]进入[牙齿切片]
 	if (oldVal === -1 && newVal === 3) {
 		exitSelection()
-		console.log('##', currentSelectBracket.value.name)
 		// console.log('管理员模式', store.state.userHandleState.userType)
 	}
 	// 从[牙齿切片]退出到[工具菜单]
@@ -345,11 +347,286 @@ watch(currentShowPanel, (newVal, oldVal) => {
 		resetgenerateBoxToolTune(vtkContext, Tuneactor);
 		resetgenerateBoxTool(vtkContext, actors);
 		resetSurroundingBoxsPoints();
+		store.dispatch("actorHandleState/updateBoxPositionAdjustMoveType", 'RESET')
 		// ResultSurrounding(toothPolyDatas);
 		vtkContext.renderWindow.render();
 		exitSelection()
+		AxisChangeOrNot(allActorList);
 	}
 });
+function AxisChangeOrNot(allActorList) {
+	const SliceData = store.state.actorHandleState.SliceData;
+	if (SliceData) {
+		SlicedAxisActorDatas(allActorList);
+	}
+
+}
+/**
+ * 
+ * @param {*} allActorList 
+ * Function: 存在切割数据后计算出切割后的符合条件的axis和对应actors
+ */
+function SlicedAxisActorDatas(allActorList) {
+	const ToothBoxPoints = store.state.actorHandleState.toothBoxPoints;
+	const pointsToCheck = ['Point0', 'Point1', 'Point2', 'Point3', 'Point4', 'Point5', 'Point6', 'Point7'];
+	let toothPosition;
+	let isAnyPointNonZero;
+	for (let i = 0; i < Object.keys(ToothBoxPoints).length; i++) {
+		const actors = [];
+		const toothName = Object.keys(ToothBoxPoints)[i];
+		if (ToothBoxPoints[toothName]) {
+			isAnyPointNonZero = pointsToCheck.some(point => {
+			const pointValue = ToothBoxPoints[toothName][point];
+			return pointValue[0] !== 0 || pointValue[1] !== 0 || pointValue[2] !== 0;
+		});
+		}
+		if (isAnyPointNonZero) {
+			if (toothName.charAt(0).toUpperCase() === 'U') {
+				toothPosition = "upper";
+			}
+			if (toothName.charAt(0).toUpperCase() === 'L') {
+				toothPosition = "lower";
+			}
+			let startPoint;
+			let endPoint;
+			let zNormal;
+			for (let j = 0; j < allActorList[toothPosition].distanceLine.length; j++) {
+				if (allActorList[toothPosition].distanceLine[j].name == toothName) {
+					startPoint = allActorList[toothPosition].distanceLine[j].startPoint;
+					endPoint = allActorList[toothPosition].distanceLine[j].endPoint;
+					break
+				}
+			}
+			for (let j = 0; j < bracketData[toothPosition].length; j++) {
+				if (bracketData[toothPosition][j].name == toothName) {
+					zNormal = bracketData[toothPosition][j].position.zNormal;
+				}
+			}
+			const actors = getCutActorList(startPoint, endPoint, zNormal, toothPolyDatas[toothName], 1);
+			for (let j = 0; j < allActorList[toothPosition].toothAxis.length; j++) {
+				if (allActorList[toothPosition].toothAxis[j].name == toothName) {
+					allActorList[toothPosition].toothAxis[j].actors = actors;
+				}
+			}
+		}
+	}
+}
+
+/**
+ * @description 根据两个长轴端点和zNormal计算出一系列平面, 该平面用于切割牙齿做出对应的坐标轴
+ * 坐标轴来源：一个个垂直或平行的网格状相交平面与牙齿点集的交集
+ * 平面决定于一个法向量+一个平面上的点
+ * 坐标轴的一个法向量分别为 startPoint->endPoint
+ * 另一个法向量为startPoint->endPoint与托槽zNormal的叉乘方向
+ * 平面上的点需要间隔axisDist均匀选取
+ * @param startPoint 牙尖端点
+ * @param endPoint 牙底端点
+ * @param zNormal 托槽z法向量(指向托槽远离牙齿方向)
+ * @param toothPolyData 牙齿PolyData
+ * @param axisDist 选取点间距, 即平面间距, 即坐标轴间距
+ */
+function getCutActorList(
+    startPoint,
+    endPoint,
+    zNormal,
+    toothPolyData,
+    axisDist
+) {
+    // ----------------------------------
+    // 计算两个法向量 normal1和normal2
+    // ----------------------------------
+    const normal1 = [
+        endPoint[0] - startPoint[0],
+        endPoint[1] - startPoint[1],
+        endPoint[2] - startPoint[2],
+    ]; // 由startPoint指向endPoint
+    normalize(normal1); // 归一化模值
+    const normal2 = [0, 0, 0];
+    cross(zNormal, normal1, normal2);
+    normalize(normal2); // 归一化模值
+    // ----------------------------------
+    // 计算每个平面上的点(均匀选取)
+    // ----------------------------------
+    // normal1Min, normal1Max, normal2Min, normal2Max
+    const toothProjectionBound = [Infinity, -Infinity, Infinity, -Infinity];
+    // 计算牙齿投影到normal1和normal2上的最大最小距离
+    const toothPoints = toothPolyData.getPoints().getData();
+    const numPoints = toothPoints.length / 3;
+    for (let idx = 0; idx < numPoints; idx++) {
+        // const point = [0, 0, 0];
+		const point = [toothPoints[idx*3], toothPoints[idx*3+1], toothPoints[idx*3+2]];
+        // toothPoints.getPoint(idx, point);
+        const proj1 = projectToAxis(normal1, point);
+        const proj2 = projectToAxis(normal2, point);
+        // 更新边界
+        toothProjectionBound[0] = Math.min(toothProjectionBound[0], proj1);
+        toothProjectionBound[1] = Math.max(toothProjectionBound[1], proj1);
+        toothProjectionBound[2] = Math.min(toothProjectionBound[2], proj2);
+        toothProjectionBound[3] = Math.max(toothProjectionBound[3], proj2);
+    }
+    // 取点时需要两种平面都要经过startPoint
+    // 计算startPoint的两个投影坐标
+    const proj1OfStartP = projectToAxis(normal1, startPoint);
+    const proj2OfStartP = projectToAxis(normal2, startPoint);
+    // 通过计算得知应该如何分段
+    const originOfNormal1Start =
+        proj1OfStartP -
+        axisDist *
+            Math.floor(
+                (proj1OfStartP - toothProjectionBound[0]) / axisDist
+            );
+    const originOfNormal1End =
+        proj1OfStartP +
+        axisDist *
+            Math.floor(
+                (toothProjectionBound[1] - proj1OfStartP) / axisDist
+            );
+    const originOfNormal1NumStep =
+        (originOfNormal1End - originOfNormal1Start) / axisDist + 1;
+
+    const originOfNormal2Start =
+        proj2OfStartP -
+        axisDist *
+            Math.floor(
+                (proj2OfStartP - toothProjectionBound[2]) / axisDist
+            );
+    const originOfNormal2End =
+        proj2OfStartP +
+        axisDist *
+            Math.floor(
+                (toothProjectionBound[3] - proj2OfStartP) / axisDist
+            );
+    const originOfNormal2NumStep =
+        (originOfNormal2End - originOfNormal2Start) / axisDist + 1;
+
+    // 取法向量为normal1的平面点(横向平面)
+    const originOfNormal1 = [];
+    for (let i = 0; i < originOfNormal1NumStep; i++) {
+        const projectionDist = originOfNormal1Start + i * axisDist; // 从min到max
+        originOfNormal1.push([
+            projectionDist * normal1[0],
+            projectionDist * normal1[1],
+            projectionDist * normal1[2],
+        ]);
+    }
+    // 取法向量为normal2的平面点(纵向平面)
+    const originOfNormal2 = [];
+    let longAxisIdx = -1; // 记录经过startP和endP那个平面索引, 这个平面需要加粗
+    for (let i = 0; i < originOfNormal2NumStep; i++) {
+        const projectionDist = originOfNormal2Start + i * axisDist; // 从min到max
+        originOfNormal2.push([
+            projectionDist * normal2[0],
+            projectionDist * normal2[1],
+            projectionDist * normal2[2],
+        ]);
+        if (proj2OfStartP === projectionDist) {
+            longAxisIdx = i;
+        }
+    }
+    // ----------------------------------
+    // 构造平面, 构造切割
+    // ----------------------------------
+    const actors = [];
+    // 法向量：normal1
+    // 点：originOfNormal1
+    originOfNormal1.forEach((origin) => {
+        const plane = vtkPlane.newInstance();
+        plane.setOrigin(...origin);
+        plane.setNormal(...normal1);
+
+        const cutter = vtkCutter.newInstance();
+        cutter.setCutFunction(plane); // 使用plane切割
+        cutter.setInputData(toothPolyData); // 切割对象为牙齿polyData
+        const mapper = vtkMapper.newInstance();
+        mapper.setInputData(cutter.getOutputData());
+        const cutActor = vtkActor.newInstance();
+        cutActor.setMapper(mapper);
+        cutActor
+            .getProperty()
+            .setRepresentation(vtkProperty.Representation.WIREFRAME); // 设置面片显示为网线框架结构
+        cutActor.getProperty().setLighting(false);
+        cutActor.getProperty().setColor(0, 0, 1);
+
+        actors.push(cutActor);
+    });
+    originOfNormal2.forEach((origin, idx) => {
+        const plane = vtkPlane.newInstance();
+        plane.setOrigin(...origin);
+        plane.setNormal(...normal2);
+        const cutter = vtkCutter.newInstance();
+        cutter.setCutFunction(plane); // 使用plane切割
+        cutter.setInputData(toothPolyData); // 切割对象为牙齿polyData
+        const mapper = vtkMapper.newInstance();
+        mapper.setInputData(cutter.getOutputData());
+        const cutActor = vtkActor.newInstance();
+        cutActor.setMapper(mapper);
+        cutActor
+            .getProperty()
+            .setRepresentation(vtkProperty.Representation.WIREFRAME); // 设置面片显示为网线框架结构
+        cutActor.getProperty().setLighting(false);
+        cutActor.getProperty().setColor(1, 0, 0);
+        actors.push(cutActor);
+
+        if (idx === longAxisIdx) {
+            const offsets = [
+                [1e-4, 0, 0],
+                [-1e-4, 0, 0],
+                [0, 1e-4, 0],
+                [0, -1e-4, 0],
+                [0, 0, 1e-4],
+                [0, 0, -1e-4],
+
+                [0, 1e-4, 1e-4],
+                [0, 1e-4, -1e-4],
+                [0, -1e-4, 1e-4],
+                [0, -1e-4, -1e-4],
+                [1e-4, 0, 1e-4],
+                [1e-4, 0, -1e-4],
+                [-1e-4, 0, 1e-4],
+                [-1e-4, 0, -1e-4],
+                [1e-4, 1e-4, 0],
+                [1e-4, -1e-4, 0],
+                [-1e-4, 1e-4, 0],
+                [-1e-4, -1e-4, 0],
+
+                [1e-4, 1e-4, 1e-4],
+                [1e-4, 1e-4, -1e-4],
+                [1e-4, -1e-4, 1e-4],
+                [-1e-4, 1e-4, 1e-4],
+                [1e-4, -1e-4, -1e-4],
+                [-1e-4, 1e-4, -1e-4],
+                [-1e-4, -1e-4, 1e-4],
+                [-1e-4, -1e-4, -1e-4],
+            ];
+            // 加粗的土方法：在附近加线
+            offsets.forEach((offset) => {
+                const cutActor = vtkActor.newInstance();
+                cutActor.setMapper(mapper);
+                cutActor
+                    .getProperty()
+                    .setRepresentation(
+                        vtkProperty.Representation.WIREFRAME
+                    );
+                cutActor.setScale(
+                    1 + 2 * offset[0],
+                    1 + 2 * offset[1],
+                    1 + 2 * offset[2]
+                );
+                cutActor.getProperty().setColor(1, 0, 0);
+                actors.push(cutActor);
+            });
+        }
+    });
+    return actors;
+}
+
+function projectToAxis(normal, x) {
+    const num = normal[0] * x[0] + normal[1] * x[1] + normal[2] * x[2]; // |normal|*|x|*cosa
+    const norm = Math.sqrt(normal[0] ** 2 + normal[1] ** 2 + normal[2] ** 2); // |normal|
+    return num / norm; // |x|*cosa(返回的相当于是从(0,0,0)点开始想normal延伸的一个坐标轴上, x点的投影坐标)
+}
+
+
 let widget = null;
 let widgetHandle = null;
 
@@ -1849,7 +2126,6 @@ watch(
 				generateBoxTool(vtkContext, Tuneactor);
 				}
 			if (oldVal !== "" && newVal === ""){
-				console.log('##', "here")
 				if (Tuneactor.length !== 0){
 					resetgenerateBoxTool(vtkContext, Tuneactor);
 				}
@@ -2017,10 +2293,14 @@ function ResultSurrounding(toothPolyDatas){
 	
 	for (let i = 0; i < Object.keys(ToothBoxPoints).length; i++) {
 		const toothName = Object.keys(ToothBoxPoints)[i];
-		const isAnyPointNonZero = pointsToCheck.some(point => {
+
+		let isAnyPointNonZero;
+		if (ToothBoxPoints[toothName]) {
+			isAnyPointNonZero = pointsToCheck.some(point => {
 			const pointValue = ToothBoxPoints[toothName][point];
 			return pointValue[0] !== 0 || pointValue[1] !== 0 || pointValue[2] !== 0;
 		});
+		}
 		if (isAnyPointNonZero) {
 			const SurroundingBoxsPoints0 = ToothBoxPoints[toothName];
 			let SurroundingBoxPoints = {};
@@ -2039,8 +2319,11 @@ function ResultSurrounding(toothPolyDatas){
 			else if (toothName.charAt(0).toUpperCase() === 'L') {
 				toothPosition = "lower";
 			}
-			const { pointValues, cellValues, truncatedValidcellValues} = FineTunePiece(toothPolyDatas, toothName, toothPosition, SurroundingBoxPoints);
-			const FineTuneactor = reshowTune(pointValues, truncatedValidcellValues);
+			// const { pointValues, cellValues, truncatedValidcellValues} = FineTunePiece(toothPolyDatas, toothName, toothPosition, SurroundingBoxPoints);
+			const { pointArray, cellArray} = FineTunePoint(toothPolyDatas, toothName, toothPosition, SurroundingBoxPoints);
+			const FineTuneactor = reshowTune(pointArray, cellArray);
+			toothPolyDatas[toothName].getPoints().setData(pointArray);
+			toothPolyDatas[toothName].getPolys().setData(cellArray);
 			if (toothPosition == "upper") {
 				allActorList["upper"].tooth.forEach((item) => {
                 	if (item.name == toothName) {
@@ -2071,8 +2354,9 @@ function ResultSurrounding(toothPolyDatas){
                 	}
             	});
 			}
-			}
+		}
 	}
+
 	actorInSceneAdjust(addActorsList, delActorsList);
 	releaseBoxPositionAdjustMoveType();
 }
@@ -2272,6 +2556,16 @@ watch(finishLoad, (newVal) => {
 			// setGingivaOpacity(0.5);
 			renderWindow.render()
 		}
+		// modifying
+		// postInitialDataToWorker(
+		// 	{
+		// 		tooth: toothPolyDatas,
+		// 		bracket: bracketPolyDatas,
+		// 	},
+		// 	longAxisData,
+		// 	teethBoxPoints.value,
+		// 	toothPolyDatas,
+		// );
 		postInitialDataToWorker(
 			{
 				tooth: toothPolyDatas,
@@ -2774,7 +3068,15 @@ function fineTuneBracket(moveOption) {
 	updateDistanceLineActor(name, transCenter, transZNormal, transXNormal, renderer, renderWindow);
 }
 const teethArrange = store.state.actorHandleState.teethArrange;
-const teethBoxPoints = store.state.actorHandleState.toothBoxPoints;
+const ChangeTeethBoxPoints = computed(() => store.state.actorHandleState.SlicePolyData);
+watch(ChangeTeethBoxPoints, newVal => {
+	if (newVal) {
+		ResultSurrounding(toothPolyDatas)
+		store.dispatch("actorHandleState/updateSlicePolyData", false)
+	}
+	
+})
+
 function uploadDataOnline(uploadStateMessage, submit = false) {
 	/**
 	 * data: 全cado
@@ -2800,7 +3102,8 @@ function uploadDataOnline(uploadStateMessage, submit = false) {
 		value: 0,
 	});
 	let teethArrangeData = toRaw(teethArrange);
-	let teethBoxPointsData = toRaw(teethBoxPoints);
+	const teethBoxPointsChanged = store.state.actorHandleState.toothBoxPoints;
+	let teethBoxPointsData = toRaw(teethBoxPointsChanged);
 	uploadType.value.forEach((teethType) => {
 		store.dispatch("userHandleState/updateUploadingState", {
 			teethType,
@@ -3777,6 +4080,7 @@ let isArrangeDataComplete = computed(() => store.getters["actorHandleState/isArr
 // 进入模拟排牙
 let clickEnter = false;
 function openSimulationMode() {
+	//只要进入模拟排牙，则需要计算在此之前是否存在切割情况
 	if (arrangeTeethType.value.length === 0 || (isArrangeDataComplete.value && !enterAtInitTime.value)) {
 		// 不作任何排牙进入排牙模式, 条件:
 		// 1、双颌数据均不满足排牙要求
@@ -3792,6 +4096,7 @@ function openSimulationMode() {
 		clickEnter = true;
 		forceUpdateArrange();
 	}
+	store.dispatch("actorHandleState/updateFirstSliceFlag", false);
 }
 /**
  * @description 切换至咬合面板, 咬合面板中切换上下颌时调用, 此时牙齿坐标系actor一定已经构建完毕
@@ -3902,8 +4207,71 @@ function forceUpdateArrange(reCalculateDentalArch = false, teethType = []) {
 				bracketData[teethType].map(({ name, fineTuneRecord: { actorMatrix } }) => [name, actorMatrix])
 			);
 		}
-		startTeethArrange(fineTunedBracketData, reCalculateDentalArch);
+		const SlicedTeethDatas = slicedTeethArrangeDatas(toothPolyDatas);
+		startTeethArrange(fineTunedBracketData, SlicedTeethDatas, reCalculateDentalArch);
+		// modifying
+		// startTeethArrange(fineTunedBracketData, reCalculateDentalArch, toothPolyDatas);
 	}
+}
+
+/**
+ * 
+ * @param {*} toothPolyDatas 
+ * Function：将牙齿的pointvalues提取和存储，按照upper和lower进行区分
+ */
+function slicedTeethArrangeDatas(toothPolyDatas) {
+	let SlicedTeethDatas = {
+		upper: {},
+		lower: {},
+	};
+	for (let i = 0; i < Object.keys(toothPolyDatas).length; i++) {
+		const toothName = Object.keys(toothPolyDatas)[i];
+		let toothPosition;
+		if (toothName.charAt(0).toUpperCase() === 'U') {
+			toothPosition = "upper";
+		}
+		if (toothName.charAt(0).toUpperCase() === 'L') {
+			toothPosition = "lower";
+		}
+		let SingleToothData = {}
+		SingleToothData = toothPolyDatas[toothName].getPoints().getData();
+		SlicedTeethDatas[toothPosition][toothName] = SingleToothData;
+	}
+	return SlicedTeethDatas
+}
+
+const firstUpdateFlag = computed(() => store.state.actorHandleState.firstUpdateFlag);
+watch(firstUpdateFlag, (newVal) => {
+	if (newVal) {
+		JudgeSliceOrNot();
+		const JudgeSlice = store.state.actorHandleState.firstSliceFlag;
+		if (JudgeSlice) {
+			store.dispatch("actorHandleState/updateEnterAtInitTime", true);
+			forceUpdateArrange();
+			store.dispatch("actorHandleState/updateFirstUpdateFlag", false);
+		}
+		
+	}
+})
+
+function JudgeSliceOrNot() {
+	const ToothBoxPoints = store.state.actorHandleState.toothBoxPoints;
+	let isAnyPointNonZero;
+	const pointsToCheck = ['Point0', 'Point1', 'Point2', 'Point3', 'Point4', 'Point5', 'Point6', 'Point7'];
+	
+	for (let i = 0; i < Object.keys(ToothBoxPoints).length; i++) {
+		const toothName = Object.keys(ToothBoxPoints)[i];
+
+		isAnyPointNonZero = pointsToCheck.some(point => {
+			const pointValue = ToothBoxPoints[toothName][point];
+			return pointValue[0] !== 0 || pointValue[1] !== 0 || pointValue[2] !== 0;
+		});
+		if (isAnyPointNonZero) {
+			break
+		}
+	}
+	store.dispatch("actorHandleState/updateFirstSliceFlag", isAnyPointNonZero);
+	// store.dispatch("actorHandleState/updateFirstUpdateFlag", false);
 }
 
 defineExpose({

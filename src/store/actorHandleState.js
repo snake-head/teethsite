@@ -53,6 +53,21 @@ export default {
         updateToothBoxPoints(context, value) {
             context.commit("UpdateToothBoxPoints", value);
         },
+        updateToothBoxPointsGenerate(context, value) {
+            context.commit("UpdateToothBoxPointsGenerate", value);
+        },
+        updateSlicePolyData(context, value) {
+            context.commit("UpdateSlicePolyData", value);
+        },
+        updateSliceData(context, value) {
+            context.commit("UpdateSliceData", value);
+        },
+        updateFirstUpdateFlag(context, value) {
+            context.commit("UpdateFirstUpdateFlag", value);
+        },
+        updateFirstSliceFlag(context, value) {
+            context.commit("UpdateFirstSliceFlag", value);
+        },
         updateStandardAxisActor(context, value) {
             context.commit("UpdateStandardAxisActor", value);
         },
@@ -180,6 +195,22 @@ export default {
         },
         UpdateToothBoxPoints(state, value) {
             Object.assign(state.toothBoxPoints, value);
+        },
+        UpdateToothBoxPointsGenerate(state, value) {
+            state.toothBoxPointsGenerate = value;
+        },
+        UpdateSlicePolyData(state, value) {
+            // Object.assign(state.SlicePolyData, value);
+            state.SlicePolyData = value;
+        },
+        UpdateSliceData(state, value) {
+            state.SliceData = value;
+        },
+        UpdateFirstUpdateFlag(state, value) {
+            state.firstUpdateFlag = value;
+        },
+        UpdateFirstSliceFlag(state, value) {
+            state.firstSliceFlag = value;
         },
         UpdateDentalArchAdjustRecord(state, value) {
             let valueProps = Object.keys(value);
@@ -547,6 +578,11 @@ export default {
             lower: false,
         }, // 用于触发圆锥方向的重置
         toothBoxPoints: {},
+        toothBoxPointsGenerate: false,
+        SlicePolyData: false,
+        SliceData: false,
+        firstUpdateFlag: false,
+        firstSliceFlag: false,
         BoxSlicing:{
             SelectedPosition: "",
             SelectedToothBox: "",
@@ -569,7 +605,7 @@ export default {
             boxPositionAdjustMoveType: "", // 键盘操作的移动
             boxPositionAdjust: {
                 // boxType: "left or right", 见availableToothSides里面的face
-                step: 1,
+                step: 0.1,
                 faceType: "left", // （理论上）左面只能向右调整，右面只能向左调整（未写死）
                 x_axis: [0, 0, 0],
                 y_axis: [0, 0, 0],

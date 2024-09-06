@@ -473,6 +473,119 @@ function FineTunePiece(toothPolyDatas, currentSelectBracket, toothPosition, Surr
     }
 }
 
+
+function FineTunePoint(toothPolyDatas, currentSelectBracket, toothPosition, SurroundingBoxsPoints){
+    // 初始面片信息
+    let toothName;
+    if (currentSelectBracket.name == null) {
+        toothName = currentSelectBracket;
+    }
+    else {
+        toothName = currentSelectBracket.name;
+    }
+    const pointValues = toothPolyDatas[toothName].getPoints().getData();
+    const cellValues = toothPolyDatas[toothName].getPolys().getData();
+
+    const validcellValues = [];
+    const validpointValues = [];
+
+    const indexMap = new Map();
+    let newIndex = 0;
+    const newPointValues = [];
+
+
+    // 选中牙齿的信息 toothPosition
+
+    // 迭代每个面片
+    for (let i = 0; i < cellValues.length; i += 4) {
+        // 获取面片的顶点索引
+        const v1 = cellValues[i + 1];
+        const v2 = cellValues[i + 2];
+        const v3 = cellValues[i + 3];
+
+        // 根据顶点索引获取对应的顶点坐标
+        const vertex1 = pointValues.slice(v1 * 3, v1 * 3 + 3);
+        const vertex2 = pointValues.slice(v2 * 3, v2 * 3 + 3);
+        const vertex3 = pointValues.slice(v3 * 3, v3 * 3 + 3);
+
+        const judge = generateToothBox(SurroundingBoxsPoints, toothPosition, currentSelectBracket, vertex1, vertex2, vertex3);
+
+        if (judge) {
+            const indices = [v1, v2, v3].map(originalIndex => {
+                if (!indexMap.has(originalIndex)) {
+                    indexMap.set(originalIndex, newIndex);
+                    newPointValues.push(...pointValues.slice(originalIndex * 3, originalIndex * 3 + 3));
+                    return newIndex++;
+                }
+                return indexMap.get(originalIndex);
+            });
+
+            // 将满足条件的面片信息和新的顶点索引保存
+            validcellValues.push(3, ...indices);  // Assuming the first value is the count of indices
+        }
+    }
+
+    const pointArray = new Float32Array(newPointValues);
+    const cellArray = new Uint32Array(validcellValues);
+    
+    return {
+        pointArray,
+        cellArray,
+    }
+}
+
+function FineTuneLine(pointValues, lineValues, currentSelectBracket, toothPosition, SurroundingBoxsPoints){
+    // 初始面片信息
+    let toothName;
+    if (currentSelectBracket.name == null) {
+        toothName = currentSelectBracket;
+    }
+    else {
+        toothName = currentSelectBracket.name;
+    }
+
+    const validlineValues = [];
+
+    const indexMap = new Map();
+    let newIndex = 0;
+    const newPointValues = [];
+
+    // 选中牙齿的信息 toothPosition
+
+    // 迭代每个线段
+    for (let i = 0; i < lineValues.length; i += 3) {
+        // 获取面片的顶点索引
+        const v1 = lineValues[i + 1];
+        const v2 = lineValues[i + 2];
+
+        // 根据顶点索引获取对应的顶点坐标
+        const vertex1 = pointValues.slice(v1 * 3, v1 * 3 + 3);
+        const vertex2 = pointValues.slice(v2 * 3, v2 * 3 + 3);
+
+        const judge = generateToothBox(SurroundingBoxsPoints, toothPosition, currentSelectBracket, vertex1, vertex2, vertex2);
+        if (judge) {
+            const indices = [v1, v2].map(originalIndex => {
+                if (!indexMap.has(originalIndex)) {
+                    indexMap.set(originalIndex, newIndex);
+                    newPointValues.push(...pointValues.slice(originalIndex * 3, originalIndex * 3 + 3));
+                    return newIndex++;
+                }
+                return indexMap.get(originalIndex);
+            });
+
+            // 将满足条件的面片信息和新的顶点索引保存
+            validlineValues.push(3, ...indices);  // Assuming the first value is the count of indices
+        }
+    }
+
+    const pointArray = new Float32Array(newPointValues);
+    
+    return {
+        pointArray,
+        validlineValues
+    }
+}
+
 function generateEveryTooth(toothName, toothPolyDatas, store){
     const pointValues = toothPolyDatas[toothName].getPoints().getData();
     const cellValues = toothPolyDatas[toothName].getPolys().getData();
@@ -670,4 +783,4 @@ function generateToothBox(
 
 
 
-export {FineTunePiece, generateEveryTooth};
+export {FineTunePiece, generateEveryTooth, FineTunePoint, FineTuneLine};

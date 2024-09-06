@@ -63,7 +63,7 @@
 						<input
 							id="pan-step-box-position"
 							type="number"
-							step="1"
+							step="0.1"
 							v-model.number="boxPositionAdjustStep"
 						/>
 						<span class="unit-text special" style="color: black;">mm</span>
@@ -72,15 +72,26 @@
 			</div>
 		</div>
 		<div class="handle-box">
-			<div class="handle-title">状态操作</div>
+			<div class="handle-title">生成切片</div>
 			<div class="handle-body">
 				<div class="half clear-fix">
 					<button class="handle-btn tooth-selection-button" @click="saveTeethBoxRecord()">
+						生成
+					</button>
+				</div>
+			</div>
+		</div>
+		<div class="handle-box">
+			<div class="handle-title">状态操作</div>
+			<div class="handle-body">
+				<div class="half clear-fix">
+					<button class="handle-btn tooth-selection-button" @click="updateTeethBoxRecord(true)">
 						保存
 					</button>
 				</div>
 				<div class="half clear-fix">
-					<button class="handle-btn tooth-selection-button" @click="generateTeethBoxRecord('TEMPRESET')">
+					<button class="handle-btn tooth-selection-button" 
+						@click="generateTeethBoxRecord('TEMPRESET')">
 						重置
 					</button>
 				</div>
@@ -90,7 +101,8 @@
 			<div class="handle-title">初始化</div>
 			<div class="handle-body">
 				<div class="half clear-fix">
-					<button class="handle-btn tooth-selection-button" @click="generateTeethBoxRecord('RESET')">
+					<button class="handle-btn tooth-selection-button" 
+						@click="generateTeethBoxRecord('RESET')">
 						初始化
 					</button>
 				</div>
@@ -126,7 +138,9 @@ defineProps({
 });
 
 function generateTeethBoxRecord(value){
-	store.dispatch("actorHandleState/updateBoxPositionAdjustMoveType", value);
+	if (toothBoxPointsGenerate) {
+		store.dispatch("actorHandleState/updateBoxPositionAdjustMoveType", value);
+	}
 }
 
 const store = useStore();
@@ -135,6 +149,9 @@ const availableToothSides = computed(() => store.state.actorHandleState.BoxSlici
 
 const selectKeyBoardEvent = computed(() => store.state.actorHandleState.selectKeyBoardEvent);
 const isKeyBoardEventSelected = computed(() => selectKeyBoardEvent.value === "boxpos");
+// toothBoxPointsGenerate：是否生成切割后的牙齿
+const toothBoxPointsGenerate = computed(() => store.state.actorHandleState.toothBoxPointsGenerate) ;
+
 function switchSelectKeyBoardEvent() {
 	store.dispatch(
 		"actorHandleState/updateSelectKeyBoardEvent",
@@ -224,20 +241,29 @@ function saveTeethBoxRecord(){
 	const SurroundingBoxPoints = store.state.actorHandleState.BoxSlicing.BoxPoints;
 	const toothBoxPoints = {};
 	toothBoxPoints[currentSelectBracketName] = {
-		Point0: SurroundingBoxPoints.Point0,
-		Point1: SurroundingBoxPoints.Point1,
-		Point2: SurroundingBoxPoints.Point2,
-		Point3: SurroundingBoxPoints.Point3,
-		Point4: SurroundingBoxPoints.Point4,
-		Point5: SurroundingBoxPoints.Point5,
-		Point6: SurroundingBoxPoints.Point6,
-		Point7: SurroundingBoxPoints.Point7,
+		Point0: [SurroundingBoxPoints.Point0[0], SurroundingBoxPoints.Point0[1], SurroundingBoxPoints.Point0[2]],
+		Point1: [SurroundingBoxPoints.Point1[0], SurroundingBoxPoints.Point1[1], SurroundingBoxPoints.Point1[2]],
+		Point2: [SurroundingBoxPoints.Point2[0], SurroundingBoxPoints.Point2[1], SurroundingBoxPoints.Point2[2]],
+		Point3: [SurroundingBoxPoints.Point3[0], SurroundingBoxPoints.Point3[1], SurroundingBoxPoints.Point3[2]],
+		Point4: [SurroundingBoxPoints.Point4[0], SurroundingBoxPoints.Point4[1], SurroundingBoxPoints.Point4[2]],
+		Point5: [SurroundingBoxPoints.Point5[0], SurroundingBoxPoints.Point5[1], SurroundingBoxPoints.Point5[2]],
+		Point6: [SurroundingBoxPoints.Point6[0], SurroundingBoxPoints.Point6[1], SurroundingBoxPoints.Point6[2]],
+		Point7: [SurroundingBoxPoints.Point7[0], SurroundingBoxPoints.Point7[1], SurroundingBoxPoints.Point7[2]],
 	}
 	// store.dispatch("actorHandleState/updateTuneBoxs", SurroundingBoxPoints);
 	store.dispatch("actorHandleState/updateToothBoxPoints",toothBoxPoints)
+	store.dispatch("actorHandleState/updateToothBoxPointsGenerate", true);
 	generateTeethBoxRecord('Generate');
 }
 
+
+/**
+ * Function: 传参，方便之后根据该包围框坐标对toothpolydatas进行更改
+ */
+function updateTeethBoxRecord(value){
+	store.dispatch("actorHandleState/updateSlicePolyData", value)
+	store.dispatch("actorHandleState/updateSliceData", value)
+}
 
 </script>
 

@@ -431,6 +431,9 @@ export default function(allActorList) {
                 allActorList[teethType].tooth.forEach((item) => {
                     addActorsList.push(item.actor);
                 });
+                allActorList[teethType].collisionTeeth.forEach((item) => {
+                    addActorsList.push(item);
+                });
             }
             if (
                 !curActorInScene[teethType].tooth &&
@@ -438,6 +441,9 @@ export default function(allActorList) {
             ) {
                 allActorList[teethType].tooth.forEach((item) => {
                     delActorsList.push(item.actor);
+                });
+                allActorList[teethType].collisionTeeth.forEach((item) => {
+                    delActorsList.push(item);
                 });
             }
             if (

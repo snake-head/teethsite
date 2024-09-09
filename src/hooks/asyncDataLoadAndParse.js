@@ -1155,11 +1155,13 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
             actor.setPickable(false)
             toothPolyDatas[name] = polyData;
             if (isAnyPointNonZero) {
-                const { pointArray, cellArray, Tuneactor, mapper, polydata } = generateActorBySurroundingData(name, ToothBoxPoints, toothPolyDatas);
+                // const { pointArray, cellArray, Tuneactor, mapper, polydata } = generateActorBySurroundingData(name, ToothBoxPoints, toothPolyDatas);
+                const { pointArray, cellArray, actor, mapper, polydata } = generateActorBySurroundingData(name, ToothBoxPoints, toothPolyDatas);
                 toothPolyDatas[name].getPoints().setData(pointArray);
                 toothPolyDatas[name].getPolys().setData(cellArray);
                 
-                allActorList[teethType].tooth.push({ name, Tuneactor, mapper });
+                // allActorList[teethType].tooth.push({ name, Tuneactor, mapper });
+                allActorList[teethType].tooth.push({ name, actor, mapper });
             }
             else {
                 allActorList[teethType].tooth.push({ name, actor, mapper });
@@ -1168,12 +1170,32 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
         });
         // originTooth
         Object.keys(tooth).forEach((name) => {
+            let isAnyPointNonZero;
+            if (ToothBoxPoints[name]) {
+                isAnyPointNonZero = pointsToCheck.some(point => {
+                const pointValue = ToothBoxPoints[name][point];
+                return pointValue[0] !== 0 || pointValue[1] !== 0 || pointValue[2] !== 0;
+            });
+            }
             const { actor, mapper, polyData } = generateActorByData(
                 tooth[name]
             );
             actor.setPickable(false)
             actor.getProperty().setColor(actorColorConfig.teeth);
-            allActorList[teethType].originTooth.push({ name, actor, mapper });
+            toothPolyDatas[name] = polyData;
+            if (isAnyPointNonZero) {
+                // const { pointArray, cellArray, Tuneactor, mapper, polydata } = generateActorBySurroundingData(name, ToothBoxPoints, toothPolyDatas);
+                const { pointArray, cellArray, actor, mapper, polydata } = generateActorBySurroundingData(name, ToothBoxPoints, toothPolyDatas);
+                toothPolyDatas[name].getPoints().setData(pointArray);
+                toothPolyDatas[name].getPolys().setData(cellArray);
+                
+                // allActorList[teethType].originTooth.push({ name, Tuneactor, mapper });
+                allActorList[teethType].originTooth.push({ name, actor, mapper });
+            }
+            else {
+                allActorList[teethType].originTooth.push({ name, actor, mapper });
+            }
+            // allActorList[teethType].originTooth.push({ name, actor, mapper });
         });
         // bracket
         Object.keys(bracket).forEach((name) => {
@@ -1250,9 +1272,14 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
         }
         // const { pointValues, cellValues, truncatedValidcellValues} = FineTunePiece(toothPolyDatas, name, toothPosition, SurroundingBoxPoints);
         const { pointArray, cellArray} = FineTunePoint(toothPolyDatas, name, toothPosition, SurroundingBoxPoints);
-        const {Tuneactor, mapper, polydata} = reshowTune(pointArray, cellArray);
+        // const {Tuneactor, mapper, polydata} = reshowTune(pointArray, cellArray);
+        const {actor, mapper, polydata} = reshowTune(pointArray, cellArray);
+        // const { Tuneactor, mapper, polyData } = generateActorByData(
+        //     { pointArray, cellArray}
+        // );
         // return { pointValues, truncatedValidcellValues, Tuneactor, mapper, polydata}
-        return { pointArray, cellArray, Tuneactor, mapper, polydata }
+        // return { pointArray, cellArray, Tuneactor, mapper, polydata }
+        return { pointArray, cellArray, actor, mapper, polydata }
     }
     function generateLineBySurroundingData(name, ToothBoxPoints, pointValues, lineValues){
         const SurroundingBoxsPoints0 = ToothBoxPoints[name];
@@ -1279,26 +1306,35 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
         // return { pointValues, truncatedValidcellValues, Tuneactor, mapper, polydata}
         return { pointArray, validlineValues}
     }
-    function reshowTune(pointValues, cellValues){
-        const polydata = vtkPolyData.newInstance();
-        const points = vtkPoints.newInstance();
-        points.setData(Float32Array.from(pointValues));
-        polydata.setPoints(points);
+    // function reshowTune(pointValues, cellValues){
+    function reshowTune(pointArray, cellArray){
+        const polyData = vtkPolyData.newInstance();
+        // const polydata = vtkPolyData.newInstance();
+        // const points = vtkPoints.newInstance();
+        // points.setData(Float32Array.from(pointValues));
+        // polydata.setPoints(points);
+        polyData.getPoints().setData(pointArray);
+        polyData.getPolys().setData(cellArray);
     
-        const cellArray = vtkCellArray.newInstance();
-        const cellData = new Uint32Array(cellValues);
-        cellArray.setData(cellData);
+        // const cellArray = vtkCellArray.newInstance();
+        // const cellData = new Uint32Array(cellValues);
+        // cellArray.setData(cellData);
     
-        polydata.setPolys(cellArray);
+        // polydata.setPolys(cellArray);
     
         const mapper = vtkMapper.newInstance();
-        mapper.setInputData(polydata);
+        // mapper.setInputData(polydata);
+        mapper.setInputData(polyData);
     
-        const Tuneactor = vtkActor.newInstance();
-        Tuneactor.setMapper(mapper);
-        Tuneactor.getProperty().setColor(actorColorConfig.teeth);
+        // const Tuneactor = vtkActor.newInstance();
+        // Tuneactor.setMapper(mapper);
+        const actor = vtkActor.newInstance();
+        actor.setMapper(mapper);
+        // Tuneactor.getProperty().setColor(actorColorConfig.teeth);
 
-        return {Tuneactor, mapper, polydata};
+        // return {Tuneactor, mapper, polydata};
+        // return {Tuneactor, mapper, polyData};
+        return {actor, mapper, polyData};
     }
     function generateBracketWidgetByData({ pointValues, cellValues }, name) {
         const polyData = vtkPolyData.newInstance();
@@ -1656,6 +1692,10 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
                                 }
                                 store.dispatch(
                                     "actorHandleState/updateToothBoxPoints",
+                                    toothBoxPoints
+                                )
+                                store.dispatch(
+                                    "actorHandleState/updateOriginToothBoxPoints",
                                     toothBoxPoints
                                 )
                             }

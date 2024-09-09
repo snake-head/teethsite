@@ -587,8 +587,6 @@ export default function(allActorList) {
 	 */
 	function startTeethArrange(fineTunedBracketData, SlicedTeethDatas ,reCalculateDentalArch = false) {
 	// function startTeethArrange(fineTunedBracketData, reCalculateDentalArch = false, toothPolyDatas) {
-		const pointsToCheck = ['Point0', 'Point1', 'Point2', 'Point3', 'Point4', 'Point5', 'Point6', 'Point7'];
-		const ToothBoxPoints = store.state.actorHandleState.toothBoxPoints;
 		// 如果没有传fineTunedBracketData
 		fineTunedBracketData = fineTunedBracketData ? fineTunedBracketData : preFineTuneRecord;
 		let arrangeTeethType = Object.keys(fineTunedBracketData);
@@ -764,7 +762,6 @@ export default function(allActorList) {
 	 * @param fineTunedBracketData {Object} 可以为 {UL1, ...} or {LL1, ...}
 	 */
 	function startTeethArrangeByAdjustedDentalArch(teethType, coEfficients, fineTunedBracketData) {
-		console.log('##teeth', teethType)
 		currentArrangeStep[teethType] = 1;
 		// 锁定牙弓线排牙, 走特殊流程, 但此时和正常流程一样, 会更新托槽微调记录
 		// 但多传参数isDentalArchLocked, coefficients, 具体可以看worker.js里怎么处理

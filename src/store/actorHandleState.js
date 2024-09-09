@@ -53,6 +53,9 @@ export default {
         updateToothBoxPoints(context, value) {
             context.commit("UpdateToothBoxPoints", value);
         },
+        updateOriginToothBoxPoints(context, value) {
+            context.commit("UpdateOriginToothBoxPoints", value);
+        },
         updateToothBoxPointsGenerate(context, value) {
             context.commit("UpdateToothBoxPointsGenerate", value);
         },
@@ -195,6 +198,9 @@ export default {
         },
         UpdateToothBoxPoints(state, value) {
             Object.assign(state.toothBoxPoints, value);
+        },
+        UpdateOriginToothBoxPoints(state, value) {
+            Object.assign(state.origintoothBoxPoints, value);
         },
         UpdateToothBoxPointsGenerate(state, value) {
             state.toothBoxPointsGenerate = value;
@@ -578,6 +584,7 @@ export default {
             lower: false,
         }, // 用于触发圆锥方向的重置
         toothBoxPoints: {},
+        origintoothBoxPoints: {},
         toothBoxPointsGenerate: false,
         SlicePolyData: false,
         SliceData: false,

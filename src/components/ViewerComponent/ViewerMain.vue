@@ -347,7 +347,7 @@ watch(currentShowPanel, (newVal, oldVal) => {
 		resetgenerateBoxToolTune(vtkContext, Tuneactor);
 		resetgenerateBoxTool(vtkContext, actors);
 		resetSurroundingBoxsPoints();
-		store.dispatch("actorHandleState/updateBoxPositionAdjustMoveType", 'RESET')
+		// store.dispatch("actorHandleState/updateBoxPositionAdjustMoveType", 'RESET')
 		// ResultSurrounding(toothPolyDatas);
 		vtkContext.renderWindow.render();
 		exitSelection()
@@ -2211,13 +2211,15 @@ watch(boxPositionAdjustMoveType, (newValue) => {
 		releaseBoxPositionAdjustMoveType();
 	}
 	if (newValue == 'RESET'){
-		const ToothBoxPoints = store.state.actorHandleState.toothBoxPoints;
+		let ToothBoxPoints = store.state.actorHandleState.toothBoxPoints;
 		for(let name in ToothBoxPoints){
 			resetTransPoint(ToothBoxPoints[name]);
 		}
 		const { addActorsList, delActorsList } = actorShowStateUpdateSlicingReset(props.actorInScene, toothPolyDatas, store, 'Reset');
 		actorInSceneAdjust(addActorsList, delActorsList);
 		releaseBoxPositionAdjustMoveType();
+		ToothBoxPoints = store.state.actorHandleState.origintoothBoxPoints;
+		store.dispatch("actorHandleState/updateToothBoxPoints", ToothBoxPoints)
 	}
 });
 
@@ -4243,7 +4245,8 @@ function slicedTeethArrangeDatas(toothPolyDatas) {
 const firstUpdateFlag = computed(() => store.state.actorHandleState.firstUpdateFlag);
 watch(firstUpdateFlag, (newVal) => {
 	if (newVal) {
-		JudgeSliceOrNot();
+		const ToothBoxPoints = store.state.actorHandleState.toothBoxPoints;
+		JudgeSliceOrNot(ToothBoxPoints);
 		const JudgeSlice = store.state.actorHandleState.firstSliceFlag;
 		if (JudgeSlice) {
 			store.dispatch("actorHandleState/updateEnterAtInitTime", true);
@@ -4254,8 +4257,7 @@ watch(firstUpdateFlag, (newVal) => {
 	}
 })
 
-function JudgeSliceOrNot() {
-	const ToothBoxPoints = store.state.actorHandleState.toothBoxPoints;
+function JudgeSliceOrNot(ToothBoxPoints) {
 	let isAnyPointNonZero;
 	const pointsToCheck = ['Point0', 'Point1', 'Point2', 'Point3', 'Point4', 'Point5', 'Point6', 'Point7'];
 	

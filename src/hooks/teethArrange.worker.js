@@ -772,14 +772,14 @@ function calculateArchPositionByFixedLength(
  * @param fineTunedBracketData 当前微调托槽源数据
  * @param force 即使数据相同也会继续进行排牙
  */
-function asyncArrangeTheTeeth(preFineTuneRecord, fineTunedBracketData, force) {
+function asyncArrangeTheTeeth(preFineTuneRecord, fineTunedBracketData, SlicedFlag, SlicedTeethDatas, force) {
     const retData = {
         step: 0, // 当前执行第0步
         toNext: false,
     };
     // 未检测到变化时直接跳过排牙
     // preFineTuneRecord在worker关掉后会清掉, 需要在这一步一起传过来对比！(该记录应该存在主线程中)
-    if (preFineTuneRecord) {
+    if (preFineTuneRecord && !SlicedFlag) {
         // 如果传preFineTuneRecord, 就比较, 没变化就跳过所有步骤
         if (!isFineTuneRecordChanged(preFineTuneRecord, fineTunedBracketData)) {
             retData.step = 6; // 准备跳过所有步骤
@@ -804,6 +804,10 @@ function asyncArrangeTheTeeth(preFineTuneRecord, fineTunedBracketData, force) {
     arrangeState["0"].sourceData = {
         ...arrangeState["0"].sourceData,
         fineTunedBracketData,
+        segPolyDatas: {
+            ...arrangeState["0"].sourceData.segPolyDatas,
+            tooth: SlicedTeethDatas,
+        }
     };
     retData.toNext = true; // 准备执行下一步
     return retData;
@@ -1739,11 +1743,22 @@ self.onmessage = function(e) {
         }
         case 0: {
             // 开始排牙, 这一步主要检测托槽较上次排牙是否微调过, 没有则不需要重新排牙
+            // const {
+            //     segPolyDatas,
+            //     preFineTuneRecord,
+            //     fineTunedBracketData,
+            //     isDentalArchLocked,
+            //     force,
+            //     SlicePolyDatas,
+            // } = e.data;
             const {
+                segPolyDatas,
                 preFineTuneRecord,
                 fineTunedBracketData,
                 isDentalArchLocked,
-                force
+                force,
+                SlicedTeethDatas,
+                SlicedFlag,
             } = e.data;
             arrangeState["0"].lockDentalArch = isDentalArchLocked
                 ? true
@@ -1758,7 +1773,7 @@ self.onmessage = function(e) {
                 return;
             }
             self.postMessage(
-                asyncArrangeTheTeeth(preFineTuneRecord, fineTunedBracketData, force)
+                asyncArrangeTheTeeth(preFineTuneRecord, fineTunedBracketData, SlicedFlag, SlicedTeethDatas, force)
             );
             break;
         }

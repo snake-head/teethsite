@@ -7,6 +7,8 @@ import TeethArrangeWorker from "./teethArrange.worker";
 import { distance2BetweenPoints } from "@kitware/vtk.js/Common/Core/Math";
 import reDesignVtkAxesActor from "../reDesignVtk/reDesignVtkAxesActor";
 import { colorConfig as actorColorConfig } from "./actorControl";
+import { FineTunePiece, generateToothBox, FineTunePoint } from "../hooks/Slicing"
+
 /**
  * 托槽法向量定义:
  * xNormal 左右法向量(+x上颌牙指向左侧/下颌牙指向右侧)
@@ -306,7 +308,7 @@ export default function(allActorList) {
 						axisLength = Math.max(axisLength, distance2BetweenPoints(center, point));
 					}
 				}
-			}
+			}	
 			// 构造坐标轴actor(mapper已经在函数中设置好了)
 			const axesActor = reDesignVtkAxesActor.newInstance({
 				config: {
@@ -354,17 +356,20 @@ export default function(allActorList) {
 	/**
 	 * @description 给子线程传递初始数据, 该函数只进行一次, 后续会变动的数据只有托槽数据
 	 * 住一次出包括局部文件变量originCellsDataList的读入
+	 * 初始时传递上次切割结束后的数据
 	 * @param segPolyDatas {tooth:{ UL1, ..., LL1,... }, bracket:{ UL1, ..., LL1,... }}
 	 * @param longAxisData { UL1, ..., LL1,... }
 	 * @param teethAxis { center, xNormal, yNormal, zNormal }
 	 */
 	function postInitialDataToWorker(segPolyDatas, longAxisData) {
+	// function postInitialDataToWorker(segPolyDatas, longAxisData, ToothBoxPoints, toothPolyDatas) {
 		// ------------------------------------------------------------------------
 		// 把数据分成上颌牙和下颌牙两部分
 		// ------------------------------------------------------------------------
 		// 注-有一种特殊的错误情况, 即我们的上颌牙和下颌牙数据存反了, 此时应该继续支持排牙, 一种合理的方式就是基于fineTunedBracketData的key
 		// 在3个输入数据中, 只有fineTunedBracketData是分上下颌牙存的, 因此以它为基准, 看里面上颌牙和下颌牙的toothName,
 		// 对应读取其它两个数据
+		const pointsToCheck = ['Point0', 'Point1', 'Point2', 'Point3', 'Point4', 'Point5', 'Point6', 'Point7'];
 		for (let teethType of arrangeTeethType.value) {
 			// ------------------------------------------------------------------------
 			// 创建线程
@@ -383,6 +388,7 @@ export default function(allActorList) {
 				segPolyDatas: {
 					tooth: {},
 					bracket: {},
+					boxsPoints: {},
 				},
 				longAxisData: {},
 			};
@@ -396,7 +402,6 @@ export default function(allActorList) {
 				}
 				postData.longAxisData[toothName] = longAxisData[toothName];
 			}
-
 			// 牙齿标准坐标系只需计算一次, 后续直接传入子线程做后续计算
 			// 如果传入参数teethAxis则可以直接在此处记录, 否则等待子线程做计算然后传回数据
 			let { center, xNormal, yNormal, zNormal } = toRaw(teethStandardAxis[teethType]);
@@ -580,10 +585,14 @@ export default function(allActorList) {
 	 * @param fineTunedBracketData {upper:{UL1, ...}, lower:{LL1, ...}}
 	 * @param reCalculateDentalArch 如果需要重新计算牙弓线, 则手动设置为true, 用于上面板的[初始化]
 	 */
-	function startTeethArrange(fineTunedBracketData, reCalculateDentalArch = false) {
+	function startTeethArrange(fineTunedBracketData, SlicedTeethDatas ,reCalculateDentalArch = false) {
+	// function startTeethArrange(fineTunedBracketData, reCalculateDentalArch = false, toothPolyDatas) {
+		const pointsToCheck = ['Point0', 'Point1', 'Point2', 'Point3', 'Point4', 'Point5', 'Point6', 'Point7'];
+		const ToothBoxPoints = store.state.actorHandleState.toothBoxPoints;
 		// 如果没有传fineTunedBracketData
 		fineTunedBracketData = fineTunedBracketData ? fineTunedBracketData : preFineTuneRecord;
 		let arrangeTeethType = Object.keys(fineTunedBracketData);
+		
 		for (let teethType of ["upper", "lower"]) {
 			if (arrangeTeethType.includes(teethType)) {
 				currentArrangeStep[teethType] = 1;
@@ -591,6 +600,9 @@ export default function(allActorList) {
 				currentArrangeStep[teethType] = 6;
 			}
 		}
+		// 存在牙齿切割情况的标志
+		const firstUpdateSliceFlag = store.state.actorHandleState.firstSliceFlag;
+		const firstUpdateFlag = store.state.actorHandleState.firstUpdateFlag;
 		// ------------------------------------------------------------------------
 		// 把数据分成上颌牙和下颌牙两部分
 		// ------------------------------------------------------------------------
@@ -601,8 +613,11 @@ export default function(allActorList) {
 			// 判断是否满足条件, 满足条件则直接跳过大部分排牙算法, 满足条件应该看数据是否齐全
 			// 但根据上传的特性, 其实看coEfficients有没有就够了, 这个有其它一定有
 			if (
-				dentalArchSettings.upper.coEfficients !== null ||
-				dentalArchSettings.lower.coEfficients !== null
+				!firstUpdateFlag &&
+				(dentalArchSettings.upper.coEfficients !== null ||
+				dentalArchSettings.lower.coEfficients !== null)
+				// dentalArchSettings.upper.coEfficients !== null ||
+				// dentalArchSettings.lower.coEfficients !== null
 			) {
 				for (let teethType of arrangeTeethType) {
 					// 给子线程传输数据, 子线程直接根据这些数据进行牙弓线计算并返回 onMessage中匹配
@@ -621,6 +636,9 @@ export default function(allActorList) {
 						step: 0,
 						preFineTuneRecord: preFineTuneRecord[teethType],
 						fineTunedBracketData: fineTunedBracketData[teethType],
+						SlicedTeethDatas: SlicedTeethDatas[teethType],
+						SlicedFlag: firstUpdateSliceFlag,
+						// SlicePolyDatas,
 					});
 					// 更新托槽位置信息
 					updateFineTuneRecord(teethType, fineTunedBracketData[teethType]);
@@ -641,6 +659,7 @@ export default function(allActorList) {
 						fineTunedBracketData: fineTunedBracketData[teethType],
 						isDentalArchLocked: true,
 						coEfficients,
+						// SlicePolyDatas
 					});
 					// 更新托槽位置信息
 					updateFineTuneRecord(teethType, fineTunedBracketData[teethType]);
@@ -745,6 +764,7 @@ export default function(allActorList) {
 	 * @param fineTunedBracketData {Object} 可以为 {UL1, ...} or {LL1, ...}
 	 */
 	function startTeethArrangeByAdjustedDentalArch(teethType, coEfficients, fineTunedBracketData) {
+		console.log('##teeth', teethType)
 		currentArrangeStep[teethType] = 1;
 		// 锁定牙弓线排牙, 走特殊流程, 但此时和正常流程一样, 会更新托槽微调记录
 		// 但多传参数isDentalArchLocked, coefficients, 具体可以看worker.js里怎么处理

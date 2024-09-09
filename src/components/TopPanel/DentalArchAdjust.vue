@@ -259,7 +259,7 @@ function updateTeethArrange() {
 		if (firstUpdateFlag){
 			arrangeTeethType.value.forEach((teethType)=>{
 				Object.assign(updateObj, {[teethType]: { reArrange: true }})
-			})
+			})	
 		}else{
 			Object.assign(updateObj, {[dentalArchAdjustType.value]: { reArrange: true }})
 		}
@@ -269,6 +269,7 @@ function updateTeethArrange() {
 	}
 	props.checkArchUpdated();
 	if(firstUpdateFlag){
+		store.dispatch("actorHandleState/updateFirstUpdateFlag", firstUpdateFlag);
 		showAndHide();
 		firstUpdateFlag=false;
 	}

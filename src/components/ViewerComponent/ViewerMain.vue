@@ -61,6 +61,10 @@
 
 		<div ref="vtkContainer" class="container">
 			<canvas ref="vtkTextContainer" class="text-container" />
+			<!-- 碰撞检测进度条显示 -->
+			<Calculating
+				:isFinish="isFinish"
+			/>
 		</div>
 	</div>
 	
@@ -82,6 +86,7 @@ import {
 	onUnmounted
 } from "vue";
 import { useStore } from "vuex";
+import Calculating from "./Calculating.vue";
 import { cloneDeep } from 'lodash'
 import vtkGenericRenderWindow from "@kitware/vtk.js/Rendering/Misc/GenericRenderWindow";
 
@@ -113,11 +118,14 @@ import userMatrixControl, {
 	multiplyMatrixList4x4,
 	invertMatrix4x4,
 } from "../../hooks/userMatrixControl";
+import vtkTubeFilter from '@kitware/vtk.js/Filters/General/TubeFilter';
 import vtkMatrixBuilder from "@kitware/vtk.js/Common/Core/MatrixBuilder";
+import vtkAppendPolyData from "@kitware/vtk.js/Filters/General/AppendPolyData";
 import { browserType } from "../../utils/browserTypeDetection";
 import { add, multiplyScalar, subtract, dot } from "@kitware/vtk.js/Common/Core/Math";
 import { sendRequestWithToken } from "../../utils/tokenRequest";
 import TeethBiteWorker from "../../hooks/teethBite.worker";
+import CollisionDetectWorker from "../../hooks/collisionDetect.worker"
 import { norm } from "../../reDesignVtk/Math";
 import { presetArrangeDataList } from "../../static_config";
 import { ElMessage } from 'element-plus'
@@ -135,6 +143,7 @@ import { normalize, cross } from "@kitware/vtk.js/Common/Core/Math";
 import vtkCutter from "@kitware/vtk.js/Filters/Core/Cutter";
 import vtkPlane from "@kitware/vtk.js/Common/DataModel/Plane";
 import vtkProperty from "@kitware/vtk.js/Rendering/Core/Property";
+import vtkPolygon from "@kitware/vtk.js/Common/DataModel/Polygon"
 
 const props = defineProps({
 	changeLoadingMessage: {
@@ -161,6 +170,7 @@ const props = defineProps({
 });
 
 const store = useStore();
+let isFinish = ref(true);
 const loadedBracketNameList = store.state.userHandleState.bracketNameList;
 const arrangeTeethType = computed(() => store.getters["userHandleState/arrangeTeethType"]);
 const uploadType = computed(() => store.getters["userHandleState/uploadType"]);
@@ -1650,6 +1660,7 @@ let initRenderCamera = false; // 初始模型加载需要重置一次镜头
 let forceUpdateAtMode = ""; // 用于强制更新时的记录
 
 let teethBiteworker = null;
+let collisionDetectWorker = null;
 
 const {
 	userMatrixList,
@@ -3773,6 +3784,467 @@ function initMatrixWhenTeethAxisSphereGenerated() {
 		allActorList[teethType].teethAxisSphere.actor.setUserMatrix(applyCalMatrix.teethAxisSphere[teethType]);
 	}
 }
+// 以下都是用于碰撞检测的函数，后续可以考虑维护在一个hook中
+
+function renderPolyData(postPolyData){
+	const polyData = vtkPolyData.newInstance();
+	polyData.getPoints().setData(postPolyData.pointsData);
+	polyData.getPolys().setData(postPolyData.polysData);
+	const mapper = vtkMapper.newInstance();
+	mapper.setInputData(polyData);
+	const actor = vtkActor.newInstance();
+	actor.setMapper(mapper);
+	return actor;
+}
+
+function renderLinePolyData(postPolyData){
+	const polyData = vtkPolyData.newInstance();
+	polyData.getPoints().setData(postPolyData.pointsData);
+	polyData.getLines().setData(postPolyData.linesData);
+	const tubeFilter = vtkTubeFilter.newInstance();
+    tubeFilter.setInputData(polyData);
+    tubeFilter.setRadius(0.1);
+    tubeFilter.update();
+	const mapper = vtkMapper.newInstance();
+	mapper.setInputData(tubeFilter.getOutputData());
+	const intersectionActor = vtkActor.newInstance();
+	intersectionActor.setMapper(mapper);
+	intersectionActor.getProperty().setColor(1, 0, 0);
+    intersectionActor.getMapper().setResolveCoincidentTopologyToPolygonOffset();
+    intersectionActor
+      .getMapper()
+      .setResolveCoincidentTopologyLineOffsetParameters(-1, -1);
+	  return intersectionActor;
+}
+
+let teethPolyDataAfterTransform = {}; //存放用于碰撞检测的整个上下颌牙polydata
+let singleToothAfterTransform = {}; //存放单个牙齿的变换后polydata
+
+/**
+ * @description 用于计算空间距离
+ */
+function sp_dist(a, b) {
+    return Math.sqrt(Math.pow((a[0] - b[0]), 2) + Math.pow((a[1] - b[1]), 2) + Math.pow((a[2] - b[2]), 2));
+}
+
+
+/**
+ * @description 检索邻域
+ */
+function retrieve_neighbors(eps, point, cluster) {
+    var neighbors = [];     // list of neighbor
+    for (var iter = 0; iter < cluster.length; iter++) {
+        var dist = sp_dist(point, cluster[iter]);
+//        var dist2 = tp_dist(point, cluster[iter]);
+        if (dist <= eps) {
+            neighbors.push(iter);
+        }
+    }
+    return neighbors;
+}
+
+
+/**
+ * @description DBSCAN聚类
+ */
+function DBSCAN(X, eps, MinPts) {
+    var cluster_label = 0; // label meaning: 0:unmarked; 1,2,3,...:cluster label; "noise":noise
+    var labels = new Array(X.length).fill(0); // new an 0 array to store labels
+    var clusters = []; // final output
+ 
+    // clustering data points
+    for (var i = 0; i < X.length; i++) {
+        var neighbors = retrieve_neighbors(eps, X[i], X);
+ 
+        if (neighbors.length < MinPts) {
+            // if it is unmarked, mark it "noise"
+            if (labels[i] === 0) {
+                labels[i] = "noise";
+            }
+        } else {
+            cluster_label += 1;  // construct a new cluster
+            var cluster = [];   // construct cluster
+ 
+            // mark label for all unmarked neighbors
+            for (var j1 = 0; j1 < neighbors.length; j1++) {
+                // if no other labels
+                if (labels[neighbors[j1]] === 0 || labels[neighbors[j1]] === "noise") {
+                    labels[neighbors[j1]] = cluster_label;
+                    cluster.push(neighbors[j1]);
+                }
+            }
+ 
+            // check the sub-circle of all objects
+            while (neighbors.length !== 0) {
+                var j2;
+                j2 = neighbors.pop();
+                var sub_neighbors = retrieve_neighbors(eps, X[j2], X);
+ 
+                // mark all unmarked neighbors
+                if (sub_neighbors.length >= MinPts) {
+                    for (var k = 0; k < sub_neighbors.length; k++) {
+                        // if no other labels 
+                        if (labels[sub_neighbors[k]] === 0 || labels[sub_neighbors[k]] === "noise") {
+                            neighbors.push(sub_neighbors[k]);
+                            labels[sub_neighbors[k]] = cluster_label;
+                            cluster.push(sub_neighbors[k]);
+                        }
+                    }
+                }
+            }
+ 
+            // remove cluster of small size
+            if (cluster.length < MinPts) {
+                for (var j3 = 0; j3 < X.length; j3++) {
+                    if (labels[j3] === cluster_label) {
+                        labels[j3] = "noise";
+                    }
+                }
+            } else {
+                clusters.push(cluster);
+            }
+        }
+    }
+ 
+    //console.log(clusters);
+    return clusters;
+}
+
+/**
+ * @description 求凸包
+ */
+ function multiply(p0,p1,p2){
+    return((p1.x-p0.x)*(p2.y-p0.y)-(p2.x-p0.x)*(p1.y-p0.y)); 
+}
+function distance_no_sqrt(p1,p2)
+{
+    //return(sqrt((p1.x-p2.x)*(p1.x-p2.x)+(p1.y-p2.y)*(p1.y-p2.y))); 
+    return((p1.x-p2.x)*(p1.x-p2.x)+(p1.y-p2.y)*(p1.y-p2.y)); 
+}
+function convexHull(pointSet,ch){
+// 这里会修改pointSet
+	var n = pointSet.length
+    var i,j,k=0,top=2;
+    var tmp=new Object();
+    // 找到一个基点，基本就是保证最下面最左面的点
+    for(i=1;i<n;i++){
+        if( (pointSet[i].y<pointSet[k].y) || 
+            ( (pointSet[i].y==pointSet[k].y) && (pointSet[i].x<pointSet[k].x) ) 
+          ){
+            k=i;
+        }
+    }
+
+    tmp=pointSet[0];
+    pointSet[0]=pointSet[k];
+    pointSet[k]=tmp; 
+
+    var use=n;
+    for (i=1;i<use-1;i++){
+        k=i;
+        for (j=i+1;j<use;j++){
+            var direct=multiply(pointSet[0],pointSet[k],pointSet[j]);
+            if(direct>0){
+                k=j;
+            }else if(direct==0){
+                // k j 同方向
+                var dis=distance_no_sqrt(pointSet[0],pointSet[j])-distance_no_sqrt(pointSet[0],pointSet[k]);
+                use--; // 也就是不要了
+                if(dis>0){
+                    // 保留j
+                    // 把 k 就不要了
+                    pointSet[k]=pointSet[j];
+                    pointSet[j]=pointSet[use];
+                    j--;
+                }else{
+                    tmp=pointSet[use];
+                    pointSet[use]=pointSet[j];
+                    pointSet[j]=tmp;
+                }
+            }
+        }
+        tmp=pointSet[i];
+        pointSet[i]=pointSet[k];
+        pointSet[k]=tmp;
+    }
+
+    ch.push(pointSet[0]);
+    ch.push(pointSet[1]);
+    ch.push(pointSet[2]);
+    for (i=3;i<use;i++){
+        while ( !(multiply(pointSet[i],ch[top-1],ch[top]) < 0 ) ){
+            top--;
+            ch.pop();
+        }
+        top++;
+        ch.push(pointSet[i]);
+    }
+}
+
+/**
+ * @description 碰撞子线程的onmessage函数
+ */
+const collisionDetectWorkerOnmsg = function(event){
+			const {
+				data: {postIntersectionPolyData, postObbPolyData1, postObbPolyData2}
+			} = event;
+			const {renderWindow,renderer} = vtkContext;
+			// if (allActorList.upper.OBB){
+			// 	renderer.removeActor(allActorList.upper.OBB)
+			// }
+			// if (allActorList.lower.OBB){
+			// 	renderer.removeActor(allActorList.lower.OBB)
+			// }
+			// if (allActorList.intersection){
+			// 	renderer.removeActor(allActorList.intersection)
+			// }
+			// if (allActorList.lower.collisionTeeth.length!=0){
+			// 	allActorList.lower.collisionTeeth.forEach((value)=>{
+			// 		renderer.removeActor(value)
+			// 	})
+			// 	allActorList.lower.collisionTeeth=[];
+			// }
+			// if (allActorList.upper.collisionTeeth.length!=0){
+			// 	allActorList.upper.collisionTeeth.forEach((value)=>{
+			// 		renderer.removeActor(value)
+			// 	})
+			// 	allActorList.upper.collisionTeeth=[];
+			// }
+			// const obbActor1 = renderPolyData(postObbPolyData1);
+			// obbActor1.getProperty().setOpacity(0.3);
+			// obbActor1.getProperty().setEdgeVisibility(1);
+			// const obbActor2 = renderPolyData(postObbPolyData2);
+			// obbActor2.getProperty().setOpacity(0.3);
+			// obbActor2.getProperty().setEdgeVisibility(1);
+			const intersectionActor = renderLinePolyData(postIntersectionPolyData)
+
+			//2023.2.7:分离曲线，采用DBSCAN聚类
+			var insectionPoints = [];  // 转二维数组
+			for (var i = 0; i < postIntersectionPolyData.pointsData.length; i = i + 3) {
+				insectionPoints.push(postIntersectionPolyData.pointsData.slice(i, i + 3))
+			}
+			var insectionClusters = DBSCAN(insectionPoints, 0.5, 10)
+
+			// 分别给上下颌牙的每个牙齿取一个点
+			var lowerRandomTeethPoint = {};
+			var upperRandomTeethPoint = {};
+			Object.keys(singleToothAfterTransform).forEach((value)=>{
+				if (value[0]=='L'){
+					lowerRandomTeethPoint[value]=[
+					singleToothAfterTransform[value].getPoints().getData()[0],
+					singleToothAfterTransform[value].getPoints().getData()[1],
+					singleToothAfterTransform[value].getPoints().getData()[2]]
+				}
+				if (value[0]=='U'){
+					upperRandomTeethPoint[value]=[
+					singleToothAfterTransform[value].getPoints().getData()[0],
+					singleToothAfterTransform[value].getPoints().getData()[1],
+					singleToothAfterTransform[value].getPoints().getData()[2]]
+				}
+			})
+			for (let teethType of ['lower', 'upper']){
+				insectionClusters.forEach((value)=>{
+					// 计算交线的z坐标上下界，用于排除范围外的点
+					var zCoords = value.map((index)=>{
+						return postIntersectionPolyData.pointsData[index*3+2]
+					})
+					var zmax = Math.max(...zCoords)
+					var zmin = Math.min(...zCoords)
+					// 构造xy平面上的多边形
+					var vertices = value.map((index)=>{
+						return {
+							x:postIntersectionPolyData.pointsData[index*3],
+							y:postIntersectionPolyData.pointsData[index*3+1],
+						}
+					})
+					var hull=[];
+					convexHull(vertices, hull)
+					var hullList = [];
+					hull.forEach((value)=>{
+						hullList.push(value.x)
+						hullList.push(value.y)
+						hullList.push(0)
+					})
+					// console.log(vertices)
+					// console.log(hull)
+					// var curLinesData = [];
+					// hull.forEach((curValue,index,array)=>{
+					// 	if (index<array.length-1){
+					// 		curLinesData.push(2);
+					// 		curLinesData.push(index);
+					// 		curLinesData.push(index+1)
+					// 	}else{
+					// 		curLinesData.push(2);
+					// 		curLinesData.push(index);
+					// 		curLinesData.push(0)
+					// 	}	
+					// })
+					// const curActor = renderLinePolyData({
+					// 	pointsData:hullList,
+					// 	linesData:curLinesData
+					// })
+					// renderer.addActor(curActor)
+					
+					var bounds = {
+						maxx:-1000,
+						maxy:-1000,
+						minx:1000,
+						miny:1000
+					}
+					hull.forEach((value)=>{
+						if (value.x>bounds.maxx){
+							bounds.maxx = value.x
+						}
+						if (value.x<bounds.minx){
+							bounds.minx = value.x
+						}
+						if (value.y>bounds.maxy){
+							bounds.maxy = value.y
+						}
+						if (value.y<bounds.miny){
+							bounds.miny = value.y
+						}
+					})
+
+					var randomLinePoint = [
+						postIntersectionPolyData.pointsData[value[0]*3],
+						postIntersectionPolyData.pointsData[value[0]*3+1],
+						postIntersectionPolyData.pointsData[value[0]*3+2]
+					]
+					// 寻找最匹配的牙齿
+					var sortDistance;
+					if (teethType=='lower'){
+						sortDistance = Object.keys(lowerRandomTeethPoint).sort((a,b)=>{
+							return (sp_dist(lowerRandomTeethPoint[a], randomLinePoint)-sp_dist(lowerRandomTeethPoint[b], randomLinePoint))
+						})
+					}else{
+						sortDistance = Object.keys(upperRandomTeethPoint).sort((a,b)=>{
+							return (sp_dist(upperRandomTeethPoint[a], randomLinePoint)-sp_dist(upperRandomTeethPoint[b], randomLinePoint))
+						})
+					}
+					var findFlag = 0; // 指示是否已找到正确的牙齿
+					var pointIndexInPolygon = { // 根据深度划分成三种颜色
+						red: [],
+						yellow: [],
+						green: [],
+					}
+					var correctTooth;
+					sortDistance.forEach((value)=>{
+						if (findFlag == 1){
+							return;
+						}
+						var curTooth = singleToothAfterTransform[value].getPoints().getData()
+						for (let i=0; i<curTooth.length/3; i++){
+							if (vtkPolygon.pointInPolygon(
+								[curTooth[i*3],curTooth[i*3+1],0],
+								hullList,
+								[bounds.minx,bounds.maxx,bounds.miny,bounds.maxy,0,0],
+								[0,0,1]
+							)){
+								if (teethType=='lower'&&curTooth[i*3+2]>zmin){
+									if(curTooth[i*3+2]<=zmax-0.1&&curTooth[i*3+2]>zmax-0.2){
+										pointIndexInPolygon.yellow.push(i)
+									}else if(curTooth[i*3+2]<=zmax-0.2){
+										pointIndexInPolygon.red.push(i)
+									}else{
+										pointIndexInPolygon.green.push(i)
+									}
+								}
+								if (teethType=='upper'&&curTooth[i*3+2]<zmax){
+									if(curTooth[i*3+2]>=zmin+0.1&&curTooth[i*3+2]<zmin+0.2){
+										pointIndexInPolygon.yellow.push(i)
+									}else if(curTooth[i*3+2]>=zmin+0.2){
+										pointIndexInPolygon.red.push(i)
+									}else{
+										pointIndexInPolygon.green.push(i)
+									}
+								}
+								// pointIndexInPolygon.push(i)
+							}
+						}
+						if(pointIndexInPolygon.green.length!=0){
+							findFlag = 1;// 已找到正确牙齿
+							correctTooth = value;
+						}
+					})
+					// pointIndexInPolygon = [pointIndexInPolygon[0]]
+					if(singleToothAfterTransform[correctTooth]){
+						var curPolysData = singleToothAfterTransform[correctTooth].getPolys().getData()
+						var curPointsData = singleToothAfterTransform[correctTooth].getPoints().getData()
+						//显示查询到的点
+						// pointIndexInPolygon.forEach((value)=>{
+						// 	const sphereSource = vtkSphereSource.newInstance({
+						// 		center: [curPointsData[value*3],curPointsData[value*3+1],curPointsData[value*3+2]],
+						// 		radius:0.01
+						// 	});
+						// 	const actor = vtkActor.newInstance();
+						// 	const mapper = vtkMapper.newInstance();
+						// 	mapper.setInputConnection(sphereSource.getOutputPort());
+						// 	actor.setMapper(mapper);
+						// 	actor.getProperty().setColor([0,1,0])
+						// 	renderer.addActor(actor);
+
+						// })
+						// 渲染
+						for (let depth of ['green', 'yellow', 'red']){
+							if (!pointIndexInPolygon[depth]){
+								continue;
+							}
+							var insectionPolysData = findInsectionPolysData(pointIndexInPolygon[depth], curPolysData);
+							// 通过面片找到坐标
+							var {reArrangePointsData, reArrangePolysData} = findReArrangeData(insectionPolysData, curPointsData, teethType)
+							const actor = renderPolyData({pointsData:reArrangePointsData, polysData:reArrangePolysData})
+							if (depth=='green'){
+								actor.getProperty().setColor([0,1,0])
+							}else if (depth=='yellow'){
+								actor.getProperty().setColor([1,1,0])
+							}else{
+								actor.getProperty().setColor([1,0,0])
+							}
+							
+							if (teethType=='lower'){
+								allActorList.lower.collisionTeeth.push(actor)
+								if (props.actorInScene.lower){
+									renderer.addActor(actor)
+								}
+							}else{
+								allActorList.upper.collisionTeeth.push(actor)
+								if (props.actorInScene.upper){
+									renderer.addActor(actor)
+								}
+							}	
+						}	
+
+					}
+				})
+			}
+			// allActorList.upper.OBB = obbActor1;
+			// allActorList.lower.OBB = obbActor2;
+			allActorList.intersection = intersectionActor;
+			// renderer.addActor(allActorList.upper.OBB)
+			// renderer.addActor(allActorList.lower.OBB)
+			// renderer.addActor(allActorList.intersection)
+			renderWindow.render();
+			isFinish.value=true;
+		}
+
+/**
+ * @description 向碰撞子线程postMessage
+ */
+function postMsgToCollisionDetectWorker(collisionDetectWorker){
+	teethPolyDataAfterTransform.upper=
+		calculatePolydataAfterTransform('upper');
+	teethPolyDataAfterTransform.lower=
+		calculatePolydataAfterTransform('lower');
+	if (teethPolyDataAfterTransform.upper&&teethPolyDataAfterTransform.lower){
+		//直接post vtkPolyData对象会报错，拆分成数组后传递
+		isFinish.value=false;
+		collisionDetectWorker.postMessage({
+		postUpperTeethPolyData: teethPolyDataAfterTransform.upper,
+		postLowerTeethPolyData: teethPolyDataAfterTransform.lower,
+		})
+	}
+}
 
 let tempSaveData = {}
 /**
@@ -3823,13 +4295,18 @@ function fineTuneTeethPosition({ moveType, moveStep, teethType }) {
 					}
 				}
 			};
+			collisionDetectWorker = new CollisionDetectWorker();
+			collisionDetectWorker.onmessage = collisionDetectWorkerOnmsg;
+			postMsgToCollisionDetectWorker(collisionDetectWorker)
 			return;
 		}
 		case "EXIT_PANEL": {
+			// 清除碰撞相关的actor
+			removeCollisionActor()
 			// 退出面板时销毁子线程
 			teethBiteworker.terminate();
+			collisionDetectWorker.terminate();
 			releaseTeethPositionAdjustMoveType();
-			return;
 		}
 		case "ZBITE": {
 			const toothPointsDatas = {}; // 上下都要
@@ -3847,6 +4324,11 @@ function fineTuneTeethPosition({ moveType, moveStep, teethType }) {
 				toothFacesDatas,
 				transMatrix: applyCalMatrix.tad,
 			});
+			if (collisionDetectWorker!=null){
+				removeCollisionActor()
+				collisionDetectWorker.terminate() //如果上一次没计算完就已经再次变换位置，则直接中断之前的线程
+				isFinish.value=true;
+			}
 			return;
 		}
 		case "YBITE": {
@@ -3865,6 +4347,11 @@ function fineTuneTeethPosition({ moveType, moveStep, teethType }) {
 				toothFacesDatas,
 				transMatrix: applyCalMatrix.tad,
 			});
+			if (collisionDetectWorker!=null){
+				removeCollisionActor()
+				collisionDetectWorker.terminate() //如果上一次没计算完就已经再次变换位置，则直接中断之前的线程
+				isFinish.value=true;
+			}
 			return;
 		}
 	}
@@ -4005,7 +4492,122 @@ function fineTuneTeethPosition({ moveType, moveStep, teethType }) {
 	}
 	updateMat4(teethType);
 	updateDentalArchWidgetRecordAfterMatrixUpdate();
+	if (collisionDetectWorker!=null){
+		removeCollisionActor()
+		collisionDetectWorker.terminate() //如果上一次没计算完就已经再次变换位置，则直接中断之前的线程
+		collisionDetectWorker = new CollisionDetectWorker();
+		collisionDetectWorker.onmessage = collisionDetectWorkerOnmsg;
+		postMsgToCollisionDetectWorker(collisionDetectWorker)
+	}
 	releaseTeethPositionAdjustMoveType();
+}
+// 删除碰撞的actor
+function removeCollisionActor(){
+	const {renderWindow,renderer} = vtkContext;
+		if (allActorList.intersection){
+			renderer.removeActor(allActorList.intersection)
+		}
+		if (allActorList.lower.collisionTeeth.length!=0){
+			allActorList.lower.collisionTeeth.forEach((value)=>{
+				renderer.removeActor(value)
+			})
+			allActorList.lower.collisionTeeth=[];
+		}
+		if (allActorList.upper.collisionTeeth.length!=0){
+			allActorList.upper.collisionTeeth.forEach((value)=>{
+				renderer.removeActor(value)
+			})
+			allActorList.upper.collisionTeeth=[];
+		}
+		renderWindow.render()
+}
+
+
+function findInsectionPolysData(pointIndexInPolygon, curPolysData){
+	var insectionPolysData = [];
+	// 找到所有重叠的面片组成
+	for (let i=0;i<curPolysData.length/4;i++){
+		if(
+				pointIndexInPolygon.includes(curPolysData[i*4+1]) ||
+				pointIndexInPolygon.includes(curPolysData[i*4+2]) ||
+				pointIndexInPolygon.includes(curPolysData[i*4+3])
+		){
+			insectionPolysData.push(3)
+			insectionPolysData.push(curPolysData[i*4+1])
+			insectionPolysData.push(curPolysData[i*4+2])
+			insectionPolysData.push(curPolysData[i*4+3])
+		}
+	}
+	return insectionPolysData;
+}
+
+
+function findReArrangeData(insectionPolysData, curPointsData, teethType){
+	var reArrangePointsData = [];
+	var reArrangePolysData = [];
+	var offsetDisplay = teethType=='lower'?0.01:-0.01; // 由于面片重叠时有闪烁破碎现象，认为设置一个偏移量（vtkjs有该配置项，但修改后没有生效）
+	for(let i=0;i<insectionPolysData.length/4;i++){
+		reArrangePointsData.push(curPointsData[insectionPolysData[i*4+1]*3])
+		reArrangePointsData.push(curPointsData[insectionPolysData[i*4+1]*3+1])
+		reArrangePointsData.push(curPointsData[insectionPolysData[i*4+1]*3+2]+offsetDisplay)
+		reArrangePointsData.push(curPointsData[insectionPolysData[i*4+2]*3])
+		reArrangePointsData.push(curPointsData[insectionPolysData[i*4+2]*3+1])
+		reArrangePointsData.push(curPointsData[insectionPolysData[i*4+2]*3+2]+offsetDisplay)
+		reArrangePointsData.push(curPointsData[insectionPolysData[i*4+3]*3])
+		reArrangePointsData.push(curPointsData[insectionPolysData[i*4+3]*3+1])
+		reArrangePointsData.push(curPointsData[insectionPolysData[i*4+3]*3+2]+offsetDisplay)
+
+		reArrangePolysData.push(3)
+		reArrangePolysData.push(i*3)
+		reArrangePolysData.push(i*3+1)
+		reArrangePolysData.push(i*3+2)
+	}
+	return {reArrangePointsData, reArrangePolysData};
+}
+
+
+// 碰撞检测需要上下颌变换后的整体polydata
+function calculatePolydataAfterTransform(teethType){
+
+	const appendPolyData = vtkAppendPolyData.newInstance();
+	const emptyPolyData = vtkPolyData.newInstance();
+	appendPolyData.setInputData(emptyPolyData);
+
+	Object.keys(toothPolyDatas).filter((teethName)=>{
+		return teethName[0].toLowerCase() == teethType[0]
+	}).forEach((teethName)=>{
+		let toothPoints = toothPolyDatas[teethName].getPoints().getData()
+		let toothPointsAfterTransform = new Float32Array(
+			toothPoints
+		); //深拷贝单齿pointsData
+		const toothPolys = toothPolyDatas[teethName].getPolys().getData()
+		const tad = applyCalMatrix.tad[teethName]
+		// for (let i=0;i<toothPoints.length;i=i+3){
+		// 	toothPointsAfterTransform[i] = tad[0]*toothPoints[i]+tad[1]*toothPoints[i+1]+tad[2]*toothPoints[i+2]+tad[3];
+		// 	toothPointsAfterTransform[i+1] = tad[4]*toothPoints[i]+tad[5]*toothPoints[i+1]+tad[6]*toothPoints[i+2]+tad[7];
+		// 	toothPointsAfterTransform[i+2] = tad[8]*toothPoints[i]+tad[9]*toothPoints[i+1]+tad[10]*toothPoints[i+2]+tad[11];
+		// }
+		vtkMatrixBuilder
+			.buildFromDegree()
+			.setMatrix(tad)
+			.apply(toothPointsAfterTransform);
+		const polyData = vtkPolyData.newInstance();
+        polyData.getPoints().setData(toothPointsAfterTransform);
+        polyData.getPolys().setData(toothPolys);
+		singleToothAfterTransform[teethName] = polyData
+		// const {renderWindow,renderer} = vtkContext;
+		// const toothActor = renderPolyData({
+		// 	pointsData:toothPointsAfterTransform,
+		// 	polysData:toothPolys
+		// })
+		// renderer.addActor(toothActor)
+		// renderWindow.render();
+		appendPolyData.addInputData(polyData);
+	})
+	return {
+		pointsData:appendPolyData.getOutputData().getPoints().getData(),
+		polysData:appendPolyData.getOutputData().getPolys().getData(),
+	};
 }
 // 计算新的变换矩阵mat4
 function updateMat4(teethType) {

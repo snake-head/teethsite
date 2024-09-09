@@ -75,6 +75,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
             root: [], // 牙根圆锥
             rootGenerate: [], //生成的牙根
             originRoot: [], //和原始牙列位置相匹配的牙根
+            collisionTeeth: [], // 碰撞检测时，每个碰撞牙齿碰撞部分的actor
         },
         lower: {
             // 下颌牙
@@ -92,6 +93,7 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
             root: [], // 牙根圆锥
             rootGenerate: [], //生成的牙根
             originRoot: [], //和原始牙列位置相匹配的牙根
+            collisionTeeth: [], // 碰撞检测时，每个碰撞牙齿碰撞部分的actor
         },
         picture: null,
         intersection: null

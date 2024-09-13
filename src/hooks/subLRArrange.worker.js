@@ -26,6 +26,27 @@ function updateTeethSettings(transferData) {
     Object.assign(settings, transferData);
 }
 
+function slicedTeethArrangeDatas(toothPolyDatas) {
+	let SlicedTeethDatas = {
+		upper: {},
+		lower: {},
+	};
+	for (let i = 0; i < Object.keys(toothPolyDatas).length; i++) {
+		const toothName = Object.keys(toothPolyDatas)[i];
+		let toothPosition;
+		if (toothName.charAt(0).toUpperCase() === 'U') {
+			toothPosition = "upper";
+		}
+		if (toothName.charAt(0).toUpperCase() === 'L') {
+			toothPosition = "lower";
+		}
+		let SingleToothData = {}
+		SingleToothData = toothPolyDatas[toothName].getPoints().getData();
+		SlicedTeethDatas[toothPosition][toothName] = SingleToothData;
+	}
+	return SlicedTeethDatas
+}
+
 /**
  * @description [Step4]-循环排下一颗牙
  * @param teethType upper | lower
@@ -45,7 +66,9 @@ function arrangeNextTooth(
     // zLevelOfArch,
     // coEfficients
     currToothName,
-    prevToothName
+    prevToothName,
+    SlicedFlag,
+    SlicedTeethData,
 ) {
     const retData = {
         step: 4, // 当前为第4步
@@ -146,6 +169,7 @@ self.onmessage = function(e) {
         settings,
         teethData,
     } = e.data;
+    console.log('subLR', e.data)
     switch (state) {
         case "Init":
             if (teethData) {
@@ -156,19 +180,57 @@ self.onmessage = function(e) {
             }
             break;
         case "arrange":
-            self.postMessage(
-                arrangeNextTooth(
-                    // teethType,
-                    // toothLoc,
-                    finish,
-                    // currTooth,
-                    // prevTooth,
-                    // zLevelOfArch,
-                    // coEfficients
-                    currToothName,
-                    prevToothName
-                )
-            );
+            const {
+                SlicedFlag,
+                SlicedTeethData
+            } = e.data;
+            if (SlicedFlag) {
+                self.postMessage(
+                    arrangeNextTooth(
+                        // teethType,
+                        // toothLoc,
+                        finish,
+                        // currTooth,
+                        // prevTooth,
+                        // zLevelOfArch,
+                        // coEfficients
+                        currToothName,
+                        prevToothName,
+                        SlicedFlag,
+                        SlicedTeethData,
+                    )
+                );
+            }
+            else {
+                self.postMessage(
+                    arrangeNextTooth(
+                        // teethType,
+                        // toothLoc,
+                        finish,
+                        // currTooth,
+                        // prevTooth,
+                        // zLevelOfArch,
+                        // coEfficients
+                        currToothName,
+                        prevToothName,
+                    )
+                );
+            }
+            // self.postMessage(
+            //     arrangeNextTooth(
+            //         // teethType,
+            //         // toothLoc,
+            //         finish,
+            //         // currTooth,
+            //         // prevTooth,
+            //         // zLevelOfArch,
+            //         // coEfficients
+            //         currToothName,
+            //         prevToothName,
+            //         SlicedFlag,
+            //         SlicedTeethDatas,
+            //     )
+            // );
             break;
         default:
             break;

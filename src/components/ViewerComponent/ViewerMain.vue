@@ -196,19 +196,38 @@ watch(selectedPreset, ()=>{
 const clickUsePreset = computed(() => store.state.actorHandleState.clickUsePreset);
 watch(clickUsePreset, ()=>{
 	if(clickUsePreset.value){
+		let selectedTeethType = dentalArchAdjustType.value;
 		moveLinkToPreset()
 		store.dispatch("actorHandleState/setClickUsePreset", false)
+		removeLineWidgetExpress(vtkContext, selectedTeethType);
+		LineWidgetExpress(vtkContext, selectedTeethType);
 	}
 })
 function moveLinkToPreset(){
 	const curPreset = presetArrangeDataList.filter((item)=>{
 		return item.number == selectedPreset.value
-	})[0]
+	})[0];
+	const isAnyPointNonZero = store.state.actorHandleState.firstUpdateFlag;
 	
 	for (let teethType of ['upper', 'lower']){
 		// 从配置文件中读取预设的牙弓线
 		const {coEfficients} = curPreset[teethType].dentalArchSettings
 		// 覆盖DentalArchAdjustRecord中的牙弓线系数，在重新生成调整小球时使用新的系数来生成
+		// if (isAnyPointNonZero) {
+		// 	store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
+		// 	[teethType]: {
+		// 		coEfficients,
+		// 		toothPolyDatas,
+		// 	},
+		// });
+		// }
+		// else {
+		// 	store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
+		// 	[teethType]: {
+		// 		coEfficients,
+		// 	},
+		// });
+		// }
 		store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
 			[teethType]: {
 				coEfficients,
@@ -802,17 +821,26 @@ function regenerateDentalArchWidget(specTeethType = [], firstGenerate = false) {
 			// 小球会在什么时候变化? 排牙或咬合关系调整时, 需要重新设置小球
 			let leftSphereCenter, rightSphereCenter, invLeftTransMatrix, invRightTransMatrix;
 			// 托槽当前的中心
-			leftSphereCenter = [
+			// leftSphereCenter = [
+			// 	...bracketData[teethType].filter(({ name }) => name === lrBracketNames.left[i])[0].fineTuneRecord
+			// 		.actorMatrix.center,
+			// ];
+			if (dentalArchAdjustRecord[teethType].actorMatrix) {
+				leftSphereCenter = [
+					...dentalArchAdjustRecord[teethType].actorMatrix[lrBracketNames.left[i]]
+				]
+			}
+			else {
+				leftSphereCenter = [
 				...bracketData[teethType].filter(({ name }) => name === lrBracketNames.left[i])[0].fineTuneRecord
 					.actorMatrix.center,
-			];
+				];
+			}
 			rightSphereCenter = [
 				...bracketData[teethType].filter(({ name }) => name === lrBracketNames.right[i])[0].fineTuneRecord
 					.actorMatrix.center,
 			];
-			// 就是小球调整的中心, 也是最初的拟合点
-			initFittingCenters[teethType].centers[lrBracketNames.left[i]] = [...leftSphereCenter];
-			initFittingCenters[teethType].centers[lrBracketNames.right[i]] = [...rightSphereCenter];
+			
 			// 经过变换(排牙、咬合)显示在当前对应坐标系下供用户调整
 			let leftTransMatrix = multiplyMatrixList4x4(
 					userMatrixList.invMat3[lrBracketNames.left[i]],
@@ -835,6 +863,10 @@ function regenerateDentalArchWidget(specTeethType = [], firstGenerate = false) {
 				.buildFromDegree()
 				.setMatrix(rightTransMatrix)
 				.apply(rightSphereCenter);
+			
+			// 就是小球调整的中心, 也是最初的拟合点
+			initFittingCenters[teethType].centers[lrBracketNames.left[i]] = [...leftSphereCenter];
+			initFittingCenters[teethType].centers[lrBracketNames.right[i]] = [...rightSphereCenter];
 
 			// 变换到托槽当前的位置上, 直接setUsermatrix过去
 			// 调整时需要反变换回去
@@ -1085,7 +1117,7 @@ watch(isReArrangeTeethByAdjustedDentalArch, (newValue) => {
 			}
 		}
 		adjustDentalArchWidgetInScene("enter");
-	}, 600)
+	}, 800)
 });
 function reArrangeOneTypeTeethByAdjustedDentalArch(teethType) {
 	if (dentalArchAdjustRecord[teethType].coEfficients !== null) {
@@ -1166,6 +1198,7 @@ function removeLineWidgetExpress(vtkContext, selectedTeethType) {
 
 
 function LineWidgetExpress(vtkContext, selectedTeethType) {
+	const teethArrange = store.state.actorHandleState.teethArrange;
 	const { widgetManager } = vtkContext;
 
 	if (selectedTeethType == "upper") {
@@ -1200,6 +1233,12 @@ function LineWidgetExpress(vtkContext, selectedTeethType) {
 		})
 		sphereLineWidgetHandle2 = widgetManager.addWidget(sphereLineWidget2);
 		//initFittingCenters
+		// if (dentalArchAdjustRecord[selectedTeethType].actorMatrix) {
+		// 	sphereLineWidgetHandle2.setCenter(dentalArchAdjustRecord[selectedTeethType].arrangeMatrix.UL2.center, dentalArchAdjustRecord[selectedTeethType].arrangeMatrix.UR2.center);
+		// }
+		// else {
+		// 	sphereLineWidgetHandle2.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.UL2, dentalArchAdjustRecord[selectedTeethType].centers.UR2);
+		// }
 		sphereLineWidgetHandle2.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.UL2, dentalArchAdjustRecord[selectedTeethType].centers.UR2);
 		sphereLineWidgetHandle2.getWidgetState().modified();
 		sphereLineWidgetHandle2.setScaleInPixels(false);
@@ -1217,6 +1256,12 @@ function LineWidgetExpress(vtkContext, selectedTeethType) {
 			}
 		})
 		sphereLineWidgetHandle3 = widgetManager.addWidget(sphereLineWidget3);
+		// if (dentalArchAdjustRecord[selectedTeethType].actorMatrix) {
+		// 	sphereLineWidgetHandle3.setCenter(dentalArchAdjustRecord[selectedTeethType].arrangeMatrix.UL5.center, dentalArchAdjustRecord[selectedTeethType].arrangeMatrix.UR5.center);
+		// }
+		// else {
+		// 	sphereLineWidgetHandle3.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.UL5, dentalArchAdjustRecord[selectedTeethType].centers.UR5);
+		// }
 		sphereLineWidgetHandle3.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.UL5, dentalArchAdjustRecord[selectedTeethType].centers.UR5);
 		sphereLineWidgetHandle3.getWidgetState().modified();
 		sphereLineWidgetHandle3.setScaleInPixels(false);
@@ -4845,17 +4890,20 @@ function slicedTeethArrangeDatas(toothPolyDatas) {
 }
 
 const firstUpdateFlag = computed(() => store.state.actorHandleState.firstUpdateFlag);
-watch(firstUpdateFlag, (newVal) => {
-	if (newVal) {
+watch(firstUpdateFlag, () => {
+	if (firstUpdateFlag.value && currentShowPanel.value === 1) {
 		const ToothBoxPoints = store.state.actorHandleState.toothBoxPoints;
-		JudgeSliceOrNot(ToothBoxPoints);
-		const JudgeSlice = store.state.actorHandleState.firstSliceFlag;
-		if (JudgeSlice) {
-			store.dispatch("actorHandleState/updateEnterAtInitTime", true);
-			forceUpdateArrange();
-			store.dispatch("actorHandleState/updateFirstUpdateFlag", false);
+		if (ToothBoxPoints) {
+			JudgeSliceOrNot(ToothBoxPoints);
+			const JudgeSlice = store.state.actorHandleState.firstSliceFlag;
+			if (JudgeSlice) {
+				// // 重置box
+				// ResultSurrounding(toothPolyDatas);
+				forceUpdateArrange();
+				store.dispatch("actorHandleState/updateEnterAtInitTime", true);
+				store.dispatch("actorHandleState/updateFirstUpdateFlag", false);
 		}
-		
+		}
 	}
 })
 

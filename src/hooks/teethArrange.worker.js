@@ -18,6 +18,7 @@ import {
     angleBetweenVectors,
     solveLeastSquares,
 } from "../reDesignVtk/Math"
+import { useStore } from "vuex";
 import vtkMatrixBuilder from "@kitware/vtk.js/Common/Core/MatrixBuilder";
 import SubArrangeWorker from "./subLRArrange.worker";
 import {
@@ -38,7 +39,7 @@ import { presetArrangeDataList } from "../static_config";
 let targetTeethType = "";
 let subArrangeWorkerL = "";
 let subArrangeWorkerR = "";
-
+const store = useStore();
 const arrangeOrder = {
     // 排牙的顺序, 列出上颌牙和下颌牙在屏幕中展示时, 从左到右的顺序, 作为后续key读取的参考
     omit: [
@@ -73,6 +74,7 @@ let arrangeState = {
             longAxisData: {},
         },
         lockDentalArch: false, // 如果锁定, 则代表主线程用户调整过牙弓线, 此时进入[step0-特殊], 且[step5]不返回牙弓线
+        SlicedFlag: false,
     },
     1: {
         transSegData: {},
@@ -1209,7 +1211,22 @@ function calculateL1R1Position() {
     let coEfficients = arrangeState["0"].lockDentalArch
         ? arrangeState["2"].adjustedCoEfficients
         : arrangeState["2"].coEfficients;
-
+    // let coEfficients;
+    // if (arrangeState["0"].lockDentalArch) {
+    //     coEfficients = arrangeState["2"].adjustedCoEfficients;
+    // }
+    // else {
+    //     if (arrangeState["2"].coEfficients.length != 0) {
+    //         coEfficients = arrangeState["2"].coEfficients;
+    //     }
+    //     else {
+    //         coEfficients = arrangeState["2"].adjustedCoEfficients;
+    //     }
+    //     // arrangeState["2"].coEfficients;
+    // }
+    // console.log('coefficient', coEfficients)
+    // console.log(arrangeState["2"].adjustedCoEfficients)
+    // console.log(arrangeState["2"].coEfficients)
     // 排牙从首位开始向两边排, 使每一个托槽中心都在牙弓线上, 且牙齿点集之间互相不重叠
     // 且设置完成后牙齿的三法向量和托槽的三法向量一致
     // ------------------------------------------------------------------------
@@ -1457,6 +1474,8 @@ function recalculateDentalArch(event) {
     transformAllData(transSegData, teethAxisTransformMat, ["bracketMatrix"]);
     // 计算牙弓线
     const coEfficients = calculateArchFunc(transSegData, true); // [a0, a1, a2, a3, a4]
+    // 存入数据
+    arrangeState["2"].coEfficients = coEfficients;
     // 生成牙弓线数据
     let { W, axisCoord, zLevelOfArch } = arrangeState["2"].dentalArchSettings;
 
@@ -1621,7 +1640,7 @@ function usePresetDentalArch(event) {
  */
 function preProessingForAdjustedDentalArchArrange(eventData) {
     // 读取主线程数据, 覆盖此处数据
-    const { preFineTuneRecord, fineTunedBracketData, coEfficients } = eventData;
+    const { preFineTuneRecord, fineTunedBracketData, coEfficients, SlicedTeethDatas, SlicedFlag } = eventData;
     // step0-覆盖托槽微调记录
     if (preFineTuneRecord) {
         // 如果传preFineTuneRecord, 就比较, 没变化就跳过所有步骤
@@ -1634,7 +1653,29 @@ function preProessingForAdjustedDentalArchArrange(eventData) {
     arrangeState["0"].sourceData = {
         ...arrangeState["0"].sourceData,
         fineTunedBracketData,
+        segPolyDatas: {
+            ...arrangeState["0"].sourceData.segPolyDatas,
+        }
     };
+    if (SlicedFlag) {
+        arrangeState["0"].sourceData = {
+            ...arrangeState["0"].sourceData,
+            fineTunedBracketData,
+            segPolyDatas: {
+                ...arrangeState["0"].sourceData.segPolyDatas,
+                tooth: SlicedTeethDatas,
+            }
+        };
+    }
+    else {
+        arrangeState["0"].sourceData = {
+            ...arrangeState["0"].sourceData,
+            fineTunedBracketData,
+            segPolyDatas: {
+                ...arrangeState["0"].sourceData.segPolyDatas,
+            }
+        };
+    }
     arrangeState["2"].adjustedCoEfficients = coEfficients;
     
     // step1-转换数据
@@ -1670,6 +1711,7 @@ function preProessingForAdjustedDentalArchArrange(eventData) {
 // 最终排牙完成后仅返回新的排牙转换矩阵, 没有其他新的数据
 // 注意由于排牙过程中涉及到各种牙齿托槽数据的移动, 因此step1还是要走
 self.onmessage = function(e) {
+    console.log('worker', e.data.step)
     switch (e.data.step) {
         case "Init": {
             // 孙子线程
@@ -1763,6 +1805,7 @@ self.onmessage = function(e) {
             arrangeState["0"].lockDentalArch = isDentalArchLocked
                 ? true
                 : false; // 未传参数则为undefined -> false
+            arrangeState["0"].SlicedFlag = SlicedFlag;
             if (isDentalArchLocked) {
                 // 锁定牙弓线则进入特殊处理流程[step0-特殊]
                 // 注意isDentalArchLocked将影响后续排牙所依赖的牙弓线参数
@@ -1840,6 +1883,8 @@ self.onmessage = function(e) {
             //     prevToothName
             // ];
             const currToothName = arrangeState["3"].Order[toothLoc][finish];
+            const SlicedFlag = arrangeState["0"].SlicedFlag;
+            const SlicedTeethData = arrangeState["0"].sourceData.segPolyDatas.tooth;
             const postData = {
                 state: "arrange",
                 // teethType: targetTeethType,
@@ -1860,12 +1905,19 @@ self.onmessage = function(e) {
 
                 currToothName,
                 prevToothName,
+                // SlicedFlag,
+                // SlicedTeethData,
             };
+            console.log('postdata', postData)
             if (toothLoc === "L") {
                 subArrangeWorkerL.postMessage(postData);
+                console.log(currToothName)
+                console.log(prevToothName)
             }
             if (toothLoc === "R") {
                 subArrangeWorkerR.postMessage(postData);
+                console.log(currToothName)
+                console.log(prevToothName)
             }
             break;
         }

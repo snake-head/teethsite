@@ -266,13 +266,14 @@ function updateTeethArrange() {
 		//2023.1.5更新：添加一个clickFlag，用来表明是点击“更新”键
 		Object.assign(updateObj, {clickFlag: true})
 		store.dispatch("actorHandleState/updateDentalArchAdjustRecord", updateObj);
+		// store.dispatch("actorHandleState/updateFirstUpdateFlag", true);
 	}
 	props.checkArchUpdated();
 	if(firstUpdateFlag){
-		store.dispatch("actorHandleState/updateFirstUpdateFlag", firstUpdateFlag);
 		showAndHide();
 		firstUpdateFlag=false;
 	}
+	store.dispatch("actorHandleState/updateFirstUpdateFlag", true);
 }
 
 const canUserSaveAdjustRecord = computed(() => store.getters["actorHandleState/canUserSaveAdjustRecord"]);

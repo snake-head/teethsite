@@ -900,7 +900,7 @@ const showAndHide = ()=>{
 	setTimeout(() => {
 		actorInScene.upper = true
 		actorInScene.lower = true
-	}, 0);
+	}, 20);
 }
 provide('showAndHide', showAndHide)
 

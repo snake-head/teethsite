@@ -427,7 +427,6 @@ export default function(allActorList) {
 			// 接收worker子线程中的postMessage数据
 			worker[teethType].onmessage = function(event) {
 				const { data } = event;
-				console.log('async', data.step)
 				switch (data.step) {
 					case "Init":
 						// 接收到初始数据, 做一定计算后返回结果, 包括牙齿标准坐标系和牙弓线设置
@@ -484,7 +483,6 @@ export default function(allActorList) {
 						store.dispatch("userHandleState/updateArrangeProgress", {
 							[teethType]: { L: data.data.L, R: data.data.R },
 						});
-						console.log('asy', data.data)
 						worker[teethType].postMessage({
 							step: 4,
 							toothLoc: "L",
@@ -617,7 +615,6 @@ export default function(allActorList) {
 		if (enterAtInitTime.value) {
 			// 初次进入
 			// 该分支只进入一次
-			console.log('1')
 			store.dispatch("actorHandleState/updateEnterAtInitTime", false);
 			// 判断是否满足条件, 满足条件则直接跳过大部分排牙算法, 满足条件应该看数据是否齐全
 			// 但根据上传的特性, 其实看coEfficients有没有就够了, 这个有其它一定有
@@ -638,13 +635,11 @@ export default function(allActorList) {
 					updateFineTuneRecord(teethType, fineTunedBracketData[teethType]);
 				}
 			} else {
-				console.log(2)
 				// 正常排牙
 				for (let teethType of arrangeTeethType) {
 					// 给子线程传输数据, 开始排牙
 					let coEfficients = toRaw(dentalArchSettings[teethType].coEfficients);
 					if (coEfficients !== null && !reCalculateDentalArch) {
-						console.log(2_1)
 						worker[teethType].postMessage({
 							step: 0,
 							preFineTuneRecord: preFineTuneRecord[teethType],
@@ -659,7 +654,6 @@ export default function(allActorList) {
 						updateFineTuneRecord(teethType, fineTunedBracketData[teethType]);
 					}
 					else {
-						console.log(2_2)
 						worker[teethType].postMessage({
 							step: 0,
 							preFineTuneRecord: preFineTuneRecord[teethType],
@@ -684,12 +678,10 @@ export default function(allActorList) {
 				}
 			}
 		} else {
-			console.log('22')
 			// 后续进入, 此时牙弓线必定已有参数
 			for (let teethType of arrangeTeethType) {
 				let coEfficients = toRaw(dentalArchSettings[teethType].coEfficients);
 				if (coEfficients !== null && !reCalculateDentalArch) {
-					console.log('221')
 					// 触发: 左面板[更新]按钮
 					// 有牙弓线参数, 并且不强制重新计算牙弓线
 					// 锁定牙弓线排牙, 走特殊流程, 但此时和正常流程一样, 会更新托槽微调记录
@@ -707,7 +699,6 @@ export default function(allActorList) {
 					// 更新托槽位置信息
 					updateFineTuneRecord(teethType, fineTunedBracketData[teethType]);
 				} else if (reCalculateDentalArch) {
-					console.log('222')
 					// 触发: 上面板[牙弓线调整]-[初始化]按钮
 					// 强制排牙, 不论是否有牙弓线参数, 都重新计算牙弓线 + 排牙
 					worker[teethType].postMessage({
@@ -809,7 +800,7 @@ export default function(allActorList) {
 	 * @param coEfficients {Array}
 	 * @param fineTunedBracketData {Object} 可以为 {UL1, ...} or {LL1, ...}
 	 */
-	function startTeethArrangeByAdjustedDentalArch(teethType, coEfficients, fineTunedBracketData) {
+	function startTeethArrangeByAdjustedDentalArch(teethType, coEfficients, fineTunedBracketData, SlicedTeethDatas) {
 		currentArrangeStep[teethType] = 1;
 		// 锁定牙弓线排牙, 走特殊流程, 但此时和正常流程一样, 会更新托槽微调记录
 		// 但多传参数isDentalArchLocked, coefficients, 具体可以看worker.js里怎么处理
@@ -820,6 +811,7 @@ export default function(allActorList) {
 			coEfficients, // 调整后牙弓线参数
 			fineTunedBracketData,
 			// 不传preFineTunedRecord则里面会直接排牙
+			SlicedTeethDatas,
 		});
 	}
 

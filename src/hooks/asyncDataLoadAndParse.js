@@ -1959,5 +1959,6 @@ export default function(vtkTextContainer, userMatrixList, applyCalMatrix) {
         rotateMessageList,
         longAxisData,
         toothBoxPoints,
+        generateActorBySurroundingData,
     };
 }

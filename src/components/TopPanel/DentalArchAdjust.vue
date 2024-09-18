@@ -270,10 +270,11 @@ function updateTeethArrange() {
 	}
 	props.checkArchUpdated();
 	if(firstUpdateFlag){
+		// store.dispatch("actorHandleState/updateFirstUpdateFlag", firstUpdateFlag);
 		showAndHide();
 		firstUpdateFlag=false;
 	}
-	store.dispatch("actorHandleState/updateFirstUpdateFlag", true);
+	// store.dispatch("actorHandleState/updateFirstUpdateFlag", true);
 }
 
 const canUserSaveAdjustRecord = computed(() => store.getters["actorHandleState/canUserSaveAdjustRecord"]);

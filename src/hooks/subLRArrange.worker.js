@@ -169,7 +169,6 @@ self.onmessage = function(e) {
         settings,
         teethData,
     } = e.data;
-    console.log('subLR', e.data)
     switch (state) {
         case "Init":
             if (teethData) {

@@ -381,6 +381,7 @@ watch(currentShowPanel, (newVal, oldVal) => {
 		vtkContext.renderWindow.render();
 		exitSelection()
 		AxisChangeOrNot(allActorList);
+		handleTeethActorDatasChange();
 	}
 });
 function AxisChangeOrNot(allActorList) {
@@ -389,6 +390,65 @@ function AxisChangeOrNot(allActorList) {
 		SlicedAxisActorDatas(allActorList);
 	}
 
+}
+function handleTeethActorDatasChange() {
+	const ToothBoxPoints = store.state.actorHandleState.toothBoxPoints;
+    const pointsToCheck = ['Point0', 'Point1', 'Point2', 'Point3', 'Point4', 'Point5', 'Point6', 'Point7'];
+	if (ToothBoxPoints) {
+		let toothPosition;
+		let isAnyPointNonZero
+		for (let i = 0; i < Object.keys(ToothBoxPoints).length; i++) {
+			const toothName = Object.keys(ToothBoxPoints)[i];
+			if (ToothBoxPoints[toothName]) {
+				isAnyPointNonZero = pointsToCheck.some(point => {
+				const pointValue = ToothBoxPoints[toothName][point];
+				return pointValue[0] !== 0 || pointValue[1] !== 0 || pointValue[2] !== 0;
+			});
+			}
+			if (isAnyPointNonZero) {
+				if (toothName.charAt(0).toUpperCase() === 'U') {
+					toothPosition = "upper";
+				}
+				if (toothName.charAt(0).toUpperCase() === 'L') {
+					toothPosition = "lower";
+				}
+
+				const SurroundingBoxsPoints0 = ToothBoxPoints[toothName];
+        		let SurroundingBoxPoints = {};
+        		SurroundingBoxPoints.Point0 = [SurroundingBoxsPoints0.Point0[0], SurroundingBoxsPoints0.Point0[1], SurroundingBoxsPoints0.Point0[2]]
+				SurroundingBoxPoints.Point1 = [SurroundingBoxsPoints0.Point1[0], SurroundingBoxsPoints0.Point1[1], SurroundingBoxsPoints0.Point1[2]]
+				SurroundingBoxPoints.Point2 = [SurroundingBoxsPoints0.Point2[0], SurroundingBoxsPoints0.Point2[1], SurroundingBoxsPoints0.Point2[2]]
+				SurroundingBoxPoints.Point3 = [SurroundingBoxsPoints0.Point3[0], SurroundingBoxsPoints0.Point3[1], SurroundingBoxsPoints0.Point3[2]]
+				SurroundingBoxPoints.Point4 = [SurroundingBoxsPoints0.Point4[0], SurroundingBoxsPoints0.Point4[1], SurroundingBoxsPoints0.Point4[2]]
+				SurroundingBoxPoints.Point5 = [SurroundingBoxsPoints0.Point5[0], SurroundingBoxsPoints0.Point5[1], SurroundingBoxsPoints0.Point5[2]]
+				SurroundingBoxPoints.Point6 = [SurroundingBoxsPoints0.Point6[0], SurroundingBoxsPoints0.Point6[1], SurroundingBoxsPoints0.Point6[2]]
+				SurroundingBoxPoints.Point7 = [SurroundingBoxsPoints0.Point7[0], SurroundingBoxsPoints0.Point7[1], SurroundingBoxsPoints0.Point7[2]]
+				const { pointArray, cellArray} = FineTunePoint(toothPolyDatas, toothName, toothPosition, SurroundingBoxPoints);
+				const {actor, mapper, polydata} = reshowTune1(pointArray, cellArray);
+				// const { pointArray, cellArray, actor, mapper, polydata } = generateActorBySurroundingData(toothName, ToothBoxPoints, toothPolyDatas);
+				// // allActorList[teethType].originTooth.push({ name, actor, mapper });
+				// console.log(allActorList[toothPosition].originTooth.toothName)
+				const targetTooth = allActorList[toothPosition].originTooth.find(item => item.name === toothName);
+				if (targetTooth) {
+					targetTooth.actor = actor;
+					targetTooth.mapper = mapper;
+				}
+			}
+		}
+	}
+}
+
+function reshowTune1(pointArray, cellArray){
+    const polyData = vtkPolyData.newInstance();
+    polyData.getPoints().setData(pointArray);
+    polyData.getPolys().setData(cellArray);
+    
+    const mapper = vtkMapper.newInstance();
+	mapper.setInputData(polyData);
+    
+    const actor = vtkActor.newInstance();
+    actor.setMapper(mapper);
+    return {actor, mapper, polyData};
 }
 /**
  * 
@@ -804,6 +864,7 @@ function regenerateDentalArchWidget(specTeethType = [], firstGenerate = false) {
 		// 		right: [...behindCenterCoordsOfStandardTeethAxis],
 		// 	}, // 初始位置(重置用)
 		// });
+		console.log('fun', bracketData)
 		for (let i = lrBracketNames[lessBracketSide].length - 1; i >= 1; i -= 2) {
 			// fineTuneRecord.actorMatrix.center: 托槽在牙齿上的最新位置
 			// 即托槽读入后(在原点位)经过mat1和mat3转换后的位置
@@ -825,22 +886,28 @@ function regenerateDentalArchWidget(specTeethType = [], firstGenerate = false) {
 			// 	...bracketData[teethType].filter(({ name }) => name === lrBracketNames.left[i])[0].fineTuneRecord
 			// 		.actorMatrix.center,
 			// ];
-			if (dentalArchAdjustRecord[teethType].actorMatrix) {
-				leftSphereCenter = [
-					...dentalArchAdjustRecord[teethType].actorMatrix[lrBracketNames.left[i]]
-				]
-			}
-			else {
-				leftSphereCenter = [
+			// if (dentalArchAdjustRecord[teethType].actorMatrix) {
+			// 	leftSphereCenter = [
+			// 		...dentalArchAdjustRecord[teethType].actorMatrix[lrBracketNames.left[i]]
+			// 	]
+			// }
+			// else {
+			// 	leftSphereCenter = [
+			// 	...bracketData[teethType].filter(({ name }) => name === lrBracketNames.left[i])[0].fineTuneRecord
+			// 		.actorMatrix.center,
+			// 	];
+			// }
+			leftSphereCenter = [
 				...bracketData[teethType].filter(({ name }) => name === lrBracketNames.left[i])[0].fineTuneRecord
 					.actorMatrix.center,
 				];
-			}
 			rightSphereCenter = [
 				...bracketData[teethType].filter(({ name }) => name === lrBracketNames.right[i])[0].fineTuneRecord
 					.actorMatrix.center,
 			];
-			
+			if (lrBracketNames.left[i]=="UL2"){
+				console.log('left', leftSphereCenter)
+			}
 			// 经过变换(排牙、咬合)显示在当前对应坐标系下供用户调整
 			let leftTransMatrix = multiplyMatrixList4x4(
 					userMatrixList.invMat3[lrBracketNames.left[i]],
@@ -1005,6 +1072,7 @@ const reCalculateArch = computed(
  * (控制深度的球棍里只看前面的小球[D0], 后面的[D1]不使用)
  */
 watch(reCalculateArch, (newValue) => {
+	console.log('##recalculate', newValue)
 	if (newValue) {
 		// 根据当前调整, 整合bracketData, 提取center, 重新计算牙弓线
 		let bracketCenters = {},
@@ -1057,6 +1125,7 @@ const isRegenerateAdjustDentalArch = computed(
 	() => store.state.actorHandleState.teethArrange.dentalArchAdjustRecord.regenerate
 );
 watch(isRegenerateAdjustDentalArch, (newValue) => {
+	console.log('isRegenerate', newValue)
 	if (newValue) {
 		reCalculateDentalArchCoefficients(dentalArchAdjustType.value, null, false, true);
 		store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
@@ -1073,6 +1142,8 @@ const isResetAdjustDentalArch = computed(() => store.getters["actorHandleState/i
  * 要么是resetCenter里的记录(只要点了一次保存就会有记录), 没记录就是托槽位置计算来的
  */
 watch(isResetAdjustDentalArch, (newValue) => {
+	console.log('##reset', newValue)
+	console.log('init', initFittingCenters)
 	for (let teethType of arrangeTeethType.value) {
 		if (newValue[teethType]) {
 			// 根据dentalArchSettings的coEfficients重新生成牙弓线
@@ -1081,7 +1152,7 @@ watch(isResetAdjustDentalArch, (newValue) => {
 			// 不再采用读取记录点的方式，而是重新计算
 			adjustDentalArchWidgetInScene("exit");
 			regenerateDentalArchWidget([teethType], true)
-			adjustDentalArchWidgetInScene("enter");
+			
 			// dentalArchWidgets[teethType].forEach(({ sphereLinkRep, resetCenter }) => {
 			// 	sphereLinkRep.setCenters([...resetCenter.left], [...resetCenter.right]);
 			// });
@@ -1092,6 +1163,11 @@ watch(isResetAdjustDentalArch, (newValue) => {
 					centers: initFittingCenters[teethType].centers,
 				},
 			});
+			console.log('init', initFittingCenters)
+			adjustDentalArchWidgetInScene("enter");
+			// setTimeout(() => {
+			// 	adjustDentalArchWidgetInScene("enter");
+			// }, 0)
 		}
 	}
 });
@@ -1117,26 +1193,55 @@ watch(isReArrangeTeethByAdjustedDentalArch, (newValue) => {
 			}
 		}
 		adjustDentalArchWidgetInScene("enter");
-	}, 800)
+	}, 80)
 });
 function reArrangeOneTypeTeethByAdjustedDentalArch(teethType) {
 	if (dentalArchAdjustRecord[teethType].coEfficients !== null) {
 		forceUpdateAtMode = fineTuneMode.value;
 		// 读取当前排牙模式, 如果是从normal进来的则继续, 如果是在模拟排牙模式下则先退出
 		store.dispatch("userHandleState/switchArrangeBarOpenState", true);
+		const ToothBoxPoints = store.state.actorHandleState.toothBoxPoints;
+		let JudgeSlice
+		if (ToothBoxPoints) {
+			JudgeSlice = JudgeSliceOrNot(ToothBoxPoints)
+		}
+		else {
+			JudgeSlice = false;
+		}
 		// 模拟排牙
-		startTeethArrangeByAdjustedDentalArch(
-			teethType,
-			toRaw(dentalArchAdjustRecord[teethType].coEfficients),
-			Object.fromEntries(
-				bracketData[teethType].map(({ name, fineTuneRecord: { actorMatrix } }) => [name, actorMatrix])
-			)
-		);
+		if (JudgeSlice) {
+			const SlicedTeethDatas = slicedTeethArrangeDatas(toothPolyDatas);
+			startTeethArrangeByAdjustedDentalArch(
+				teethType,
+				toRaw(dentalArchAdjustRecord[teethType].coEfficients),
+				Object.fromEntries(
+					bracketData[teethType].map(({ name, fineTuneRecord: { actorMatrix } }) => [name, actorMatrix])
+				),
+				SlicedTeethDatas[teethType],
+			);
+		}
+		else {
+			startTeethArrangeByAdjustedDentalArch(
+				teethType,
+				toRaw(dentalArchAdjustRecord[teethType].coEfficients),
+				Object.fromEntries(
+					bracketData[teethType].map(({ name, fineTuneRecord: { actorMatrix } }) => [name, actorMatrix])
+				)
+			);
+		}
+		// startTeethArrangeByAdjustedDentalArch(
+		// 	teethType,
+		// 	toRaw(dentalArchAdjustRecord[teethType].coEfficients),
+		// 	Object.fromEntries(
+		// 		bracketData[teethType].map(({ name, fineTuneRecord: { actorMatrix } }) => [name, actorMatrix])
+		// 	)
+		// );
 	}
 }
 // 调整牙弓线切换选中颌牙时切换小球显示
 const dentalArchAdjustType = computed(() => store.state.actorHandleState.teethArrange.dentalArchAdjustRecord.teethType);
 watch(dentalArchAdjustType, () => {
+	console.log('dentalArch')
 	// 如果当前在牙弓线面板下, 则进行switch操作, 否则这次更改可能是在加载完成时搞的
 	// 但看操作, 实质上不会报错, 所以不限制也行
 	if(currentShowPanel.value==1){
@@ -1200,6 +1305,7 @@ function removeLineWidgetExpress(vtkContext, selectedTeethType) {
 function LineWidgetExpress(vtkContext, selectedTeethType) {
 	const teethArrange = store.state.actorHandleState.teethArrange;
 	const { widgetManager } = vtkContext;
+	console.log(dentalArchAdjustRecord["upper"].centers.UL2, dentalArchAdjustRecord["upper"].centers.UR2)
 
 	if (selectedTeethType == "upper") {
 		// const name1='D0', name2='D1', name3='UL2', name4='UR2', name5='UL5', name6='UR5', name7='UL7', name8='UR7';
@@ -1362,6 +1468,7 @@ const overwriteByDentalArchAdjustRecord = computed(
 	() => store.state.actorHandleState.teethArrange.dentalArchAdjustRecord.overwriteByDentalArchAdjustRecord
 );
 watch(overwriteByDentalArchAdjustRecord, (newValue) => {
+	console.log('overWrite', newValue)
 	if (newValue) {
 		// 所有widget小球的当前中心存入
 		let centers = {};
@@ -1738,6 +1845,7 @@ const {
 	rotateMessageList,
 	longAxisData,
 	toothBoxPoints,
+	generateActorBySurroundingData,
 } = asyncDataLoadAndParse(vtkTextContainer, userMatrixList, applyCalMatrix);
 // applyCalMatrix用于对更新长轴点时生成的新坐标轴设置userMatrix
 const {
@@ -4845,6 +4953,7 @@ function adjustActorWhenSwitchSimMode(switchType, clickEnter=false) {
 // 强制更新模拟排牙
 function forceUpdateArrange(reCalculateDentalArch = false, teethType = []) {
 	let reArrangeTeethType = teethType.length > 0 ? teethType : arrangeTeethType.value;
+	const SlicedTeethDatas = slicedTeethArrangeDatas(toothPolyDatas);
 	if (reArrangeTeethType.length > 0) {
 		forceUpdateAtMode = fineTuneMode.value;
 		// 读取当前排牙模式, 如果是从normal进来的则继续, 如果是在模拟排牙模式下则先退出
@@ -4856,7 +4965,6 @@ function forceUpdateArrange(reCalculateDentalArch = false, teethType = []) {
 				bracketData[teethType].map(({ name, fineTuneRecord: { actorMatrix } }) => [name, actorMatrix])
 			);
 		}
-		const SlicedTeethDatas = slicedTeethArrangeDatas(toothPolyDatas);
 		startTeethArrange(fineTunedBracketData, SlicedTeethDatas, reCalculateDentalArch);
 		// modifying
 		// startTeethArrange(fineTunedBracketData, reCalculateDentalArch, toothPolyDatas);
@@ -4924,6 +5032,7 @@ function JudgeSliceOrNot(ToothBoxPoints) {
 	}
 	store.dispatch("actorHandleState/updateFirstSliceFlag", isAnyPointNonZero);
 	// store.dispatch("actorHandleState/updateFirstUpdateFlag", false);
+	return isAnyPointNonZero
 }
 
 defineExpose({

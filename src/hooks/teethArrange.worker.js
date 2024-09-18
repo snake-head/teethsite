@@ -1679,6 +1679,7 @@ function preProessingForAdjustedDentalArchArrange(eventData) {
     arrangeState["2"].adjustedCoEfficients = coEfficients;
     
     // step1-转换数据
+    console.log("arrange", arrangeState["0"].sourceData.tooth)
     dataPreprocess();
     // step2-根据teethAxis计算转换矩阵, 转换所有数据
     let transSegData = arrangeState["1"].transSegData;
@@ -1711,7 +1712,6 @@ function preProessingForAdjustedDentalArchArrange(eventData) {
 // 最终排牙完成后仅返回新的排牙转换矩阵, 没有其他新的数据
 // 注意由于排牙过程中涉及到各种牙齿托槽数据的移动, 因此step1还是要走
 self.onmessage = function(e) {
-    console.log('worker', e.data.step)
     switch (e.data.step) {
         case "Init": {
             // 孙子线程
@@ -1806,6 +1806,16 @@ self.onmessage = function(e) {
                 ? true
                 : false; // 未传参数则为undefined -> false
             arrangeState["0"].SlicedFlag = SlicedFlag;
+            if (SlicedTeethDatas) {
+                arrangeState["0"].sourceData.segPolyDatas = {
+                    ...arrangeState["0"].sourceData.segPolyDatas,
+                    tooth: SlicedTeethDatas,
+                }
+                arrangeState["0"].SlicedFlag = true;
+            }
+            else {
+                arrangeState["0"].SlicedFlag = false;
+            }
             if (isDentalArchLocked) {
                 // 锁定牙弓线则进入特殊处理流程[step0-特殊]
                 // 注意isDentalArchLocked将影响后续排牙所依赖的牙弓线参数
@@ -1865,6 +1875,7 @@ self.onmessage = function(e) {
                 settings: {
                     coEfficients,
                 },
+                SlicedFlag: arrangeState["0"].SlicedFlag
             });
             subArrangeWorkerR.postMessage({
                 state: "Init",
@@ -1872,6 +1883,7 @@ self.onmessage = function(e) {
                 settings: {
                     coEfficients,
                 },
+                SlicedFlag: arrangeState["0"].SlicedFlag
             });
             self.postMessage(retData);
             break;
@@ -1908,16 +1920,11 @@ self.onmessage = function(e) {
                 // SlicedFlag,
                 // SlicedTeethData,
             };
-            console.log('postdata', postData)
             if (toothLoc === "L") {
                 subArrangeWorkerL.postMessage(postData);
-                console.log(currToothName)
-                console.log(prevToothName)
             }
             if (toothLoc === "R") {
                 subArrangeWorkerR.postMessage(postData);
-                console.log(currToothName)
-                console.log(prevToothName)
             }
             break;
         }

@@ -864,7 +864,6 @@ function regenerateDentalArchWidget(specTeethType = [], firstGenerate = false) {
 		// 		right: [...behindCenterCoordsOfStandardTeethAxis],
 		// 	}, // 初始位置(重置用)
 		// });
-		console.log('fun', bracketData)
 		for (let i = lrBracketNames[lessBracketSide].length - 1; i >= 1; i -= 2) {
 			// fineTuneRecord.actorMatrix.center: 托槽在牙齿上的最新位置
 			// 即托槽读入后(在原点位)经过mat1和mat3转换后的位置
@@ -905,9 +904,6 @@ function regenerateDentalArchWidget(specTeethType = [], firstGenerate = false) {
 				...bracketData[teethType].filter(({ name }) => name === lrBracketNames.right[i])[0].fineTuneRecord
 					.actorMatrix.center,
 			];
-			if (lrBracketNames.left[i]=="UL2"){
-				console.log('left', leftSphereCenter)
-			}
 			// 经过变换(排牙、咬合)显示在当前对应坐标系下供用户调整
 			let leftTransMatrix = multiplyMatrixList4x4(
 					userMatrixList.invMat3[lrBracketNames.left[i]],
@@ -1072,7 +1068,6 @@ const reCalculateArch = computed(
  * (控制深度的球棍里只看前面的小球[D0], 后面的[D1]不使用)
  */
 watch(reCalculateArch, (newValue) => {
-	console.log('##recalculate', newValue)
 	if (newValue) {
 		// 根据当前调整, 整合bracketData, 提取center, 重新计算牙弓线
 		let bracketCenters = {},
@@ -1125,7 +1120,6 @@ const isRegenerateAdjustDentalArch = computed(
 	() => store.state.actorHandleState.teethArrange.dentalArchAdjustRecord.regenerate
 );
 watch(isRegenerateAdjustDentalArch, (newValue) => {
-	console.log('isRegenerate', newValue)
 	if (newValue) {
 		reCalculateDentalArchCoefficients(dentalArchAdjustType.value, null, false, true);
 		store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
@@ -1142,8 +1136,6 @@ const isResetAdjustDentalArch = computed(() => store.getters["actorHandleState/i
  * 要么是resetCenter里的记录(只要点了一次保存就会有记录), 没记录就是托槽位置计算来的
  */
 watch(isResetAdjustDentalArch, (newValue) => {
-	console.log('##reset', newValue)
-	console.log('init', initFittingCenters)
 	for (let teethType of arrangeTeethType.value) {
 		if (newValue[teethType]) {
 			// 根据dentalArchSettings的coEfficients重新生成牙弓线
@@ -1163,7 +1155,6 @@ watch(isResetAdjustDentalArch, (newValue) => {
 					centers: initFittingCenters[teethType].centers,
 				},
 			});
-			console.log('init', initFittingCenters)
 			adjustDentalArchWidgetInScene("enter");
 			// setTimeout(() => {
 			// 	adjustDentalArchWidgetInScene("enter");
@@ -1241,7 +1232,6 @@ function reArrangeOneTypeTeethByAdjustedDentalArch(teethType) {
 // 调整牙弓线切换选中颌牙时切换小球显示
 const dentalArchAdjustType = computed(() => store.state.actorHandleState.teethArrange.dentalArchAdjustRecord.teethType);
 watch(dentalArchAdjustType, () => {
-	console.log('dentalArch')
 	// 如果当前在牙弓线面板下, 则进行switch操作, 否则这次更改可能是在加载完成时搞的
 	// 但看操作, 实质上不会报错, 所以不限制也行
 	if(currentShowPanel.value==1){
@@ -1305,8 +1295,6 @@ function removeLineWidgetExpress(vtkContext, selectedTeethType) {
 function LineWidgetExpress(vtkContext, selectedTeethType) {
 	const teethArrange = store.state.actorHandleState.teethArrange;
 	const { widgetManager } = vtkContext;
-	console.log(dentalArchAdjustRecord["upper"].centers.UL2, dentalArchAdjustRecord["upper"].centers.UR2)
-
 	if (selectedTeethType == "upper") {
 		// const name1='D0', name2='D1', name3='UL2', name4='UR2', name5='UL5', name6='UR5', name7='UL7', name8='UR7';
 		let name1='D0', name2='D1';
@@ -1468,7 +1456,6 @@ const overwriteByDentalArchAdjustRecord = computed(
 	() => store.state.actorHandleState.teethArrange.dentalArchAdjustRecord.overwriteByDentalArchAdjustRecord
 );
 watch(overwriteByDentalArchAdjustRecord, (newValue) => {
-	console.log('overWrite', newValue)
 	if (newValue) {
 		// 所有widget小球的当前中心存入
 		let centers = {};

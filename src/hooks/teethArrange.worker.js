@@ -1679,7 +1679,6 @@ function preProessingForAdjustedDentalArchArrange(eventData) {
     arrangeState["2"].adjustedCoEfficients = coEfficients;
     
     // step1-转换数据
-    console.log("arrange", arrangeState["0"].sourceData.tooth)
     dataPreprocess();
     // step2-根据teethAxis计算转换矩阵, 转换所有数据
     let transSegData = arrangeState["1"].transSegData;

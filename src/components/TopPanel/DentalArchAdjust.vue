@@ -282,7 +282,6 @@ function updateTeethArrange() {
 	else {
 		JudgeSlice = false;
 	}
-	console.log('Judge', JudgeSlice)
 	if (JudgeSlice) {
 		const updateObj = {}
 		arrangeTeethType.value.forEach((teethType)=>{

@@ -25,7 +25,7 @@ function widgetBehavior(publicAPI, model) {
   model.linkDirection1 = [0, 0, 0];
   model.linkDirection2 = [0, 0, 0];
   let radius = 0;
-  model.modifyLinkRatio = [0.01, 10]
+  model.modifyLinkRatio = [0.01, 50]
   let newcenter1 = null;
   let newcenter2 = null;
   

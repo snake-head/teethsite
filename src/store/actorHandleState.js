@@ -258,7 +258,6 @@ export default {
                         value[recordProps];
                 }
             }
-            console.log('state1', state.teethArrange.dentalArchAdjustRecord)
             for (let teethType of ["upper", "lower"]) {
                 if (valueProps.includes(teethType)) {
                     let valueTypeProps = Object.keys(value[teethType]);
@@ -324,7 +323,6 @@ export default {
                     }
                 }
             }
-            console.log('state2', state.teethArrange.dentalArchAdjustRecord)
             // console.log('centers', state.teethArrange.dentalArchAdjustRecord['upper']['centers'])
         },
         SaveDentalArchAdjustRecord(state) {

@@ -71,8 +71,22 @@ export default {
         updateFirstSliceFlag(context, value) {
             context.commit("UpdateFirstSliceFlag", value);
         },
+        updateSphereChangeFlag(context, value) {
+            context.commit("UpdateSphereChangeFlag", value);
+        },
         updateStandardAxisActor(context, value) {
             context.commit("UpdateStandardAxisActor", value);
+        },
+        // invMatrix值
+        updateinvMatrixRecord(context, value) {
+            context.commit("UpdateinvMatrixRecord", value);
+        },
+        // 排牙标志
+        updateteethArrangeFlag(context, value) {
+            context.commit("UpdateteethArrangeFlag", value);
+        },
+        updatereArrangeDentalArch(context, value) {
+            context.commit("UpdatereArrangeDentalArch",  value);
         },
         updateDentalArchAdjustRecord(context, value) {
             context.commit("UpdateDentalArchAdjustRecord", value);
@@ -218,6 +232,18 @@ export default {
         UpdateFirstSliceFlag(state, value) {
             state.firstSliceFlag = value;
         },
+        UpdateSphereChangeFlag(state, value) {
+            state.SphereChangeFlag = value;
+        },
+        UpdateinvMatrixRecord(state, value) {
+            state.invMatrixRecord = value;
+        },
+        UpdateteethArrangeFlag(state, value) {
+            state.teethArrangeFlag = value;
+        },
+        UpdatereArrangeDentalArch(state, value) {
+            Object.assign(state.reArrangeDentalArch, value);
+        },
         UpdateDentalArchAdjustRecord(state, value) {
             let valueProps = Object.keys(value);
             for (let recordProps of [
@@ -232,6 +258,7 @@ export default {
                         value[recordProps];
                 }
             }
+            console.log('state1', state.teethArrange.dentalArchAdjustRecord)
             for (let teethType of ["upper", "lower"]) {
                 if (valueProps.includes(teethType)) {
                     let valueTypeProps = Object.keys(value[teethType]);
@@ -297,6 +324,8 @@ export default {
                     }
                 }
             }
+            console.log('state2', state.teethArrange.dentalArchAdjustRecord)
+            // console.log('centers', state.teethArrange.dentalArchAdjustRecord['upper']['centers'])
         },
         SaveDentalArchAdjustRecord(state) {
             // coEfficients覆盖出去
@@ -590,6 +619,13 @@ export default {
         SliceData: false,
         firstUpdateFlag: false,
         firstSliceFlag: false,
+        SphereChangeFlag: false,
+        invMatrixRecord: [],
+        teethArrangeFlag: false,
+        reArrangeDentalArch: {
+            upper: false,
+            lower: false,
+        },
         BoxSlicing:{
             SelectedPosition: "",
             SelectedToothBox: "",

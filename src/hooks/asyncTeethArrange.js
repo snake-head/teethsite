@@ -538,10 +538,12 @@ export default function(allActorList) {
 
 					case 5:
 						// 如果返回牙弓线则处理数据, 生成polyData, 制造牙弓线actor
+						// console.log('case5', event.data)
 						if (event.data.data.arch) {
 							generateArchActor(teethType, originCellsDataList[teethType], event.data.data);
 						}
 						if (event.data.lockDentalArch) {
+							// console.log('记录矩阵5', event.data.arrangeMatrix)
 							// 更新记录矩阵
 							store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
 								[teethType]: {

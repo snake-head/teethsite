@@ -144,6 +144,7 @@ import vtkCutter from "@kitware/vtk.js/Filters/Core/Cutter";
 import vtkPlane from "@kitware/vtk.js/Common/DataModel/Plane";
 import vtkProperty from "@kitware/vtk.js/Rendering/Core/Property";
 import vtkPolygon from "@kitware/vtk.js/Common/DataModel/Polygon"
+import { resolve } from "q";
 
 const props = defineProps({
 	changeLoadingMessage: {
@@ -199,8 +200,8 @@ watch(clickUsePreset, ()=>{
 		let selectedTeethType = dentalArchAdjustType.value;
 		moveLinkToPreset()
 		store.dispatch("actorHandleState/setClickUsePreset", false)
-		removeLineWidgetExpress(vtkContext, selectedTeethType);
-		LineWidgetExpress(vtkContext, selectedTeethType);
+		// removeLineWidgetExpress(vtkContext, selectedTeethType);
+		// LineWidgetExpress(vtkContext, selectedTeethType);
 	}
 })
 function moveLinkToPreset(){
@@ -753,10 +754,13 @@ let initFittingCenters = {};
  * 2023.7.26更新：不再使用记录的小球位置，每次都重新计算小球位置，使其位于牙弓线上。
  * 				因此，排牙时的拟合点必须为上次排牙的结果，也就是作用mat2后的位置
  */
+let firstUpdateFlag = true;
+
 function regenerateDentalArchWidget(specTeethType = [], firstGenerate = false) {
 	// dentalArchWidgets = {};
 	// initFittingCenters = {};
 	let reGenerateTeethType = specTeethType.length > 0 ? specTeethType : arrangeTeethType.value;
+	let loadedBracketNameList = toRaw(store.state.userHandleState.bracketNameList);
 	for (let teethType of reGenerateTeethType) {
 		dentalArchWidgets[teethType] = [];
 		initFittingCenters[teethType] = { centers: {} };
@@ -819,8 +823,7 @@ function regenerateDentalArchWidget(specTeethType = [], firstGenerate = false) {
 			.apply(aheadCenterCoordsOfStandardTeethAxis)
 			.apply(behindCenterCoordsOfStandardTeethAxis);
 		invMatrix = userMatrixList.invMat4[teethType];
-		
-
+		store.dispatch("actorHandleState/updateinvMatrixRecord", invMatrix);
 		// 构造widget
 		// const sphereLinkRep = vtkSphereLinkHandleRepresentation.newInstance({
 		// 	sphereLinkInitValue: {
@@ -903,7 +906,7 @@ function regenerateDentalArchWidget(specTeethType = [], firstGenerate = false) {
 			rightSphereCenter = [
 				...bracketData[teethType].filter(({ name }) => name === lrBracketNames.right[i])[0].fineTuneRecord
 					.actorMatrix.center,
-			];
+			];		
 			// 经过变换(排牙、咬合)显示在当前对应坐标系下供用户调整
 			let leftTransMatrix = multiplyMatrixList4x4(
 					userMatrixList.invMat3[lrBracketNames.left[i]],
@@ -930,7 +933,6 @@ function regenerateDentalArchWidget(specTeethType = [], firstGenerate = false) {
 			// 就是小球调整的中心, 也是最初的拟合点
 			initFittingCenters[teethType].centers[lrBracketNames.left[i]] = [...leftSphereCenter];
 			initFittingCenters[teethType].centers[lrBracketNames.right[i]] = [...rightSphereCenter];
-
 			// 变换到托槽当前的位置上, 直接setUsermatrix过去
 			// 调整时需要反变换回去
 			// 2023.5.31更新：使左右小球对称分布
@@ -993,6 +995,7 @@ function regenerateDentalArchWidget(specTeethType = [], firstGenerate = false) {
 	}
 	store.dispatch("actorHandleState/updateDentalArchAdjustRecord", initFittingCenters);
 	vtkContext.renderWindow.render();
+	firstUpdateFlag = false;
 }
 
 /**
@@ -1111,6 +1114,7 @@ watch(reCalculateArch, (newValue) => {
 		reCalculateDentalArchCoefficients(teethType, bracketCenters);
 		store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
 			reCalculateArch: false,
+			bracketCenters,
 		});
 	}
 });
@@ -1135,27 +1139,32 @@ const isResetAdjustDentalArch = computed(() => store.getters["actorHandleState/i
  * @description 重置的位置在dentalArchWidgets中, 在regenerateDentalArchWidget()里生成
  * 要么是resetCenter里的记录(只要点了一次保存就会有记录), 没记录就是托槽位置计算来的
  */
+let firstGenerate;
 watch(isResetAdjustDentalArch, (newValue) => {
 	for (let teethType of arrangeTeethType.value) {
 		if (newValue[teethType]) {
 			// 根据dentalArchSettings的coEfficients重新生成牙弓线
 			reCalculateDentalArchCoefficients(teethType, null, true);
+			// adjustDentalArchWidgetInScene("exit");
+			store.dispatch("actorHandleState/updatereArrangeDentalArch", {
+				[teethType]: true,
+			});
 			// 重置所有调整小球到原位。
 			// 不再采用读取记录点的方式，而是重新计算
-			adjustDentalArchWidgetInScene("exit");
-			regenerateDentalArchWidget([teethType], true)
+			firstGenerate = true;
+			// regenerateDentalArchWidget([teethType], true)
 			
 			// dentalArchWidgets[teethType].forEach(({ sphereLinkRep, resetCenter }) => {
 			// 	sphereLinkRep.setCenters([...resetCenter.left], [...resetCenter.right]);
 			// });
 			// 重置centers为init点
-			store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
-				[teethType]: {
-					reset: false,
-					centers: initFittingCenters[teethType].centers,
-				},
-			});
-			adjustDentalArchWidgetInScene("enter");
+			// store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
+			// 	[teethType]: {
+			// 		reset: false,
+			// 		centers: initFittingCenters[teethType].centers,
+			// 	},
+			// });
+			// adjustDentalArchWidgetInScene("enter");
 			// setTimeout(() => {
 			// 	adjustDentalArchWidgetInScene("enter");
 			// }, 0)
@@ -1169,22 +1178,18 @@ const isReArrangeTeethByAdjustedDentalArch = computed(
 watch(isReArrangeTeethByAdjustedDentalArch, (newValue) => {
 	for (let teethType of ["upper", "lower"]) {
 		if (newValue[teethType]) {
+			store.dispatch("actorHandleState/updatereArrangeDentalArch", {
+				[teethType]: true,
+			});
 			reArrangeOneTypeTeethByAdjustedDentalArch(teethType);
+			store.dispatch("actorHandleState/updateteethArrangeFlag", true);
 			store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
 				[teethType]: { reArrange: false },
 			});
 		}
 	}
 	// 需要等待牙弓线系数重新计算完毕，再重新生成小球
-	setTimeout(()=>{
-		adjustDentalArchWidgetInScene("exit");
-		for (let teethType of ["upper", "lower"]){
-			if (newValue[teethType]) {
-				regenerateDentalArchWidget([teethType])
-			}
-		}
-		adjustDentalArchWidgetInScene("enter");
-	}, 80)
+	adjustDentalArchWidgetInScene("exit");
 });
 function reArrangeOneTypeTeethByAdjustedDentalArch(teethType) {
 	if (dentalArchAdjustRecord[teethType].coEfficients !== null) {
@@ -1263,7 +1268,13 @@ function adjustDentalArchWidgetInScene(mode) {
 		}
 		case "switch": {
 			// 清除
-			removeLineWidgetExpress(vtkContext, selectedTeethType);
+			if (selectedTeethType == "upper") {
+				removeLineWidgetExpress(vtkContext, "lower");
+			}
+			if (selectedTeethType == "lower") {
+				removeLineWidgetExpress(vtkContext, "upper");
+			}
+			// removeLineWidgetExpress(vtkContext, selectedTeethType);
 			LineWidgetExpress(vtkContext, selectedTeethType);
 			Object.keys(dentalArchWidgets).forEach((teethType) => {
 				if (teethType === selectedTeethType) {
@@ -1283,11 +1294,19 @@ function adjustDentalArchWidgetInScene(mode) {
 
 function removeLineWidgetExpress(vtkContext, selectedTeethType) {
 	const { widgetManager } = vtkContext;
-	if(widgetManager.getWidgets()[0]){
-		widgetManager.removeWidget(sphereLineWidgetHandle1);
-		widgetManager.removeWidget(sphereLineWidgetHandle2);
-		widgetManager.removeWidget(sphereLineWidgetHandle3);
-		widgetManager.removeWidget(sphereLineWidgetHandle4);
+	// if(widgetManager.getWidgets()[0]){
+	// 	widgetManager.removeWidget(sphereLineWidgetHandle1);
+	// 	widgetManager.removeWidget(sphereLineWidgetHandle2);
+	// 	widgetManager.removeWidget(sphereLineWidgetHandle3);
+	// 	widgetManager.removeWidget(sphereLineWidgetHandle4);
+	// }
+	if (sphereLineWidgetHandle1.getRepresentations()) {
+		for (let i = 0; i < sphereLineWidgetHandle1.getRepresentations().length; i++) {
+			sphereLineWidgetHandle1.getRepresentations()[i].getActors()[0].getProperty().setOpacity(0);
+			sphereLineWidgetHandle2.getRepresentations()[i].getActors()[0].getProperty().setOpacity(0);
+			sphereLineWidgetHandle3.getRepresentations()[i].getActors()[0].getProperty().setOpacity(0);
+			sphereLineWidgetHandle4.getRepresentations()[i].getActors()[0].getProperty().setOpacity(0);
+	}
 	}
 }
 
@@ -1309,6 +1328,12 @@ function LineWidgetExpress(vtkContext, selectedTeethType) {
 			}
 		})
 		sphereLineWidgetHandle1 = widgetManager.addWidget(sphereLineWidget1);
+		// if (dentalArchAdjustRecord[selectedTeethType].centers.D0 && dentalArchAdjustRecord[selectedTeethType].centers.D1){
+		// 	sphereLineWidgetHandle1.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.D0, dentalArchAdjustRecord[selectedTeethType].centers.D1);
+		// }
+		// else {
+		// 	sphereLineWidgetHandle1.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.D0, dentalArchAdjustRecord[selectedTeethType].centers.D1);
+		// }
 		sphereLineWidgetHandle1.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.D0, dentalArchAdjustRecord[selectedTeethType].centers.D1);
 		sphereLineWidgetHandle1.getWidgetState().modified();
 		sphereLineWidgetHandle1.setScaleInPixels(false);
@@ -1333,7 +1358,8 @@ function LineWidgetExpress(vtkContext, selectedTeethType) {
 		// else {
 		// 	sphereLineWidgetHandle2.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.UL2, dentalArchAdjustRecord[selectedTeethType].centers.UR2);
 		// }
-		sphereLineWidgetHandle2.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.UL2, dentalArchAdjustRecord[selectedTeethType].centers.UR2);
+		var symmetricPoint1 = calculateSymmetric(dentalArchAdjustRecord[selectedTeethType].centers.D0, dentalArchAdjustRecord[selectedTeethType].centers.D1, dentalArchAdjustRecord[selectedTeethType].centers.UL2)
+		sphereLineWidgetHandle2.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.UL2, symmetricPoint1);
 		sphereLineWidgetHandle2.getWidgetState().modified();
 		sphereLineWidgetHandle2.setScaleInPixels(false);
 		sphereLineWidgetHandle2.getRepresentations()[2].getActors()[0].setPickable(false)
@@ -1356,7 +1382,8 @@ function LineWidgetExpress(vtkContext, selectedTeethType) {
 		// else {
 		// 	sphereLineWidgetHandle3.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.UL5, dentalArchAdjustRecord[selectedTeethType].centers.UR5);
 		// }
-		sphereLineWidgetHandle3.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.UL5, dentalArchAdjustRecord[selectedTeethType].centers.UR5);
+		var symmetricPoint2 = calculateSymmetric(dentalArchAdjustRecord[selectedTeethType].centers.D0, dentalArchAdjustRecord[selectedTeethType].centers.D1, dentalArchAdjustRecord[selectedTeethType].centers.UL5)
+		sphereLineWidgetHandle3.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.UL5, symmetricPoint2);
 		sphereLineWidgetHandle3.getWidgetState().modified();
 		sphereLineWidgetHandle3.setScaleInPixels(false);
 		sphereLineWidgetHandle3.getRepresentations()[2].getActors()[0].setPickable(false)
@@ -1373,7 +1400,8 @@ function LineWidgetExpress(vtkContext, selectedTeethType) {
 			}
 		})
 		sphereLineWidgetHandle4 = widgetManager.addWidget(sphereLineWidget4);
-		sphereLineWidgetHandle4.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.UL7, dentalArchAdjustRecord[selectedTeethType].centers.UR7);
+		var symmetricPoint3 = calculateSymmetric(dentalArchAdjustRecord[selectedTeethType].centers.D0, dentalArchAdjustRecord[selectedTeethType].centers.D1, dentalArchAdjustRecord[selectedTeethType].centers.UL7)
+		sphereLineWidgetHandle4.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.UL7, symmetricPoint3);
 		sphereLineWidgetHandle4.getWidgetState().modified();
 		sphereLineWidgetHandle4.setScaleInPixels(false);
 		sphereLineWidgetHandle4.getRepresentations()[2].getActors()[0].setPickable(false)
@@ -1409,7 +1437,8 @@ function LineWidgetExpress(vtkContext, selectedTeethType) {
 			}
 		})
 		sphereLineWidgetHandle2 = widgetManager.addWidget(sphereLineWidget2);
-		sphereLineWidgetHandle2.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.LL2, dentalArchAdjustRecord[selectedTeethType].centers.LR2);
+		var symmetricPoint1 = calculateSymmetric(dentalArchAdjustRecord[selectedTeethType].centers.D0, dentalArchAdjustRecord[selectedTeethType].centers.D1, dentalArchAdjustRecord[selectedTeethType].centers.LL2)
+		sphereLineWidgetHandle2.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.LL2, symmetricPoint1);
 		sphereLineWidgetHandle2.getWidgetState().modified();
 		sphereLineWidgetHandle2.setScaleInPixels(false);
 		sphereLineWidgetHandle2.getRepresentations()[2].getActors()[0].setPickable(false)
@@ -1426,7 +1455,8 @@ function LineWidgetExpress(vtkContext, selectedTeethType) {
 			}
 		})
 		sphereLineWidgetHandle3 = widgetManager.addWidget(sphereLineWidget3);
-		sphereLineWidgetHandle3.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.LL4, dentalArchAdjustRecord[selectedTeethType].centers.LR4);
+		var symmetricPoint2 = calculateSymmetric(dentalArchAdjustRecord[selectedTeethType].centers.D0, dentalArchAdjustRecord[selectedTeethType].centers.D1, dentalArchAdjustRecord[selectedTeethType].centers.LL4)
+		sphereLineWidgetHandle3.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.LL4, symmetricPoint2);
 		sphereLineWidgetHandle3.getWidgetState().modified();
 		sphereLineWidgetHandle3.setScaleInPixels(false);
 		sphereLineWidgetHandle3.getRepresentations()[2].getActors()[0].setPickable(false)
@@ -1443,7 +1473,8 @@ function LineWidgetExpress(vtkContext, selectedTeethType) {
 			}
 		})
 		sphereLineWidgetHandle4 = widgetManager.addWidget(sphereLineWidget4);
-		sphereLineWidgetHandle4.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.LL7, dentalArchAdjustRecord[selectedTeethType].centers.LR7);
+		var symmetricPoint3 = calculateSymmetric(dentalArchAdjustRecord[selectedTeethType].centers.D0, dentalArchAdjustRecord[selectedTeethType].centers.D1, dentalArchAdjustRecord[selectedTeethType].centers.LL7)
+		sphereLineWidgetHandle4.setCenter(dentalArchAdjustRecord[selectedTeethType].centers.LL7, symmetricPoint3);
 		sphereLineWidgetHandle4.getWidgetState().modified();
 		sphereLineWidgetHandle4.setScaleInPixels(false);
 		sphereLineWidgetHandle4.getRepresentations()[2].getActors()[0].setPickable(false)
@@ -2540,6 +2571,7 @@ function reshowTune(pointValues, cellValues){
 }
 
 // 用于监听显示/隐藏状态改变
+let addORnot = false;
 watch(props.actorInScene, (newVal) => {
 	const { addActorsList, delActorsList, addWidgetsList, delWidgetsList } = actorShowStateUpdateFusion(newVal, fineTuneMode.value !== "normal");
 	actorInSceneAdjust(addActorsList, delActorsList);
@@ -2656,7 +2688,33 @@ watch(props.actorInScene, (newVal) => {
 	if(!newVal.lower && currentSelectBracketName.value.startsWith('L')){
 		exitSelection()
 	}
-	
+	let selectedTeethType = dentalArchAdjustType.value;
+	if(currentShowPanel.value == 1) {
+		// 隐藏状态
+		if ((!newVal.upper && selectedTeethType=="upper" && newVal.lower) || (!newVal.lower && selectedTeethType=="lower" && newVal.upper)) {
+			for (let i = 0; i < sphereLineWidgetHandle1.getRepresentations().length; i++) {
+				sphereLineWidgetHandle1.getRepresentations()[i].getActors()[0].getProperty().setOpacity(0);
+				sphereLineWidgetHandle2.getRepresentations()[i].getActors()[0].getProperty().setOpacity(0);
+				sphereLineWidgetHandle3.getRepresentations()[i].getActors()[0].getProperty().setOpacity(0);
+				sphereLineWidgetHandle4.getRepresentations()[i].getActors()[0].getProperty().setOpacity(0);
+			}
+			addORnot = true;
+			// store.dispatch("actorHandleState/updateSphereChangeFlag", 'add');
+		}
+		// 恢复状态
+		// const SphereChangeFlag = store.state.actorHandleState.SphereChangeFlag;
+		if (newVal.upper && newVal.lower && addORnot) {
+			addORnot = false;
+			// LineWidgetExpress(vtkContext, selectedTeethType)
+			for (let i = 0; i < sphereLineWidgetHandle1.getRepresentations().length; i++) {
+				sphereLineWidgetHandle1.getRepresentations()[i].getActors()[0].getProperty().setOpacity(1);
+				sphereLineWidgetHandle2.getRepresentations()[i].getActors()[0].getProperty().setOpacity(1);
+				sphereLineWidgetHandle3.getRepresentations()[i].getActors()[0].getProperty().setOpacity(1);
+				sphereLineWidgetHandle4.getRepresentations()[i].getActors()[0].getProperty().setOpacity(1);
+			}
+		}
+		// store.dispatch("actorHandleState/updateSphereChangeFlag", 'false');
+	}
 });
 
 let finishLoad = computed(() => {
@@ -4889,6 +4947,7 @@ watch(currentArrangeStep, (newVal) => {
 		// actor加入屏幕
 		adjustActorWhenSwitchSimMode("enter", clickEnter);
 		clickEnter=false;
+		
 		// 当前模式不是normal则在更新矩阵前先把所有数据转到normal(主要针对依赖点集,转换需要依赖旧矩阵)
 		if (forceUpdateAtMode !== "normal") {
 			applyUserMatrixWhenSwitchMode(forceUpdateAtMode, "normal", true);
@@ -4923,6 +4982,19 @@ watch(currentArrangeStep, (newVal) => {
 			upper: { reArrangeToInitState: false },
 			lower: { reArrangeToInitState: false },
 		});
+		const reArrangeDentalArch = store.state.actorHandleState.reArrangeDentalArch;
+		if (store.state.actorHandleState.teethArrangeFlag) {
+			for (let teethType of ["upper", "lower"]){
+				if (reArrangeDentalArch[teethType]) {
+					adjustDentalArchWidgetInScene("exit");
+					regenerateDentalArchWidget([teethType], firstGenerate);
+					adjustDentalArchWidgetInScene("enter");
+				}
+				store.dispatch("actorHandleState/updatereArrangeDentalArch", {
+					[teethType]: false,
+				});
+			}
+		}
 	}
 });
 // 退出模拟排牙
@@ -4984,23 +5056,24 @@ function slicedTeethArrangeDatas(toothPolyDatas) {
 	return SlicedTeethDatas
 }
 
-const firstUpdateFlag = computed(() => store.state.actorHandleState.firstUpdateFlag);
-watch(firstUpdateFlag, () => {
-	if (firstUpdateFlag.value && currentShowPanel.value === 1) {
-		const ToothBoxPoints = store.state.actorHandleState.toothBoxPoints;
-		if (ToothBoxPoints) {
-			JudgeSliceOrNot(ToothBoxPoints);
-			const JudgeSlice = store.state.actorHandleState.firstSliceFlag;
-			if (JudgeSlice) {
-				// // 重置box
-				// ResultSurrounding(toothPolyDatas);
-				forceUpdateArrange();
-				store.dispatch("actorHandleState/updateEnterAtInitTime", true);
-				store.dispatch("actorHandleState/updateFirstUpdateFlag", false);
-		}
-		}
-	}
-})
+// 1010修正
+// const firstUpdateFlag = computed(() => store.state.actorHandleState.firstUpdateFlag);
+// watch(firstUpdateFlag, () => {
+// 	if (firstUpdateFlag.value && currentShowPanel.value === 1) {
+// 		const ToothBoxPoints = store.state.actorHandleState.toothBoxPoints;
+// 		if (ToothBoxPoints) {
+// 			JudgeSliceOrNot(ToothBoxPoints);
+// 			const JudgeSlice = store.state.actorHandleState.firstSliceFlag;
+// 			if (JudgeSlice) {
+// 				// // 重置box
+// 				// ResultSurrounding(toothPolyDatas);
+// 				forceUpdateArrange();
+// 				store.dispatch("actorHandleState/updateEnterAtInitTime", true);
+// 				store.dispatch("actorHandleState/updateFirstUpdateFlag", false);
+// 		}
+// 		}
+// 	}
+// })
 
 function JudgeSliceOrNot(ToothBoxPoints) {
 	let isAnyPointNonZero;

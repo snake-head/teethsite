@@ -518,12 +518,14 @@ export default function(allActorList) {
                     !preActorInScene[teethType].arch
                 ) {
                     addActorsList.push(allActorList[teethType].arch.actor);
+                    // store.dispatch("actorHandleState/updateSphereChangeFlag", 'add');
                 }
                 if (
                     !curActorInScene[teethType].arch &&
                     preActorInScene[teethType].arch
                 ) {
                     delActorsList.push(allActorList[teethType].arch.actor);
+                    // store.dispatch("actorHandleState/updateSphereChangeFlag", 'del');
                 }
 
                 // 原始牙列

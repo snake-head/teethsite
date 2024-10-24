@@ -274,8 +274,47 @@ function updateTeethArrange() {
 		showAndHide();
 		firstUpdateFlag=false;
 	}
+	const ToothBoxPoints = store.state.actorHandleState.toothBoxPoints;
+	let JudgeSlice;
+	if (ToothBoxPoints) {
+		JudgeSlice = JudgeSliceOrNot(ToothBoxPoints)
+	}
+	else {
+		JudgeSlice = false;
+	}
+	console.log('Judge', JudgeSlice)
+	if (JudgeSlice) {
+		const updateObj = {}
+		arrangeTeethType.value.forEach((teethType)=>{
+			Object.assign(updateObj, {[teethType]: { reArrange: true }})
+		})	
+		Object.assign(updateObj, {clickFlag: true})
+		store.dispatch("actorHandleState/updateDentalArchAdjustRecord", updateObj);
+	}
+
 	// store.dispatch("actorHandleState/updateFirstUpdateFlag", true);
 }
+
+function JudgeSliceOrNot(ToothBoxPoints) {
+	let isAnyPointNonZero;
+	const pointsToCheck = ['Point0', 'Point1', 'Point2', 'Point3', 'Point4', 'Point5', 'Point6', 'Point7'];
+	
+	for (let i = 0; i < Object.keys(ToothBoxPoints).length; i++) {
+		const toothName = Object.keys(ToothBoxPoints)[i];
+
+		isAnyPointNonZero = pointsToCheck.some(point => {
+			const pointValue = ToothBoxPoints[toothName][point];
+			return pointValue[0] !== 0 || pointValue[1] !== 0 || pointValue[2] !== 0;
+		});
+		if (isAnyPointNonZero) {
+			break
+		}
+	}
+	store.dispatch("actorHandleState/updateFirstSliceFlag", isAnyPointNonZero);
+	// store.dispatch("actorHandleState/updateFirstUpdateFlag", false);
+	return isAnyPointNonZero
+}
+
 
 const canUserSaveAdjustRecord = computed(() => store.getters["actorHandleState/canUserSaveAdjustRecord"]);
 

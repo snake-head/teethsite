@@ -11,6 +11,7 @@ import { s as subtract, l as add, m as normalize, d as dot, x as multiplyScalar,
 import { getNumberOfPlacedHandles, isHandlePlaced, calculateTextPosition, updateTextPosition, getPoint } from './helpers.js';
 import Constants from '@kitware/vtk.js/Widgets/Widgets3D/LineWidget/Constants.js';
 import vtkMath from '@kitware/vtk.js/Common/Core/Math.js';
+import vtkMatrixBuilder from "@kitware/vtk.js/Common/Core/MatrixBuilder";
 
 
 function widgetBehavior(publicAPI, model) {
@@ -24,7 +25,7 @@ function widgetBehavior(publicAPI, model) {
   model.linkDirection1 = [0, 0, 0];
   model.linkDirection2 = [0, 0, 0];
   let radius = 0;
-  model.modifyLinkRatio = [0.1, 10]
+  model.modifyLinkRatio = [0.01, 10]
   let newcenter1 = null;
   let newcenter2 = null;
   
@@ -83,7 +84,7 @@ function widgetBehavior(publicAPI, model) {
 
   // 计算移动handle1后的更新的handle1和handle2
   function calChangedCoord1(worldCoords){
-    // console.log('##test', 'handle1');
+    // console.log('##Mouse', 'handle1');
     var worldVector = [];
     vtkMath.subtract(worldCoords, model.linkCenter, worldVector);
     var projvector = [];
@@ -193,9 +194,9 @@ function widgetBehavior(publicAPI, model) {
       model.previousPosition2 = newcenter2;
       const points = [newcenter1, newcenter2];
       jumpToTrans(selectedTeethType, points, name1, name2);
-      store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
-        reCalculateArch: true,
-      });
+      // store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
+      //   reCalculateArch: true,
+      // });
     }
     else if (model.activeState == centerHandle2) {
       model.lockActiveState = centerHandle2;
@@ -206,16 +207,17 @@ function widgetBehavior(publicAPI, model) {
       model.previousPosition2 = newcenter2;
       const points = [newcenter1, newcenter2];
       jumpToTrans(selectedTeethType, points, name1, name2);
-      store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
-        reCalculateArch: true,
-      });
+      // store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
+      //   reCalculateArch: true,
+      // });
     }
+    // 调整小球促进牙弓线重新计算
+    store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
+			reCalculateArch: true,
+		});
     updateSphere();
     
-    // 调整小球促进牙弓线重新计算
-    // store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
-		// 	reCalculateArch: true,
-		// });
+    
     return macro.VOID;
   };
 
@@ -235,32 +237,43 @@ function widgetBehavior(publicAPI, model) {
 
   function jumpToTrans(selectedTeethType, points, name1, name2){
     // 传出小球的调整后位置
+    const point1 = points['0'];
+    const point2 = points['1'];
+
+    // 24.10.23修改：小球拖动后的位置先反变换再存入center
+    const invMatrixRecord = store.state.actorHandleState.invMatrixRecord;
+    vtkMatrixBuilder
+				.buildFromDegree()
+				.setMatrix(invMatrixRecord)
+				.apply(point1)
+				.apply(point2);
+
     if (selectedTeethType=='upper'){
       if (name1=='D0' && name2=='D1') {
         store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
           [selectedTeethType]: {
-            centers: { D0: points[0], D1: points[1] },
+            centers: { D0: point1, D1: point2 },
           },
         });
       };
       if (name1=='UL2' && name2=='UR2'){
         store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
           [selectedTeethType]: {
-            centers: { UL2: points[0], UR2: points[1] },
+            centers: { UL2: point1, UR2: point2 },
           },
         });
       };
       if (name1=='UL5' && name2=='UR5'){
         store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
           [selectedTeethType]: {
-            centers: { UL5: points[0], UR5: points[1] },
+            centers: { UL5: point1, UR5: point2 },
           },
         });
       };
       if (name1=='UL7' && name2=='UR7'){
         store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
           [selectedTeethType]: {
-            centers: { UL7: points[0], UR7: points[1] },
+            centers: { UL7: point1, UR7: point2 },
           },
         });
       }
@@ -269,28 +282,28 @@ function widgetBehavior(publicAPI, model) {
       if (name1=='D0' && name2=='D1') {
         store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
           [selectedTeethType]: {
-            centers: { D0: points[0], D1: points[1] },
+            centers: { D0: point1, D1: point2 },
           },
         });
       };
       if (name1=='LL2' && name2=='LR2'){
         store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
           [selectedTeethType]: {
-            centers: { LL2: points[0], LR2: points[1] },
+            centers: { LL2: point1, LR2: point2 },
           },
         });
       };
       if (name1=='LL4' && name2=='LR4'){
         store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
           [selectedTeethType]: {
-            centers: { LL4: points[0], LR4: points[1] },
+            centers: { LL4: point1, LR4: point2 },
           },
         });
       };
       if (name1=='LL7' && name2=='LR7'){
         store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
           [selectedTeethType]: {
-            centers: { LL7: points[0], LR7: points[1] },
+            centers: { LL7: point1, LR7: point2 },
           },
         });
       }

@@ -32,7 +32,7 @@ function vtkLineHandleRepresentation(publicAPI, model) {
   model.displayActor = vtkActor.newInstance({
     parentProp: publicAPI
   });
-  // model.displayActor.getProperty().setOpacity(0); // don't show in 3D
+  model.displayActor.getProperty().setOpacity(0.4); // don't show in 3D
   model.displayActor.setMapper(model.displayMapper);
   model.displayMapper.setInputConnection(publicAPI.getOutputPort());
   publicAPI.addActor(model.displayActor);

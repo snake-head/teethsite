@@ -3,6 +3,7 @@ import vtkPoints from "@kitware/vtk.js/Common/Core/Points";
 import vtkLandmarkTransform from "@kitware/vtk.js/Common/Transform/LandmarkTransform";
 import { bracketNameList } from "../static_config";
 import { calculateRigidBodyTransMatrix } from "../utils/bracketFineTuneByTypedArray";
+import { useLink } from "vue-router";
 
 // 本文件专门用于各种userMatrix变换
 

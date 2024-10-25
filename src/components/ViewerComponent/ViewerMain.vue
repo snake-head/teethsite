@@ -384,6 +384,29 @@ watch(currentShowPanel, (newVal, oldVal) => {
 		AxisChangeOrNot(allActorList);
 		handleTeethActorDatasChange();
 	}
+	if (oldVal === 3 && newVal === 1) {
+		resetgenerateBoxToolTune(vtkContext, Tuneactor);
+		resetgenerateBoxTool(vtkContext, actors);
+		resetSurroundingBoxsPoints();
+		// store.dispatch("actorHandleState/updateBoxPositionAdjustMoveType", 'RESET')
+		// ResultSurrounding(toothPolyDatas);
+		vtkContext.renderWindow.render();
+		exitSelection()
+		AxisChangeOrNot(allActorList);
+		handleTeethActorDatasChange();
+
+		store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
+			upper: { reArrange: true },
+			clickFlag: true,
+		});
+		store.dispatch("actorHandleState/updateDentalArchAdjustRecord", {
+			lower: { reArrange: true },
+			clickFlag: true,
+		});
+		store.dispatch("actorHandleState/updateCurrentMode", {
+			fineTune: false,
+		});
+	}
 });
 function AxisChangeOrNot(allActorList) {
 	const SliceData = store.state.actorHandleState.SliceData;
